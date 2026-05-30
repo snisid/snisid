@@ -1,0 +1,38 @@
+{
+    "sync_logs": [
+        {
+            "action": "CREATE_RECORD",
+            "iui": "HT-SNISID-100002",
+            "temp_id": "HT-T-LEN-JEREMIE-1001",
+            "node_id": "LEN-JEREMIE"
+        },
+        {
+            "action": "MERGE_RECORD",
+            "iui": "HT-SNISID-100001",
+            "temp_id": "HT-T-LEN-JEREMIE-1002",
+            "node_id": "LEN-JEREMIE"
+        }
+    ],
+    "quarantine_db": [
+        {
+            "transaction": {
+                "payload": {
+                    "iui_temp": "HT-T-LEN-JEREMIE-1003",
+                    "last_name": "METELLUS",
+                    "first_name": "Pierre",
+                    "birth_date": "1965-12-01",
+                    "gender": "M",
+                    "birth_place": "Grand'Anse",
+                    "biometrics_hash": "wsq_hash_joseph_lubin",
+                    "enrolled_at": "2026-05-25T07:33:40.770747",
+                    "node_id": "LEN-JEREMIE"
+                },
+                "signature": "95bad1ac358c70e83c175eae4f9e08c663f763e0c6cdad4b99003d0e76c46ef3",
+                "hash": "a9c57c3f949160b3fb7771645fbad636be6ba869b517bfb13e4eca2ea41de0fb"
+            },
+            "reason": "Biometric Identity Hijacking / Usurpation Detected",
+            "conflict_with_iui": "HT-SNISID-100001"
+        }
+    ],
+    "central_citizens_count": 2
+}

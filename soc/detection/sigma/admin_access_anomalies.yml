@@ -1,0 +1,29 @@
+title: Accès Administrateur Anormal (Hors Réseau de Gestion)
+id: 11b0e014-5d51-4e78-9005-592d37c862bc
+status: experimental
+description: Detects successful authentication to critical infrastructure (Vault, K8s API, ArgoCD) from an IP address outside the authorized management subnets.
+references:
+    - https://attack.mitre.org/techniques/T1078/
+author: SNISID SOC Team
+date: 2026/05/23
+tags:
+    - attack.initial_access
+    - attack.t1078
+logsource:
+    category: authentication
+    product: infrastructure
+detection:
+    selection_target:
+        service_name:
+            - 'vault'
+            - 'kubernetes_api'
+            - 'argocd'
+        action: 'login_success'
+    filter_management_ips:
+        client_ip|cidr:
+            - '10.100.0.0/16'   # SOC Management Subnet
+            - '192.168.20.0/24' # Admin VPN
+    condition: selection_target and not filter_management_ips
+falsepositives:
+    - Emergency break-glass access (requires immediate verification).
+level: critical

@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package nexus.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/snisid/platform/api/proto/nexus/v1;nexusv1";
+
+// TaskPriority defines the urgency of a task.
+enum TaskPriority {
+  TASK_PRIORITY_UNSPECIFIED = 0;
+  TASK_PRIORITY_LOW = 1;
+  TASK_PRIORITY_MEDIUM = 2;
+  TASK_PRIORITY_HIGH = 3;
+  TASK_PRIORITY_CRITICAL = 4;
+}
+
+// TaskStatus defines the lifecycle state of a task.
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_PENDING = 1;
+  TASK_STATUS_QUEUED = 2;
+  TASK_STATUS_RUNNING = 3;
+  TASK_STATUS_COMPLETED = 4;
+  TASK_STATUS_FAILED = 5;
+  TASK_STATUS_RETRYING = 6;
+  TASK_STATUS_CANCELLED = 7;
+}
+
+// TaskDefinition defines a distributed task handled by the Nexus kernel.
+message TaskDefinition {
+  string id = 1;
+  string type = 2;
+  TaskPriority priority = 3;
+  bytes payload = 4;
+  map<string, string> metadata = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Duration timeout = 7;
+  int32 max_retries = 8;
+}
+
+// WorkflowState tracks the lifecycle of a complex multi-step orchestration.
+message WorkflowState {
+  string workflow_id = 1;
+  string status = 2;
+  repeated string completed_steps = 3;
+  string current_step = 4;
+  google.protobuf.Timestamp last_updated = 5;
+  map<string, string> context = 6;
+}
+
+// AgentSignal is a real-time message from a Kai execution agent.
+message AgentSignal {
+  string agent_id = 1;
+  string task_id = 2;
+  TaskStatus status = 3;
+  string message = 4;
+  google.protobuf.Any result = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// NexusCommand is a control message for the kernel.
+message NexusCommand {
+  string command_id = 1;
+  string action = 2;
+  map<string, string> params = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+service NexusService {
+  rpc SubmitTask(TaskDefinition) returns (TaskResponse);
+  rpc GetTaskStatus(TaskRequest) returns (TaskStatusUpdate);
+  rpc StreamAgentSignals(stream AgentSignal) returns (stream NexusCommand);
+  rpc GetWorkflowStatus(WorkflowRequest) returns (WorkflowState);
+}
+
+message TaskResponse {
+  string task_id = 1;
+  bool accepted = 2;
+  string message = 3;
+}
+
+message TaskRequest {
+  string task_id = 1;
+}
+
+message TaskStatusUpdate {
+  string task_id = 1;
+  TaskStatus status = 2;
+  string error = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message WorkflowRequest {
+  string workflow_id = 1;
+}

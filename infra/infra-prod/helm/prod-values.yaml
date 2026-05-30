@@ -1,0 +1,28 @@
+# kafka/values-prod.yaml
+replicaCount: 3
+
+resources:
+  requests:
+    memory: "16Gi"
+    cpu: "4"
+  limits:
+    memory: "32Gi"
+    cpu: "8"
+
+persistence:
+  enabled: true
+  size: 2Ti
+
+# soc-engine/values-prod.yaml
+soc:
+  replicaCount: 3
+  env:
+    KAFKA_BROKER: "kafka:9092"
+    NEO4J_URI: "bolt://neo4j:7687"
+    LOG_LEVEL: "info"
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70

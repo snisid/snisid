@@ -1,0 +1,144 @@
+# SNISID — Falco Rules : Runtime Detection Nationale
+# Classification: SECRET
+# Application: Tous les clusters (Core, Identity, Data, BPMN, Cyber, Obs, Edge)
+# Update: Rules verrouillées — modification uniquement par PR + validation SOC
+
+- rule: SNISID Unauthorized Shell in Container
+  desc: Détection d'un shell exécuté dans un conteneur SNISID. Interdit sauf debug pods labellisés.
+  condition: >
+    spawned_process and
+    container and
+    (shell_procs or ssh_procs) and
+    not (k8s.ns.name in ("kube-system", "istio-system", "argocd")) and
+    not (k8s.pod.labels.snisid.gov.debug-access == "true")
+  output: >
+    SNISID ALERT: Shell non autorisé détecté
+    user=%user.name command=%proc.cmdline
+    container=%container.name namespace=%k8s.ns.name pod=%k8s.pod.name
+    labels=%k8s.pod.labels image=%container.image.repository
+  priority: CRITICAL
+  tags: [snisid, runtime, shell, tier-0, tier-1]
+
+- rule: SNISID Privilege Escalation Detected
+  desc: Détection de sudo, setuid, ou capabilities escalation dans workloads nationaux.
+  condition: >
+    spawned_process and
+    container and
+    (proc.name in ("sudo", "su", "setuid", "pkexec")) and
+    not (k8s.ns.name in ("kube-system", "istio-system"))
+  output: >
+    SNISID ALERT: Escalade de privilèges détectée
+    user=%user.name command=%proc.cmdline
+    container=%container.name namespace=%k8s.ns.name pod=%k8s.pod.name
+    parent=%proc.pname uid=%user.uid
+  priority: CRITICAL
+  tags: [snisid, runtime, privilege_escalation, cis]
+
+- rule: SNISID Sensitive File Access
+  desc: Accès aux fichiers sensibles nationaux (/etc/shadow, HSM paths, Vault data, credentials K8s)
+  condition: >
+    open_read or open_write and
+    container and
+    (fd.name contains "/etc/shadow" or
+     fd.name contains "/vault/data" or
+     fd.name contains "/etc/kubernetes/pki" or
+     fd.name contains "/var/lib/etcd" or
+     fd.name contains "/etc/containerd" or
+     fd.name contains "/usr/lib/libCryptoki2" or
+     fd.name contains "/etc/snsec/")
+  output: >
+    SNISID ALERT: Accès fichier sensible national
+    user=%user.name file=%fd.name command=%proc.cmdline
+    container=%container.name namespace=%k8s.ns.name pod=%k8s.pod.name
+    mode=%evt.type
+  priority: CRITICAL
+  tags: [snisid, runtime, data_exfiltration, sensitive_file]
+
+- rule: SNISID Unexpected Outbound Connection from Tier-0
+  desc: Toute connexion sortante depuis Tier-0 est suspecte (Zero Trust)
+  condition: >
+    outbound and
+    container and
+    (k8s.pod.labels.snisid.gov.tier in ("tier-0")) and
+    not (fd.sip in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8")) and
+    not (fd.sport in (53, 123, 443)) and
+    not (k8s.pod.labels.snisid.gov.egress-allowed == "true")
+  output: >
+    SNISID ALERT: Connexion sortante inattendue depuis Tier-0
+    user=%user.name command=%proc.cmdline
+    container=%container.name namespace=%k8s.ns.name pod=%k8s.pod.name
+    connection=%fd.name src=%fd.sip dst=%fd.dip
+  priority: EMERGENCY
+  tags: [snisid, runtime, c2, network, tier-0, zero-trust]
+
+- rule: SNISID Binary Modified at Runtime
+  desc: Modification d'un binaire en cours d'exécution — signe d'infection possible
+  condition: >
+    spawned_process and
+    container and
+    (evt.type in ("execve", "execveat")) and
+    (proc.name in ("dd", "cp", "mv", "sed", "awk", "python", "perl", "ruby")) and
+    (proc.args contains "/proc/" or proc.args contains "/usr/local/bin/" or proc.args contains "/usr/bin/")
+  output: >
+    SNISID ALERT: Binaire potentiellement modifié à runtime
+    user=%user.name command=%proc.cmdline
+    container=%container.name namespace=%k8s.ns.name pod=%k8s.pod.name
+    args=%proc.args
+  priority: CRITICAL
+  tags: [snisid, runtime, malware, binary_tampering]
+
+- rule: SNISID Kubernetes Secret Access from Non-Authorized Pod
+  desc: Accès aux secrets K8s depuis un pod non autorisé (token projection ou accès direct API)
+  condition: >
+    open_read and
+    container and
+    (fd.name contains "/var/run/secrets/kubernetes.io/serviceaccount/token") and
+    not (k8s.pod.labels.snisid.gov.service in ("vault", "cert-manager", "external-secrets"))
+  output: >
+    SNISID ALERT: Token K8s lu par pod non autorisé
+    user=%user.name file=%fd.name command=%proc.cmdline
+    container=%container.name namespace=%k8s.ns.name pod=%k8s.pod.name
+  priority: HIGH
+  tags: [snisid, runtime, kubernetes, secret_access]
+
+- rule: SNISID SSH Connection Inside Container
+  desc: Connexion SSH initiée depuis un conteneur — fortement suspect
+  condition: >
+    spawned_process and
+    container and
+    (proc.name = "ssh" or proc.name = "sshd" or proc.name = "scp")
+  output: >
+    SNISID ALERT: Activité SSH dans un conteneur
+    user=%user.name command=%proc.cmdline
+    container=%container.name namespace=%k8s.ns.name pod=%k8s.pod.name
+    parent=%proc.pname
+  priority: CRITICAL
+  tags: [snisid, runtime, lateral_movement, ssh]
+
+- rule: SNISID Database Dump Detected
+  desc: Commandes ressemblant à un dump de base de données depuis un pod non-database
+  condition: >
+    spawned_process and
+    container and
+    (proc.name in ("pg_dump", "mysqldump", "mongodump", "redis-cli")) and
+    not (k8s.pod.labels.snisid.gov.service in ("backup", "database"))
+  output: >
+    SNISID ALERT: Potentiel dump de base de données détecté
+    user=%user.name command=%proc.cmdline
+    container=%container.name namespace=%k8s.ns.name pod=%k8s.pod.name
+  priority: CRITICAL
+  tags: [snisid, runtime, data_exfiltration, database]
+
+- rule: SNISID Process Masquerading
+  desc: Un processus tente de se faire passer pour un autre (argv0 modifié, liens symboliques suspects)
+  condition: >
+    spawned_process and
+    (proc.name != proc.exepath) and
+    (proc.name in ("bash", "sh", "python", "python3", "perl", "ruby"))
+  output: >
+    SNISID ALERT: Masquage de processus détecté
+    real=%proc.exepath displayed=%proc.name
+    command=%proc.cmdline container=%container.name
+    namespace=%k8s.ns.name pod=%k8s.pod.name
+  priority: HIGH
+  tags: [snisid, runtime, masquerading, evasion]

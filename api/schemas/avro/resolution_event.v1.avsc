@@ -1,0 +1,36 @@
+{
+  "namespace": "snisid.identity.v1",
+  "type": "record",
+  "name": "ResolutionEvent",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "operationType", "type": "string"},
+    {"name": "primaryIdentityId", "type": "string"},
+    {
+      "name": "secondaryIdentityIds",
+      "type": {
+        "type": "array",
+        "items": "string"
+      }
+    },
+    {
+      "name": "arbitrationEvidence",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    },
+    {"name": "reason", "type": "string"}
+  ]
+}

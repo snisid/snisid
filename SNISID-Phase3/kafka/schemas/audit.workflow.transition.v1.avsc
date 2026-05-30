@@ -1,0 +1,28 @@
+{
+  "namespace": "ht.gouv.snisid.audit",
+  "name": "AuditWorkflowTransitionV1",
+  "type": "record",
+  "fields": [
+    {"name": "eventId", "type": "string"},
+    {"name": "eventType", "type": "string", "default": "audit.workflow.transition.v1"},
+    {"name": "occurredAt", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "workflowId", "type": "string"},
+    {"name": "workflowVersion", "type": "string"},
+    {"name": "workflowInstanceId", "type": "string"},
+    {"name": "fromState", "type": ["null","string"], "default": null},
+    {"name": "toState", "type": "string"},
+    {"name": "actor", "type": {
+      "type": "record", "name": "Actor",
+      "fields": [
+        {"name": "type", "type": {"type": "enum","name":"ActorType","symbols":["USER","SYSTEM","SCHEDULER"]}},
+        {"name": "id", "type": "string"},
+        {"name": "groups", "type": {"type":"array","items":"string"}}
+      ]
+    }},
+    {"name": "payloadHash", "type": "string"},
+    {"name": "prevHash", "type": ["null","string"], "default": null},
+    {"name": "signature", "type": "string"},
+    {"name": "tsa", "type": "string"},
+    {"name": "schemaVersion","type": "string", "default": "1.0.0"}
+  ]
+}

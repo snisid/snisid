@@ -1,0 +1,54 @@
+apiVersion: 1
+datasources:
+
+  - name: Prometheus
+    type: prometheus
+    uid: prom-snisid
+    access: proxy
+    url: https://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+      manageAlerts: true
+      alertmanagerUid: am-snisid
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: tempo-snisid
+
+  - name: Alertmanager
+    type: alertmanager
+    uid: am-snisid
+    access: proxy
+    url: https://alertmanager:9093
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: false
+
+  - name: Loki
+    type: loki
+    uid: loki-snisid
+    access: proxy
+    url: https://loki:3100
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - name: TraceID
+          matcherRegex: '"traceId":"(\w+)"'
+          url: '$${__value.raw}'
+          datasourceUid: tempo-snisid
+
+  - name: Tempo
+    type: tempo
+    uid: tempo-snisid
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki-snisid
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        tags: ['workflow.id', 'workflow.instance.id']
+      serviceMap:
+        datasourceUid: prom-snisid
+      lokiSearch:
+        datasourceUid: loki-snisid

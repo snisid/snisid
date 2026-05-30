@@ -1,0 +1,26 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: snisid-mirror-maker
+  namespace: snisid
+spec:
+  version: 3.6.0
+  connectCluster: "dr-cluster"
+  clusters:
+    - alias: "primary"
+      bootstrapServers: "kafka-primary:9092"
+    - alias: "dr-cluster"
+      bootstrapServers: "kafka-dr:9092"
+  mirrors:
+    - sourceCluster: "primary"
+      targetCluster: "dr-cluster"
+      sourceConnector:
+        config:
+          replication.factor: 3
+          offset-syncs.topic.replication.factor: 3
+          sync.topic.acls.enabled: "false"
+      checkpointConnector:
+        config:
+          checkpoints.topic.replication.factor: 3
+      topicsPattern: "identity.*|fraud.*|alert.*"
+      groupsPattern: ".*"

@@ -1,0 +1,24 @@
+# Cilium / Istio PeerAuthentication Policy
+# Enforces STRICT mTLS for all services within the interop gateway namespace
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-strict-mtls
+  namespace: snisid-interop
+spec:
+  mtls:
+    mode: STRICT
+---
+# AuthorizationPolicy explicitly requiring valid agency client certificates
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: require-agency-cert
+  namespace: snisid-interop
+spec:
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        # The incoming certificate MUST have an Organizational Unit (OU) mapping to an authorized agency
+        principals: ["cluster.local/ns/snisid-ingress/sa/kong", "snisid-pki/O=Government/OU=PoliceNationale", "snisid-pki/O=Government/OU=DGI"]

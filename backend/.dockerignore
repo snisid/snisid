@@ -1,0 +1,31 @@
+# Ignore virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Ignore byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore IDE configs
+.vscode/
+.idea/
+
+# Ignore build artifacts
+build/
+dist/
+*.egg-info/
+
+# Ignore local testing databases/logs
+*.sqlite3
+*.log
+
+# Ignore security keys/secrets explicitly
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json

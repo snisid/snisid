@@ -1,0 +1,256 @@
+# SNISID Core — Valeurs par défaut (JAMAIS utilisées en prod directement)
+# Prod : values-core-prod.yaml | DR : values-dr-prod.yaml | Edge : values-edge.yaml
+
+replicaCount: 3
+
+image:
+  registry: registry.interne.snisid.gouv.local
+  repository: snisid/core-api
+  tag: "v2026.05.25-stable"
+  pullPolicy: IfNotPresent
+  digest: ""  # Sera surchargé en prod par digest SHA256
+
+imagePullSecrets:
+  - name: snisid-registry-creds
+
+nameOverride: ""
+fullnameOverride: "snisid-core-api"
+
+serviceAccount:
+  create: true
+  annotations:
+    snisid.gov/service: core-api
+    snisid.gov/tier: tier-1
+  name: "snisid-core-api-sa"
+  automountServiceAccountToken: false  # Pas de token K8s monté sauf si nécessaire
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/role: "snisid-core-api"
+  vault.hashicorp.com/agent-pre-populate-only: "true"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 65534
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  name: http-api
+
+istio:
+  enabled: true
+  gateway:
+    selector:
+      istio: ingressgateway
+  virtualService:
+    enabled: true
+    hosts:
+      - "api.national.snisid.gouv.local"
+    gateways:
+      - snisid-national-ingress
+    http:
+      - match:
+          - uri:
+              prefix: "/api/v1/"
+        route:
+          - destination:
+              host: snisid-core-api
+              port:
+                number: 8080
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+      selectPolicy: Max
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: snisid-core
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: snisid-core
+
+nodeSelector:
+  snisid.gov/tier: tier-1
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - snisid-core
+          topologyKey: kubernetes.io/hostname
+
+env:
+  - name: SNISID_REGION
+    value: "core"
+  - name: SNISID_TIER
+    value: "tier-1"
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "http://snisid-otel-collector.snisid-obs.svc.cluster.local:4317"
+  - name: LOG_FORMAT
+    value: "json"
+
+extraEnvFrom: []
+
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /health/startup
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 30
+
+# Persistance temporaire uniquement (pas de données métier ici)
+volumes:
+  - name: tmp
+    emptyDir:
+      sizeLimit: 100Mi
+  - name: cache
+    emptyDir:
+      sizeLimit: 500Mi
+
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp
+  - name: cache
+    mountPath: /var/cache
+
+# NetworkPolicy Cilium — complément Istio (deny all + allow ingress gateway + intra-namespace)
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              k8s:io.kubernetes.pod.namespace: istio-system
+        - podSelector:
+            matchLabels:
+              istio.io/gateway-name: snisid-national-ingress
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              k8s:io.kubernetes.pod.namespace: snisid-obs
+        - podSelector:
+            matchLabels:
+              snisid.gov/service: prometheus
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              k8s:io.kubernetes.pod.namespace: snisid-identity
+      ports:
+        - protocol: TCP
+          port: 8200
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              k8s:io.kubernetes.pod.namespace: snisid-data
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 9093
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              k8s:io.kubernetes.pod.namespace: snisid-obs
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+
+# Dépendances
+postgresql:
+  enabled: false
+
+redis:
+  enabled: false

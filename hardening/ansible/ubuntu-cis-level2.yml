@@ -1,0 +1,82 @@
+---
+- name: Apply CIS Benchmark Level 2 to Ubuntu 22.04 Nodes
+  hosts: all
+  become: yes
+  vars:
+    cis_level_2_enabled: true
+  
+  tasks:
+    # 1. Disable unused filesystems to prevent mounting malicious binaries
+    - name: CIS 1.1.1 - Disable unused filesystems
+      modprobe:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - cramfs
+        - freevxfs
+        - jffs2
+        - hfs
+        - hfsplus
+        - squashfs
+        - udf
+        - vfat
+
+    # 2. Configure AppArmor
+    - name: CIS 1.6 - Ensure AppArmor is installed and enabled
+      apt:
+        name: apparmor
+        state: present
+    - name: Ensure AppArmor is active
+      service:
+        name: apparmor
+        state: started
+        enabled: yes
+
+    # 3. Secure Boot Settings
+    - name: CIS 1.4 - Ensure permissions on bootloader config are configured
+      file:
+        path: /boot/grub/grub.cfg
+        owner: root
+        group: root
+        mode: '0400'
+
+    # 4. Remove Legacy Services
+    - name: CIS 2.1 - Ensure legacy services are not installed
+      apt:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - xinetd
+        - openbsd-inetd
+        - rsh-client
+        - talk
+        - telnet
+        - ldap-utils
+
+    # 5. Network Firewall (UFW)
+    - name: CIS 3.5 - Ensure UFW is installed
+      apt:
+        name: ufw
+        state: present
+    - name: Ensure UFW is active and enabled on boot
+      ufw:
+        state: enabled
+        policy: deny # Implicit Deny globally
+        direction: incoming
+
+    - name: Allow SSH on Custom Port
+      ufw:
+        rule: allow
+        port: "2222"
+        proto: tcp
+
+    # 6. Apply Sysctl Hardening
+    - name: Copy sysctl hardening parameters
+      copy:
+        src: ../os/sysctl-hardening.conf
+        dest: /etc/sysctl.d/99-snisid-hardening.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Reload sysctl
+      command: sysctl --system

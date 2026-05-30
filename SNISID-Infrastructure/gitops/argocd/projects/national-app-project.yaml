@@ -1,0 +1,101 @@
+# SNISID — ArgoCD : National Application Project
+# Classification: SECRET
+# Scope: Déploiement des workloads SNISID nationaux
+# Règle: Aucun déploiement manuel. Tout passe par GitOps.
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: snisid-national
+  namespace: argocd
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.owner: "infrastructure-nationale"
+spec:
+  description: "Projet national pour tous les déploiements SNISID"
+  sourceRepos:
+    - "https://git.interne.snisid.gouv.local/infrastructure/national.git"
+    - "https://git.interne.snisid.gouv.local/applications/national.git"
+  destinations:
+    - namespace: "snisid-core"
+      server: "https://kubernetes.default.svc"
+    - namespace: "snisid-identity"
+      server: "https://kubernetes.default.svc"
+    - namespace: "snisid-bpmn"
+      server: "https://kubernetes.default.svc"
+    - namespace: "snisid-data"
+      server: "https://kubernetes.default.svc"
+    - namespace: "snisid-cyber"
+      server: "https://kubernetes.default.svc"
+    - namespace: "snisid-obs"
+      server: "https://kubernetes.default.svc"
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRole
+    - group: "rbac.authorization.k8s.io"
+      kind: ClusterRoleBinding
+    - group: "kyverno.io"
+      kind: ClusterPolicy
+    - group: "cilium.io"
+      kind: CiliumClusterwideNetworkPolicy
+    - group: "cilium.io"
+      kind: CiliumNetworkPolicy
+  namespaceResourceWhitelist:
+    - group: "apps"
+      kind: Deployment
+    - group: "apps"
+      kind: StatefulSet
+    - group: "apps"
+      kind: DaemonSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: "networking.k8s.io"
+      kind: NetworkPolicy
+    - group: "security.istio.io"
+      kind: PeerAuthentication
+    - group: "security.istio.io"
+      kind: AuthorizationPolicy
+    - group: "autoscaling"
+      kind: HorizontalPodAutoscaler
+    - group: "policy"
+      kind: PodDisruptionBudget
+    - group: "external-secrets.io"
+      kind: ExternalSecret
+  orphanedResources:
+    warn: true
+  syncWindows:
+    # Fenêtre maintenance nationale : mises à jour critiques uniquement
+    - kind: allow
+      schedule: "0 2 * * 0"   # Dimanche 02h00
+      duration: 4h
+      namespaces:
+        - "snisid-core"
+        - "snisid-identity"
+        - "snisid-bpmn"
+    # Interdiction totale des syncs pendant les drills DR
+    - kind: deny
+      schedule: "0 0 * * 1L"  # Dernier lundi du mois (DR drill day)
+      duration: 24h
+      namespaces:
+        - "*"
+  roles:
+    - name: admin
+      description: "Administrateurs infrastructure nationale"
+      policies:
+        - p, proj:snisid-national:admin, applications, *, snisid-national/*, allow
+      groups:
+        - "snisid:infra-admins"
+        - "snisid:soc-leads"
+    - name: readonly
+      description: "Lecture seule SOC et observabilité"
+      policies:
+        - p, proj:snisid-national:readonly, applications, get, snisid-national/*, allow
+      groups:
+        - "snisid:soc-analysts"
+        - "snisid:auditors"

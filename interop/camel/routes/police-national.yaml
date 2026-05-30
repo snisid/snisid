@@ -1,0 +1,28 @@
+- route:
+    id: police-national-route
+    from:
+      uri: "platform-http:/police/verify-identity"
+      steps:
+        # 1. Log incoming request for SOC audit
+        - to: "log:info?showHeaders=true"
+        
+        # 2. Extract JWS Signature and Verify
+        # In Camel K, we can route to a custom processor or use generic cryptography components
+        - process:
+            ref: "jwsVerificationProcessor"
+            
+        # 3. Check Authorization (mocked explicit check, usually handled by Gateway)
+        - choice:
+            when:
+              - simple: "${header.Authorization} contains 'Bearer'"
+            otherwise:
+              - throwException:
+                  exceptionType: "java.lang.SecurityException"
+                  message: "Missing Authorization Token"
+                  
+        # 4. Route to internal SNISID Identity service
+        - to: "http://snisid-backend.snisid-core.svc.cluster.local:8000/api/v1/identity/verify?bridgeEndpoint=true"
+        
+        # 5. Sign the response back to the Police
+        - process:
+            ref: "jwsSigningProcessor"

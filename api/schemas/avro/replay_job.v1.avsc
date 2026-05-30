@@ -1,0 +1,32 @@
+{
+  "namespace": "snisid.infra.v1",
+  "type": "record",
+  "name": "ReplayJob",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "jobId", "type": "string"},
+    {"name": "status", "type": "string"},
+    {"name": "sourceTopic", "type": "string"},
+    {"name": "startTime", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "endTime", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "processedCount", "type": "long"},
+    {
+      "name": "filters",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ]
+}

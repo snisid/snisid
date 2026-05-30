@@ -1,0 +1,187 @@
+# SNISID — Cilium Clusterwide NetworkPolicies
+# Classification: SECRET
+# Default: DENY ALL. Toute communication doit être explicitement autorisée.
+# Note: Complemente Istio AuthorizationPolicy (L7) avec enforcement L3-L4.
+
+# ───────────────────────────────────────────────
+# 1. Deny all ingress/egress par défaut (baseline)
+# ───────────────────────────────────────────────
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: snisid-default-deny-all
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.service: "network-security"
+spec:
+  endpointSelector: {}
+  ingressDeny:
+    - {}
+  egressDeny:
+    - {}
+---
+# ───────────────────────────────────────────────
+# 2. Allow DNS CoreDNS (requiert egress vers kube-system)
+# ───────────────────────────────────────────────
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: snisid-allow-dns
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*.snisid.gouv.local"
+              - matchPattern: "*.svc.cluster.local"
+              - matchPattern: "*.rook-ceph.svc.cluster.local"
+---
+# ───────────────────────────────────────────────
+# 3. Tier-0 : Identity/Vault — communications extrêmement restrictives
+# ───────────────────────────────────────────────
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: snisid-tier0-allow-identity
+spec:
+  endpointSelector:
+    matchLabels:
+      snisid.gov.tier: tier-0
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            snisid.gov.tier: tier-1
+            snisid.gov.service: core-api
+      toPorts:
+        - ports:
+            - port: "8200"
+              protocol: TCP
+          rules:
+            http:
+              - method: "POST"
+                path: "/v1/auth/.*"
+              - method: "POST"
+                path: "/v1/secret/.*"
+              - method: "GET"
+                path: "/v1/secret/.*"
+              - method: "POST"
+                path: "/v1/pki/.*"
+    - fromEndpoints:
+        - matchLabels:
+            snisid.gov.tier: tier-0
+            snisid.gov.service: vault
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+    - toEndpoints:
+        - matchLabels:
+            snisid.gov.tier: tier-0
+            snisid.gov.service: vault
+      toPorts:
+        - ports:
+            - port: "8200"
+              protocol: TCP
+            - port: "8201"
+              protocol: TCP
+    # HSM Thales Luna 7 (PKCS#11) — IPs fixes, pas de DNS
+    - toCIDR:
+        - 10.1.0.10/32
+      toPorts:
+        - ports:
+            - port: "1792"
+              protocol: TCP
+---
+# ───────────────────────────────────────────────
+# 4. Observability : allow Prometheus scrape from obs namespace
+# ───────────────────────────────────────────────
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: snisid-allow-metrics-scrape
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: snisid-obs
+            snisid.gov.service: prometheus
+      toPorts:
+        - ports:
+            - port: "9090"
+              protocol: TCP
+            - port: "9100"
+              protocol: TCP
+            - port: "10250"
+              protocol: TCP
+---
+# ───────────────────────────────────────────────
+# 5. Edge nodes : allow sync vers Kafka Core
+# ───────────────────────────────────────────────
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: snisid-edge-sync-kafka
+spec:
+  endpointSelector:
+    matchLabels:
+      snisid.gov.tier: tier-4
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            snisid.gov.tier: tier-1
+            snisid.gov.service: kafka
+      toPorts:
+        - ports:
+            - port: "9093"
+              protocol: TCP  # TLS Kafka
+    # CoreDNS pour résolution services nationaux
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+---
+# ───────────────────────────────────────────────
+# 6. Management/Bastion : SSH jump uniquement
+# ───────────────────────────────────────────────
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: snisid-management-access
+spec:
+  endpointSelector:
+    matchLabels:
+      snisid.gov.role: bastion
+  ingress:
+    - fromCIDR:
+        - 10.0.0.0/24  # Management LAN
+      toPorts:
+        - ports:
+            - port: "22"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            snisid.gov.tier: tier-0
+      toPorts:
+        - ports:
+            - port: "22"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            snisid.gov.tier: tier-1
+      toPorts:
+        - ports:
+            - port: "22"
+              protocol: TCP

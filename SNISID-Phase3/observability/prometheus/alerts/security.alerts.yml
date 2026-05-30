@@ -1,0 +1,32 @@
+groups:
+  - name: snisid.security
+    rules:
+
+      - alert: AuthFailuresSpike
+        expr: rate(snisid_auth_failed_total[5m]) > 5
+        for: 5m
+        labels: { severity: sev2, team: cyber }
+        annotations:
+          summary: "🔐 Pic d'échecs d'authentification : {{ $value }}/s"
+
+      - alert: PolicyViolationsSpike
+        expr: rate(snisid_policy_violations_total[5m]) > 1
+        for: 5m
+        labels: { severity: sev2, team: cyber }
+        annotations:
+          summary: "🛡 Violations OPA détectées sur {{ $labels.service }}"
+
+      - alert: DeniedAccessSensitive
+        expr: rate(snisid_audit_data_access_total{action="DENIED",sensitivity="HIGH"}[5m]) > 1
+        for: 5m
+        labels: { severity: sev1, team: cyber }
+        annotations:
+          summary: "🚨 Accès refusés répétés sur données sensibles"
+
+      - alert: AuditChainBrokenSuspected
+        expr: rate(snisid_audit_chain_broken_total[5m]) > 0
+        for: 1m
+        labels: { severity: sev0, team: cyber, page: 'true' }
+        annotations:
+          summary: "💥 Chaîne d'audit suspectée brisée — POSSIBLE TAMPERING"
+          description: "Investigation immédiate. Notifier WGO + Procureur."

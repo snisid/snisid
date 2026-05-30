@@ -1,0 +1,28 @@
+title: Tentative d'Injection SQL / API Abuse
+id: f45674c2-9e12-4c2f-b4b3-9cd35e4fc7b2
+status: experimental
+description: Detects SQL injection payloads in HTTP requests or excessive 429 Too Many Requests responses.
+references:
+    - https://attack.mitre.org/techniques/T1190/
+author: SNISID SOC Team
+date: 2026/05/23
+tags:
+    - attack.initial_access
+    - attack.t1190
+logsource:
+    category: webserver
+    product: nginx
+detection:
+    selection_sqli:
+        request_url|contains:
+            - 'UNION SELECT'
+            - 'OR 1=1'
+            - 'WAITFOR DELAY'
+            - 'pg_sleep('
+    selection_abuse:
+        status_code: 429
+    timeframe: 1m
+    condition: selection_sqli or (selection_abuse | count() > 100)
+falsepositives:
+    - Security scanning tool (DAST) execution (ZAP).
+level: high

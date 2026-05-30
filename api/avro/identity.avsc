@@ -1,0 +1,40 @@
+{
+  "type": "record",
+  "name": "IdentityEvent",
+  "namespace": "gov.snisid.identity.v1",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique identifier for the event"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Unix timestamp of the event"
+    },
+    {
+      "name": "subject_id",
+      "type": "string",
+      "doc": "The citizen or entity identifier"
+    },
+    {
+      "name": "action",
+      "type": "string",
+      "doc": "The action performed (CREATE, UPDATE, VERIFY)"
+    },
+    {
+      "name": "risk_vector",
+      "type": {
+        "type": "map",
+        "values": "float"
+      },
+      "doc": "Risk scores from multiple engines"
+    },
+    {
+      "name": "provenance",
+      "type": "string",
+      "doc": "Source agency or system identifier"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "document": "SNISID Legal Governance Portfolio",
+  "version": "1.0.0",
+  "laws_to_create": [
+    {
+      "name": "Digital Identity Law",
+      "objective": "Identité numérique nationale",
+      "must_define": ["autorité responsable", "preuve d'identité", "droits citoyens", "sanctions fraude", "audit obligatoire"]
+    },
+    {
+      "name": "Biometric Governance Law",
+      "objective": "Biométrie",
+      "must_define": ["finalités autorisées", "minimisation", "stockage sécurisé", "accès restreint", "sanctions abus"]
+    },
+    {
+      "name": "PKI Law",
+      "objective": "Signature numérique et confiance",
+      "must_define": ["validité juridique signature", "responsabilité CA", "révocation", "cérémonies de clés", "preuve cryptographique"]
+    },
+    {
+      "name": "Data Protection Law",
+      "objective": "Confidentialité et données personnelles",
+      "must_define": ["droits des personnes", "rétention", "base légale", "notification violation", "sanctions"]
+    },
+    {
+      "name": "Interoperability Law",
+      "objective": "Échange de données inter-agences",
+      "must_define": ["standards obligatoires", "API autorisées", "traçabilité", "limitation finalité", "arbitrage conflits"]
+    },
+    {
+      "name": "Cybersecurity Law",
+      "objective": "Défense cyber nationale",
+      "must_define": ["SOC/CERT", "incident reporting", "shutdown authority", "forensic authority", "obligations sécurité"]
+    },
+    {
+      "name": "Audit Law",
+      "objective": "Contrôle permanent",
+      "must_define": ["audit obligatoire", "journaux immuables", "accès auditeurs", "rapports", "sanctions obstruction"]
+    },
+    {
+      "name": "Consent Law",
+      "objective": "Permissions citoyennes",
+      "must_define": ["consentement explicite", "retrait", "preuve consentement", "exceptions légales", "recours"]
+    }
+  ],
+  "cross_cutting_requirements": [
+    "Responsabilité légale clairement attribuée",
+    "Sanctions proportionnées et applicables",
+    "Obligations d'audit pour toute donnée sensible",
+    "Accès judiciaire encadré par mandat/base légale",
+    "Protection citoyenne et mécanismes de recours"
+  ]
+}

@@ -1,0 +1,58 @@
+# SNISID — ArgoCD : National Data Platform Application (Kafka + PostgreSQL + Ceph)
+# Classification: SECRET
+# Cluster: snisid-data (Tier-1)
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-data-platform
+  namespace: argocd
+  labels:
+    snisid.gov.tier: "tier-1"
+    snisid.gov.region: "core"
+    snisid.gov.service: "data-platform"
+    snisid.gov.owner: "equipe-data"
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    snisid.gov.data-classification: "secret"
+finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: snisid-national
+  source:
+    repoURL: "https://git.interne.snisid.gouv.local/infrastructure/national.git"
+    targetRevision: "main"
+    path: "helm/snisid-data"
+    helm:
+      valueFiles:
+        - "values-core-prod.yaml"
+      parameters:
+        - name: "replicaCount"
+          value: "6"
+        - name: "image.registry"
+          value: "registry.interne.snisid.gouv.local"
+  destination:
+    server: "https://api.data.snisid.gouv.local:6443"
+    namespace: snisid-data
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m
+    managedNamespaceMetadata:
+      labels:
+        istio-injection: enabled
+        snisid.gov.tier: tier-1
+        snisid.gov.region: core
+  ignoreDifferences: []
+  revisionHistoryLimit: 10

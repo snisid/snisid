@@ -1,0 +1,67 @@
+{
+  "title": "SNISID Compliance & Audit Posture",
+  "uid": "snisid-compliance",
+  "tags": ["audit", "compliance", "iso27001", "rgpd"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Global MFA Adoption Rate",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(keycloak_users_with_mfa_total) / sum(keycloak_users_total) * 100",
+          "legendFormat": "% Accounts with MFA"
+        }
+      ],
+      "options": {
+        "min": 0,
+        "max": 100,
+        "colorMode": "value",
+        "thresholds": {
+          "steps": [
+            { "color": "red", "value": null },
+            { "color": "green", "value": 99.9 }
+          ]
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Monthly Database Restore Tests",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "db_automated_restore_test_success",
+          "legendFormat": "Restore Success (1=Yes, 0=No)"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Unmitigated Critical Vulnerabilities (Trivy)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(trivy_image_vulnerabilities{severity=\"CRITICAL\"})",
+          "legendFormat": "Critical CVEs in Prod"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Data Loss Prevention (DLP) Blocked Exfiltrations",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(istio_egress_blocks_total[1h]))",
+          "legendFormat": "Blocked Egress Connections"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

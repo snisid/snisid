@@ -1,0 +1,43 @@
+{
+  "type": "record",
+  "name": "FraudSignal",
+  "namespace": "gov.snisid.fraud.v1",
+  "fields": [
+    {
+      "name": "signal_id",
+      "type": "string",
+      "doc": "Unique signal identifier"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Event timestamp (UTC)"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Target citizen or account ID"
+    },
+    {
+      "name": "risk_score",
+      "type": "float",
+      "doc": "Aggregated risk score [0, 1]"
+    },
+    {
+      "name": "indicators",
+      "type": {
+        "type": "array",
+        "items": "string"
+      },
+      "doc": "Specific fraud indicators detected"
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "doc": "Extensible context metadata"
+    }
+  ]
+}

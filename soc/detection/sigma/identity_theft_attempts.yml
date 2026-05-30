@@ -1,0 +1,23 @@
+title: Identité Nationale - Tentative d'usurpation (Recherche massive)
+id: f3e21379-8d76-4a18-97c9-4a0b22a01d51
+status: experimental
+description: Detects an operator querying the same National ID across multiple endpoints or querying excessively, indicative of profiling or identity theft.
+references:
+    - https://attack.mitre.org/techniques/T1078/
+author: SNISID SOC Team
+date: 2026/05/23
+tags:
+    - attack.credential_access
+    - attack.t1078
+logsource:
+    category: application
+    product: snisid_backend
+detection:
+    selection:
+        action: 'query_identity'
+        status_code: 200
+    timeframe: 10m
+    condition: selection | count(operator_id) by national_id > 5
+falsepositives:
+    - Mass fraud investigation by authorized unit (verify via ticketing system).
+level: high

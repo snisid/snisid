@@ -1,0 +1,16 @@
+# MODE AUDIT (30 jours) avant enforcement
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: SNISIDZeroTrustPolicy
+metadata:
+  name: require-snisid-clearance-label
+  annotations:
+    snisid.gouv.ht/mode: "AUDIT"
+    snisid.gouv.ht/ciso-approval-required: "true"
+    snisid.gouv.ht/enforce-after: "2026-07-15"
+spec:
+  enforcementAction: warn   # warn -> dryrun -> deny (progression 30 jours)
+  match:
+    namespaces: ["snisid-prod", "snisid-staging"]
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]

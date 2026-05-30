@@ -1,0 +1,98 @@
+# SNISID — cert-manager : CA Nationale + PKI Interne
+# Classification: TOP-SECRET
+# Issuer principal : Vault PKI (intermediate CA SNISID)
+# Issuer DR : Root CA nationale offline (air-gapped backup)
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: snisid-vault-pki-issuer
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.region: "core"
+    snisid.gov.service: "pki"
+spec:
+  vault:
+    server: "https://vault.snisid-identity.svc.cluster.local:8200"
+    path: snisid-pki-int/sign/cluster-local  # Vault PKI role
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: cert-manager
+        secretRef:
+          name: cert-manager-vault-auth
+          key: token
+    caBundle: |
+      # CA bundle Vault TLS (from snisid-pki-ca secret)
+      -----BEGIN CERTIFICATE-----
+      <snisid-root-ca-nationale>
+      -----END CERTIFICATE-----
+
+---
+# Issuer de secours : CA racine nationale stockée HSM air-gapped
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: snisid-national-root-ca
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.region: "core"
+    snisid.gov.service: "pki"
+spec:
+  ca:
+    secretName: snisid-national-root-ca-secret
+    # Ce secret est injecté manuellement par l'IGC (Inspection Générale Cyber)
+    # lors de la cérémonie de génération de clés en salle blanche HSM.
+    # Jamais exposé en ligne sauf en cas de reconstruction totale de la PKI.
+
+---
+# Certificate par défaut pour ingress mesh-wide
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: snisid-ingress-wildcard
+  namespace: istio-system
+spec:
+  secretName: snisid-ingress-wildcard-tls
+  issuerRef:
+    name: snisid-vault-pki-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - "*.snisid.gouv.local"
+    - "*.core.snisid.gouv.local"
+    - "*.dr.snisid.gouv.local"
+    - "api.national.snisid.gouv.local"
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  # Renouvellement auto à 2/3 de durée (30j avant expiration pour 90j)
+  renewBefore: 720h0m0s
+  revisionHistoryLimit: 10
+
+---
+# Certificate : mTLS interne mesh
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: snisid-mesh-ca
+  namespace: istio-system
+spec:
+  isCA: true
+  secretName: snisid-mesh-ca-tls
+  issuerRef:
+    name: snisid-vault-pki-issuer
+    kind: ClusterIssuer
+  commonName: "SNISID Mesh Intermediate CA"
+  usages:
+    - cert sign
+    - crl sign
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+  duration: 8760h  # 1 an
+  renewBefore: 2160h

@@ -1,0 +1,297 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "SNISID — Tableau de bord national de l'état de l'infrastructure souveraine",
+  "editable": false,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "title": "Vue Générale — Disponibilité Nationale",
+      "type": "row"
+    },
+    {
+      "datasource": "prometheus-national",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.99},
+              {"color": "green", "value": 0.999}
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+      "id": 2,
+      "title": "Disponibilité APIs Core (SLO 99.9%)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "1 - (sum(rate(http_requests_total{namespace='snisid-core',status=~'5..'}[24h])) / sum(rate(http_requests_total{namespace='snisid-core'}[24h])))",
+          "legendFormat": "Core API Availability"
+        }
+      ]
+    },
+    {
+      "datasource": "prometheus-national",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.05},
+              {"color": "red", "value": 0.1}
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
+      "id": 3,
+      "title": "Taux Erreur APIs Nationales",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{namespace=~'snisid-core|snisid-identity|snisid-bpmn',status=~'5..'}[5m])) / sum(rate(http_requests_total{namespace=~'snisid-core|snisid-identity|snisid-bpmn'}[5m]))",
+          "legendFormat": "5xx Rate"
+        }
+      ]
+    },
+    {
+      "datasource": "prometheus-national",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.1},
+              {"color": "red", "value": 0.2}
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
+      "id": 4,
+      "title": "Latence p95 APIs",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95 Latency"
+        }
+      ]
+    },
+    {
+      "datasource": "prometheus-national",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 3}
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
+      "id": 5,
+      "title": "Nœuds Core Actifs",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "count(kube_node_status_condition{condition=\"Ready\",status=\"true\"})",
+          "legendFormat": "Nodes Ready"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "id": 10,
+      "title": "Sécurité Runtime — SOC National",
+      "type": "row"
+    },
+    {
+      "datasource": "prometheus-national",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "id": 11,
+      "title": "Événements Falco par Priorité (5m)",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum by (priority) (increase(falco_events[5m]))",
+          "legendFormat": "{{ priority }}"
+        }
+      ]
+    },
+    {
+      "datasource": "prometheus-national",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "id": 12,
+      "title": "Drops Cilium (politique réseau)",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum by (reason) (rate(cilium_drop_count_total[5m]))",
+          "legendFormat": "{{ reason }}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "id": 20,
+      "title": "Messagerie Nationale — Kafka",
+      "type": "row"
+    },
+    {
+      "datasource": "prometheus-national",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 15},
+      "id": 21,
+      "title": "Kafka Consumer Lag",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "kafka_consumer_group_lag",
+          "legendFormat": "{{ group }}-{{ topic }}"
+        }
+      ]
+    },
+    {
+      "datasource": "prometheus-national",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 15},
+      "id": 22,
+      "title": "Kafka Messages In/sec",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum by (topic) (rate(kafka_server_brokertopicmetrics_messagesin_total[5m]))",
+          "legendFormat": "{{ topic }}"
+        }
+      ]
+    },
+    {
+      "datasource": "prometheus-national",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 15},
+      "id": 23,
+      "title": "Kafka Partition Leaders",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "kafka_server_replica_manager_leader_count",
+          "legendFormat": "{{ instance }}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "id": 30,
+      "title": "Stockage National — Ceph",
+      "type": "row"
+    },
+    {
+      "datasource": "prometheus-national",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "id": 31,
+      "title": "Ceph Pool Utilisation %",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "ceph_pool_max_avail / (ceph_pool_max_avail + ceph_pool_used_bytes) * 100",
+          "legendFormat": "{{ pool }}"
+        }
+      ]
+    },
+    {
+      "datasource": "prometheus-national",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "id": 32,
+      "title": "Ceph IOPS par Pool",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum by (pool) (rate(ceph_pool_wr_bytes[5m]) + rate(ceph_pool_rd_bytes[5m]))",
+          "legendFormat": "{{ pool }}"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 27,
+  "style": "dark",
+  "tags": ["snisid", "national", "infrastructure", "sovereignty"],
+  "templating": {
+    "list": [
+      {
+        "current": {"selected": false, "text": "All", "value": "$__all"},
+        "datasource": "prometheus-national",
+        "definition": "label_values(kubernetes_io_hostname)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Node",
+        "multi": true,
+        "name": "node",
+        "options": [],
+        "query": "label_values(kubernetes_io_hostname)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {"selected": false, "text": "snisid-core", "value": "snisid-core"},
+        "hide": 0,
+        "includeAll": true,
+        "label": "Namespace",
+        "multi": true,
+        "name": "namespace",
+        "options": [
+          {"selected": true, "text": "snisid-core", "value": "snisid-core"},
+          {"selected": false, "text": "snisid-identity", "value": "snisid-identity"},
+          {"selected": false, "text": "snisid-bpmn", "value": "snisid-bpmn"},
+          {"selected": false, "text": "snisid-data", "value": "snisid-data"},
+          {"selected": false, "text": "snisid-obs", "value": "snisid-obs"}
+        ],
+        "query": "snisid-core,snisid-identity,snisid-bpmn,snisid-data,snisid-obs",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
+  "timezone": "America/Port-au-Prince",
+  "title": "SNISID — National Infrastructure Dashboard",
+  "uid": "snisid-national-infra-01",
+  "version": 1
+}

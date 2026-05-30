@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-db-backup
+  namespace: snisid-core
+spec:
+  schedule: "0 2 * * *" # Run at 2:00 AM UTC every day
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup-executor
+            image: cockroachdb/cockroach:v23.1.5
+            command:
+            - "/bin/sh"
+            - "-c"
+            - |
+              echo "Starting CockroachDB Backup to S3..."
+              cockroach sql --url "$DATABASE_URL" -e "BACKUP INTO 's3://snisid-backups?AWS_ENDPOINT=s3.snisid-core.svc.cluster.local:9000' WITH kms='s3://snisid-kms-keys/backup_key'"
+              echo "Backup Completed Successfully."
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: snisid-db-credentials
+                  key: connection_string
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: s3-credentials
+                  key: access_key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: s3-credentials
+                  key: secret_key

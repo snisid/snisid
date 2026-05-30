@@ -1,0 +1,17 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "snisid-core.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "snisid-core.labels" . | nindent 4 }}
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- include "snisid-core.selectorLabels" . | nindent 6 }}
+  ingress:
+    {{- toYaml .Values.networkPolicy.ingress | nindent 4 }}
+  egress:
+    {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
+{{- end }}

@@ -1,0 +1,27 @@
+apiVersion: v2
+name: snisid-core
+description: Helm chart officiel SNISID — Core API nationale souveraine
+type: application
+version: 4.0.0
+appVersion: "v2026.05.25-stable"
+keywords:
+  - snisid
+  - national
+  - identity
+  - sovereign
+maintainers:
+  - name: Equipe Infrastructure Nationale
+    email: infra@snisid.gouv.local
+sources:
+  - "https://git.interne.snisid.gouv.local/applications/national.git"
+dependencies:
+  - name: postgresql
+    version: "13.2.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    alias: db
+  - name: redis
+    version: "18.6.1"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+    alias: cache

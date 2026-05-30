@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_mar_civ" targetNamespace="https://snisid.gouv.ht/bpmn/civil-registry">
+  <bpmn:process id="civil-registry.marriage.civil" name="Mariage civil" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A1"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="VerifId" name="Vérification identités époux"><bpmn:extensionElements><zeebe:taskDefinition type="identity.verify.bulk"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="CheckImp" name="Contrôle empêchements (existant, lien, âge)"><bpmn:extensionElements><zeebe:taskDefinition type="marriage.impediments.check"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:userTask id="Banns" name="Publication des bans 10j"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="civil-officers"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="Ceremony" name="Célébration officier état civil"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="civil-officers"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:userTask>
+    <bpmn:callActivity id="Fraud"><bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:serviceTask id="Sign" name="PKI sign acte mariage"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Update" name="MAJ identités (statut marital)"><bpmn:extensionElements><zeebe:taskDefinition type="identity.update.marital"/></bpmn:extensionElements><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K" name="Kafka civil.marriage.civil.registered"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f9</bpmn:incoming><bpmn:outgoing>f10</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="N" name="Notification"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements><bpmn:incoming>f10</bpmn:incoming><bpmn:outgoing>f11</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f11</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A1"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A1" targetRef="VerifId"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="VerifId" targetRef="CheckImp"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="CheckImp" targetRef="Banns"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Banns" targetRef="Ceremony"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Ceremony" targetRef="Fraud"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Fraud" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="Sign" targetRef="Update"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="Update" targetRef="K"/>
+    <bpmn:sequenceFlow id="f10" sourceRef="K" targetRef="N"/>
+    <bpmn:sequenceFlow id="f11" sourceRef="N" targetRef="E"/>
+      <bpmn:boundaryEvent id="SlaBE" attachedToRef="Ceremony" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P7D</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fSlaE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="SlaEsc"><bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fSlaE</bpmn:incoming><bpmn:outgoing>fSlaE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="SlaEnd"><bpmn:incoming>fSlaE2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="fSlaE" sourceRef="SlaBE" targetRef="SlaEsc"/>
+    <bpmn:sequenceFlow id="fSlaE2" sourceRef="SlaEsc" targetRef="SlaEnd"/>
+</bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,15 @@
+---
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+      - configmaps
+    providers:
+      - aescbc:
+          keys:
+            - name: key1
+              # In production, this secret must be injected during provisioning via Vault/KMS, NOT hardcoded.
+              # Example 32-byte base64 key: `head -c 32 /dev/urandom | base64`
+              secret: v3xT2Y0BwX/9vHkG4YjM1Nq7w8t4E3v1QkM9LcN4Z5o= 
+      - identity: {} # Fallback for reading unencrypted data during migration

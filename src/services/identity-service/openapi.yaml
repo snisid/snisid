@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: SNISID National Inter-Agency Identity API
+  description: Sovereign Data Sharing & Interoperability Contract for authorized Haitian government agencies (ONI, ANH, DGI, DCPJ, DGIE, CEP).
+  version: 1.0.0
+servers:
+  - url: https://api.snisid.gov.ht/v1
+    description: Primary Active Sovereign Gateway
+paths:
+  /identity/profile/{national_id}:
+    get:
+      summary: Retrieve Citizen Profile
+      description: Returns the basic demographic profile of a citizen. Strict data minimization is enforced based on OIDC scopes.
+      security:
+        - OIDC: [profile.read]
+      parameters:
+        - name: national_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^HT-\\d{4}-\\d{4}-\\d{2}[X|Y]$"
+      responses:
+        '200':
+          description: Successful data retrieval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitizenProfile'
+        '403':
+          description: Forbidden - Consent Revoked or Scope Missing
+        '429':
+          description: Too Many Requests - Agent Rate Limit Exceeded
+  /identity/biometrics/{national_id}:
+    get:
+      summary: Retrieve Biometric Hash
+      description: Returns the SHA-256 fingerprint hash for AFIS cross-referencing. RESTRICTED to Intelligence (DGI) and Police (DCPJ) agencies only.
+      security:
+        - OIDC: [biometrics.read]
+      parameters:
+        - name: national_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful AFIS retrieval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BiometricHash'
+        '403':
+          description: Forbidden - Agency Not Authorized (ABAC Failure)
+components:
+  schemas:
+    CitizenProfile:
+      type: object
+      required:
+        - national_id
+        - first_name
+        - last_name
+      properties:
+        national_id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+        address:
+          type: string
+    BiometricHash:
+      type: object
+      properties:
+        national_id:
+          type: string
+        fingerprint_sha256:
+          type: string
+  securitySchemes:
+    OIDC:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.snisid.gov.ht/.well-known/openid-configuration

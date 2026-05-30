@@ -1,0 +1,200 @@
+# SNISID — Digital Signature Services : National Electronic Signature Authority
+# Classification: TOP-SECRET
+# Domain: Citizen, Government, Judicial signatures with legal value
+# Standards: CAdES / XAdES / PAdES / JAdES with LTV (Long-Term Validation)
+# TSA: SNISID Timestamp Authority (dedicated HSM partition)
+# Legal framework: National digital signature law equivalent to handwritten signature
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-digital-signature-services-spec
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: digital-signatures
+    snisid.gov.data-classification: top-secret
+data:
+  signature-services.yaml: |
+    # ───────────────────────────────────────────────
+    # Signature Profiles by Legal Value Level
+    # ───────────────────────────────────────────────
+    signature_profiles:
+      
+      citizen_basic:
+        name: "SNISID-CITIZEN-BASIC"
+        legal_value: "Simple electronic signature (preuve admissible, équivalent écrit simple)"
+        format: "CAdES-BES or XAdES-B-B or JAdES-B-B"
+        certificate: "SNISID Citizen Intermediate CA"
+        certificate_policy: "1.3.6.1.4.1.SNISID.1.2"
+        key_type: "ECDSA P-384 (citizen device key)"
+        hash_algorithm: "SHA-384"
+        timestamp: "OPTIONAL (recommended for evidence)"
+        verification: "Online OCSP + embedded certificate chain"
+        offline_validity: "Certificate expiration date only (no LTV)"
+        usage: "Formulaires, consentements, démarches administratives simples"
+        
+      citizen_advanced:
+        name: "SNISID-CITIZEN-ADVANCED"
+        legal_value: "Advanced electronic signature (signature avancée — authentification forte)"
+        format: "CAdES-T or XAdES-T or JAdES-T"
+        certificate: "SNISID Citizen Intermediate CA"
+        certificate_policy: "1.3.6.1.4.1.SNISID.1.2"
+        key_type: "ECDSA P-384 (citizen device Secure Enclave / TPM)"
+        hash_algorithm: "SHA-384"
+        timestamp: "REQUIRED — SNISID TSA (RFC 3161)"
+        timestamp_policy: "1.3.6.1.4.1.SNISID.2.1"
+        verification: "Online OCSP + TSA + embedded certificate chain"
+        offline_validity: "TSA + certificate chain + OCSP at signing time (LTV not required)"
+        usage: "Contrats, transactions, déclarations fiscales, consentement médical"
+        
+      government_official:
+        name: "SNISID-GOVERNMENT-OFFICIAL"
+        legal_value: "Official government signature (signature officielle — acte administratif)"
+        format: "PAdES-LTV or CAdES-LT or XAdES-LT-A"
+        certificate: "SNISID Government Intermediate CA"
+        certificate_policy: "1.3.6.1.4.1.SNISID.1.1"
+        key_type: "ECDSA P-384 (HSM-backed smartcard / national eID)"
+        hash_algorithm: "SHA-384"
+        timestamp: "REQUIRED — SNISID TSA"
+        timestamp_policy: "1.3.6.1.4.1.SNISID.2.1"
+        ltv: "REQUIRED — validation data embedded (certificates, OCSP, CRL, TSA cert)"
+        archival_timestamp: "REQUIRED — TSA re-timestamp every 5 years for 25-year legal retention"
+        verification: "OCSP + TSA + LTV + embedded validation data"
+        audit: "Full audit trail — signer identity, timestamp, workstation, action log"
+        usage: "Arrêtés, décisions, nominations, actes administratifs, notifications officielles"
+        
+      judicial_qualified:
+        name: "SNISID-JUDICIAL-QUALIFIED"
+        legal_value: "Qualified electronic signature equivalent to handwritten (signature qualifiée — équivalence légale totale)"
+        format: "CAdES-LTA or XAdES-LTA or PAdES-LTA"
+        certificate: "SNISID Judicial Intermediate CA"
+        certificate_policy: "1.3.6.1.4.1.SNISID.1.4"
+        key_type: "ECDSA P-384 (HSM-backed judicial smartcard — Level 3 minimum)"
+        hash_algorithm: "SHA-384"
+        timestamp: "REQUIRED — SNISID TSA + judicial time source (Grandmaster clock)"
+        timestamp_policy: "1.3.6.1.4.1.SNISID.2.2"  # Judicial timestamp policy
+        ltv: "REQUIRED — full LTV with evidence records (RFC 4998 / ETSI TS 119 612)"
+        archival_timestamp: "REQUIRED — every 3 years, minimum 25-year retention"
+        verification: "OCSP + TSA + LTV + evidence records + judicial audit log"
+        audit: "Complete chain of custody — biometric auth, HSM log, video (if available), officer ID, case reference"
+        usage: "Jugements, assignations, mandats, actes notariés, procès-verbaux, décisions judiciaires"
+        
+      api_integrity:
+        name: "SNISID-API-INTEGRITY"
+        legal_value: "Technical integrity signature (non-legal, operational security)"
+        format: "JWS (RFC 7515) detached payload"
+        certificate: "SNISID Infrastructure Intermediate CA (service account)"
+        key_type: "ECDSA P-256 or Ed25519 (performance)"
+        hash_algorithm: "SHA-384 or SHA-256"
+        timestamp: "Embedded iat (issued at) JWT claim — not cryptographic timestamp"
+        verification: "JWKS endpoint (OIDC/OAuth2) + certificate chain validation"
+        usage: "Webhooks, API callbacks, inter-service messages, Kafka event signing"
+        
+    # ───────────────────────────────────────────────
+    # Timestamp Authority (TSA) Specification
+    # ───────────────────────────────────────────────
+    timestamp_authority:
+      name: "SNISID National Timestamp Authority"
+      policy_oid: "1.3.6.1.4.1.SNISID.2.1"
+      judicial_policy_oid: "1.3.6.1.4.1.SNISID.2.2"
+      
+      hardware:
+        hsm_partition: "SNISID_TSA"
+        hsm_key_label: "snisid-tsa-signing-key"
+        algorithm: "ECDSA P-384"
+        hash: "SHA-384"
+        key_protection: "HSM Level 3 — never exportable"
+        
+      clock_source:
+        primary: "GNSS disciplined oscillator (GPS + GLONASS + Galileo + BeiDou) with anti-spoofing"
+        secondary: "National atomic clock / CSAC (Chip-Scale Atomic Clock) local holdover"
+        tertiary: "PTP grandmaster (IEEE 1588-2008) from national time lab"
+        accuracy: "< 1 ms UTC traceable"
+        leap_second_handling: "UTC leap second table updated within 24h of IERS bulletin"
+        
+      protocol:
+        standard: "RFC 3161 (Time-Stamp Protocol)"
+        transport: "HTTP (port 80) + HTTPS (port 443, TLS 1.3)"
+        request_format: "DER-encoded TimeStampReq"
+        response_format: "DER-encoded TimeStampToken (PKCS#7/CMS signed)"
+        nonce: "REQUIRED for Citizen, Government, Judicial (anti-replay)"
+        
+      deployment:
+        core_replicas: 3
+        dr_replicas: 2
+        edge_cache: "Not applicable (TSA requires online validation)"
+        availability: "99.999%"
+        rto: "< 30 seconds (failover to DR TSA)"
+        
+      archival:
+        all_timestamps_logged: true
+        log_storage: "Immutable append-only Ceph RGW bucket (WORM)"
+        retention: "25 years minimum (judicial requirement)"
+        format: "TSR (Time-Stamp Response) + original hash + requester IP + certificate serial"
+        
+    # ───────────────────────────────────────────────
+    # Signature API Service (Kubernetes Deployment)
+    # ───────────────────────────────────────────────
+    signature_service_api:
+      endpoints:
+        - path: "/v1/sign"
+          method: "POST"
+          auth: "mTLS + OAuth2 (government/client credentials) + biometric session"
+          profiles: ["citizen_advanced", "government_official", "judicial_qualified"]
+          
+        - path: "/v1/verify"
+          method: "POST"
+          auth: "mTLS + API key (public service for verification)"
+          profiles: ["all"]
+          
+        - path: "/v1/timestamp"
+          method: "POST"
+          auth: "mTLS + OAuth2"
+          policy: "default or judicial"
+          
+        - path: "/v1/ltv-extend"
+          method: "POST"
+          auth: "mTLS + OAuth2 (scheduled service)"
+          description: "Re-timestamp and update validation data for archival signatures"
+          
+      request_format:
+        content_type: "application/json"
+        body: |
+          {
+            "profile": "SNISID-GOVERNMENT-OFFICIAL",
+            "document_hash": "sha384:abc123...",
+            "document_reference": "ACTE-2026-12345",
+            "signer_certificate_serial": "2026XXXX",
+            "timestamp_policy": "default",
+            "biometric_session_id": "bio-sess-uuid (for Gov/Judicial)",
+            "workflow_id": "bpmn-instance-id",
+            "audit_context": {
+              "workstation_id": "WS-1234",
+              "ip_address": "10.1.10.45",
+              "operator_id": "agent-5678",
+              "timestamp_utc": "2026-05-25T14:30:00.000Z"
+            }
+          }
+          
+      response_format:
+        body: |
+          {
+            "signature_id": "sig-uuid",
+            "signature_format": "CAdES-LTV",
+            "signature_value": "base64(cms-signed-data)",
+            "timestamp_token": "base64(tsa-response)",
+            "certificate_chain": ["end-entity", "intermediate", "root"],
+            "ocsp_response": "base64(ocsp-response)",
+            "validation_data": "base64(embedded-crls-certs-ocsp)",
+            "audit_log_id": "audit-uuid",
+            "status": "success",
+            "verified_at": "2026-05-25T14:30:01.234Z"
+          }
+          
+      security:
+        signing_key_access: "HSM PKCS#11 only — key never in application memory"
+        request_validation: "Document hash only — service NEVER receives document content (privacy)"
+        audit: "Every request logged to SIEM national — signer, hash, timestamp, result"
+        rate_limiting: "100 req/s per service account (government), 10 req/s (citizen)"
+        ddos_protection: "Cilium rate limiting + WAF national"

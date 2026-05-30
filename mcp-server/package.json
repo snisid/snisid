@@ -1,0 +1,20 @@
+{
+  "name": "snisid-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for SNISID System Context",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

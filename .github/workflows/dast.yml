@@ -1,0 +1,25 @@
+name: DAST Scan (OWASP ZAP)
+
+on:
+  workflow_run:
+    workflows: ["Container Build & Sign (SLSA 3)"]
+    types:
+      - completed
+  # Alternatively, trigger via ArgoCD webhook when Staging sync is complete.
+
+jobs:
+  zap_scan:
+    name: OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Wait for staging deployment
+        run: sleep 60 # Simple delay allowing ArgoCD to sync staging
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'https://staging.snisid.gov'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          fail_action: true # Fails the pipeline if vulnerabilities are found

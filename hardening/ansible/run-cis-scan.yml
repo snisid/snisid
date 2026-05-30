@@ -1,0 +1,40 @@
+---
+- name: Execute OpenSCAP CIS Benchmark Scan
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Ensure libopenscap8 and ssg-ubuntu2204 are installed
+      apt:
+        name: 
+          - libopenscap8
+          - ssg-ubuntu2204
+        state: present
+        update_cache: yes
+
+    - name: Run OpenSCAP evaluating CIS Ubuntu 22.04 Level 2 Profile
+      command: >
+        oscap xccdf eval 
+        --profile xccdf_org.ssgproject.content_profile_cis_level2_server
+        --results /tmp/cis-results.xml 
+        --report /tmp/snisid-cis-report.html 
+        /usr/share/xml/scap/ssg/content/ssg-ubuntu2204-ds.xml
+      register: oscap_result
+      # OpenSCAP returns 0 on 100% pass, 2 on failures. We ignore errors to parse the result manually.
+      ignore_errors: yes
+
+    - name: Fetch HTML Compliance Report to local machine
+      fetch:
+        src: /tmp/snisid-cis-report.html
+        dest: ./reports/{{ inventory_hostname }}-cis-report.html
+        flat: yes
+
+    - name: Parse Compliance Score (Must be >= 95%)
+      shell: >
+        oscap info /tmp/cis-results.xml | grep "Score" | awk '{print $2}'
+      register: score_output
+
+    - name: Validate CIS Score against 95% threshold
+      fail:
+        msg: "CIS Benchmark score is below 95%. Automated validation failed."
+      when: score_output.stdout | float < 95.0

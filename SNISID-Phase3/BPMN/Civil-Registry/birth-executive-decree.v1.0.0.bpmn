@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- civil-registry.birth.executive-decree v1.0.0 — SLA 90j — Décret exécutif -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_birth_decree" targetNamespace="https://snisid.gouv.ht/bpmn/civil-registry">
+  <bpmn:process id="civil-registry.birth.executive-decree"
+                name="Naissance — Par décret exécutif"
+                isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="Start"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A" name="Audit">
+      <bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="MinistryReview" name="Instruction Ministère Justice">
+      <bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="moj-officers"/></bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="ExecutiveSign" name="Signature pouvoir exécutif">
+      <bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="executive-cabinet"/></bpmn:extensionElements>
+      <bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Publish" name="Publication Le Moniteur">
+      <bpmn:extensionElements><zeebe:taskDefinition type="moniteur.publish"/></bpmn:extensionElements>
+      <bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Sign" name="Signature PKI acte">
+      <bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements>
+      <bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:callActivity id="Enroll">
+      <bpmn:extensionElements><zeebe:calledElement processId="identity.enrollment.standard"/></bpmn:extensionElements>
+      <bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:serviceTask id="Emit" name="Kafka birth.decreed">
+      <bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements>
+      <bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End"><bpmn:incoming>f8</bpmn:incoming></bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="f1" sourceRef="Start" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="MinistryReview"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="MinistryReview" targetRef="ExecutiveSign"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="ExecutiveSign" targetRef="Publish"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Publish" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Sign" targetRef="Enroll"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Enroll" targetRef="Emit"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="Emit" targetRef="End"/>
+      <bpmn:boundaryEvent id="SlaBE" attachedToRef="ExecutiveSign" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P90D</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fSlaE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="SlaEsc"><bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fSlaE</bpmn:incoming><bpmn:outgoing>fSlaE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="SlaEnd"><bpmn:incoming>fSlaE2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="fSlaE" sourceRef="SlaBE" targetRef="SlaEsc"/>
+    <bpmn:sequenceFlow id="fSlaE2" sourceRef="SlaEsc" targetRef="SlaEnd"/>
+    <bpmn:serviceTask id="Notify" name="Notification citoyen"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements></bpmn:serviceTask>
+</bpmn:process>
+</bpmn:definitions>

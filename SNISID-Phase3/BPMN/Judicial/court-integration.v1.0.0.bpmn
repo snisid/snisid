@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- judicial.court.integration v1.0.0 — Synchronisation tribunaux ↔ SNISID -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_jud_int" targetNamespace="https://snisid.gouv.ht/bpmn/judicial">
+  <bpmn:process id="judicial.court.integration" name="Intégration tribunaux" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Ingest" name="Ingestion décisions tribunal (gRPC)"><bpmn:extensionElements><zeebe:taskDefinition type="court.decisions.ingest"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Verify" name="Vérification signatures greffier"><bpmn:extensionElements><zeebe:taskDefinition type="pki.verify"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Norm" name="Normalisation (schéma SNISID)"><bpmn:extensionElements><zeebe:taskDefinition type="schema.normalize"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Route" name="Routing vers domaine (civil/penal/admin)"><bpmn:extensionElements><zeebe:taskDefinition type="event.route"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f7</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="Ingest"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Ingest" targetRef="Verify"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Verify" targetRef="Norm"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Norm" targetRef="Route"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Route" targetRef="K"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="K" targetRef="E"/>
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,23 @@
+{
+  "document": "SNISID 24/7 Operational Governance",
+  "version": "1.0.0",
+  "objective": "Créer exploitation nationale réelle, résiliente même pendant crise nationale.",
+  "operating_requirement": "Le système doit fonctionner même pendant crise nationale.",
+  "elements": [
+    {"name": "NOC", "description": "Opérations infra", "availability": "24/7", "owner": "Platform Ops"},
+    {"name": "SOC", "description": "Cybersécurité", "availability": "24/7", "owner": "Cybersecurity"},
+    {"name": "SRE teams", "description": "Fiabilité", "availability": "24/7 on-call", "owner": "Platform Ops"},
+    {"name": "Incident Command", "description": "Crises", "availability": "24/7 rotation", "owner": "Direction Générale SNISID"},
+    {"name": "Field Operations", "description": "Terrain", "availability": "regional 24/7 rota", "owner": "Field Operations"},
+    {"name": "Escalation Center", "description": "Coordination", "availability": "24/7", "owner": "Direction Générale SNISID"}
+  ],
+  "continuity_controls": [
+    "Plan de continuité d'activité",
+    "Plan de reprise après sinistre",
+    "sites redondants",
+    "communications hors bande",
+    "runbooks crise nationale",
+    "stocks terrain et kits mobiles",
+    "chaîne d'escalade testée trimestriellement"
+  ]
+}

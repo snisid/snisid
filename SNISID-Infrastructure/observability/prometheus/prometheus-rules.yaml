@@ -1,0 +1,258 @@
+# SNISID — Prometheus Rules : National Service Level Objectives & Alerts
+# Classification: SECRET
+# Scope: Tous les clusters nationaux (Core, Identity, Data, BPMN, Cyber, Obs, Edge)
+# Note: Les alertes sont routées vers Alertmanager → SOC National + PagerDuty Souverain
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: snisid-national-slo-alerts
+  namespace: snisid-obs
+  labels:
+    snisid.gov.tier: "tier-3"
+    snisid.gov.region: "core"
+    snisid.gov.service: "observability"
+    prometheus: snisid-core
+    role: alert-rules
+spec:
+  groups:
+    # ───────────────────────────────────────────────
+    # Groupe 1 : Disponibilité APIs Nationales (Tier-1)
+    # ───────────────────────────────────────────────
+    - name: snisid-api-availability
+      interval: 30s
+      rules:
+        - alert: SNISID_API_HighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{namespace=~"snisid-core|snisid-identity|snisid-bpmn",status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{namespace=~"snisid-core|snisid-identity|snisid-bpmn"}[5m]))
+            ) > 0.001
+          for: 2m
+          labels:
+            severity: critical
+            snisid_alert_type: availability
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID API — Taux d'erreur élevé national"
+            description: "Le taux d'erreur 5xx sur les APIs nationales dépasse 0.1% sur {{ $labels.namespace }} pendant plus de 2 minutes."
+            runbook_url: "https://wiki.interne.snisid.gouv.local/runbooks/api-high-error-rate"
+            
+        - alert: SNISID_API_HighLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{namespace=~"snisid-core|snisid-identity|snisid-bpmn"}[5m])) by (le, namespace, service)
+            ) > 0.2
+          for: 3m
+          labels:
+            severity: warning
+            snisid_alert_type: latency
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID API — Latence p95 excessive"
+            description: "La latence p95 de {{ $labels.service }} dans {{ $labels.namespace }} dépasse 200ms."
+            
+        - alert: SNISID_API_Down
+          expr: |
+            up{job=~"snisid-core-api|snisid-identity-api|snisid-bpmn-api"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: availability
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID API — Service indisponible"
+            description: "Le endpoint {{ $labels.instance }} de {{ $labels.job }} est DOWN."
+            
+    # ───────────────────────────────────────────────
+    # Groupe 2 : Kafka National (Messaging)
+    # ───────────────────────────────────────────────
+    - name: snisid-kafka-health
+      interval: 30s
+      rules:
+        - alert: SNISID_Kafka_OfflinePartition
+          expr: kafka_controller_kafkacontroller_offline_partitions_count > 0
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: messaging
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID Kafka — Partitions offline"
+            description: "{{ $value }} partitions Kafka sont offline. Risque de perte de messages nationaux."
+            
+        - alert: SNISID_Kafka_ConsumerLag
+          expr: |
+            kafka_consumer_group_lag{namespace="snisid-data"} > 10000
+          for: 5m
+          labels:
+            severity: warning
+            snisid_alert_type: messaging
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID Kafka — Consumer lag élevé"
+            description: "Le consumer group {{ $labels.group }} accumule un lag de {{ $value }} messages."
+            
+        - alert: SNISID_Kafka_BrokerDown
+          expr: kafka_server_replica_manager_leader_count < 1
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: messaging
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID Kafka — Broker sans leader"
+            description: "Le broker {{ $labels.instance }} n'a plus de partition leader."
+            
+    # ───────────────────────────────────────────────
+    # Groupe 3 : Vault / Identity (Tier-0)
+    # ───────────────────────────────────────────────
+    - name: snisid-vault-health
+      interval: 15s
+      rules:
+        - alert: SNISID_Vault_Sealed
+          expr: vault_core_unsealed{job="vault"} == 0
+          for: 30s
+          labels:
+            severity: emergency
+            snisid_alert_type: security
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID VAULT — Scellé !"
+            description: "Vault est scellé sur {{ $labels.instance }}. Tout accès secrets est bloqué."
+            runbook_url: "https://wiki.interne.snisid.gouv.local/runbooks/vault-recovery"
+            
+        - alert: SNISID_Vault_HighAuthFailure
+          expr: |
+            rate(vault_core_handle_request{operation="authenticate",code="4xx"}[5m]) > 0.1
+          for: 2m
+          labels:
+            severity: critical
+            snisid_alert_type: security
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID Vault — Échecs d'authentification massifs"
+            description: "Taux d'échec auth élevé sur Vault — possible attaque brute force."
+            
+        - alert: SNISID_Vault_RaftDegraded
+          expr: vault_raft_voters < 3
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: consensus
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID Vault — Quorum Raft dégradé"
+            description: "Le cluster Raft Vault n'a plus que {{ $value }} voters. Risque de split-brain."
+            
+    # ───────────────────────────────────────────────
+    # Groupe 4 : Infrastructure Core (Nodes, Ceph, K8s)
+    # ───────────────────────────────────────────────
+    - name: snisid-infrastructure-health
+      interval: 30s
+      rules:
+        - alert: SNISID_Node_HighCPU
+          expr: |
+            100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) without (cpu)) > 85
+          for: 5m
+          labels:
+            severity: warning
+            snisid_alert_type: infrastructure
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID Infra — CPU élevé sur {{ $labels.instance }}"
+            description: "CPU > 85% pendant 5 minutes."
+            
+        - alert: SNISID_Node_DiskPressure
+          expr: |
+            (
+              node_filesystem_avail_bytes{mountpoint="/"}
+              /
+              node_filesystem_size_bytes{mountpoint="/"}
+            ) < 0.15
+          for: 2m
+          labels:
+            severity: critical
+            snisid_alert_type: infrastructure
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID Infra — Pression disque"
+            description: "Moins de 15% d'espace disque disponible sur {{ $labels.instance }}."
+            
+        - alert: SNISID_Ceph_HealthDegraded
+          expr: ceph_health_status != 0
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: storage
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID Ceph — Cluster dégradé"
+            description: "L'état de santé Ceph n'est pas HEALTH_OK (code {{ $value }})."
+            
+        - alert: SNISID_K8s_ControlPlaneDown
+          expr: |
+            up{job="kube-apiserver"} == 0 or up{job="kube-controller-manager"} == 0 or up{job="kube-scheduler"} == 0
+          for: 1m
+          labels:
+            severity: emergency
+            snisid_alert_type: controlplane
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID K8s — Composant control plane DOWN"
+            description: "{{ $labels.job }} sur {{ $labels.instance }} est indisponible."
+            
+        - alert: SNISID_Etcd_HighFsync
+          expr: |
+            histogram_quantile(0.99, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])) by (instance, le)) > 0.5
+          for: 2m
+          labels:
+            severity: critical
+            snisid_alert_type: controlplane
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID etcd — Latence fsync WAL élevée"
+            description: "etcd sur {{ $labels.instance }} a une latence WAL p99 > 500ms. Risque de split vote."
+            
+    # ───────────────────────────────────────────────
+    # Groupe 5 : Falco / Runtime Security (SOC National)
+    # ───────────────────────────────────────────────
+    - name: snisid-runtime-security
+      interval: 10s
+      rules:
+        - alert: SNISID_Falco_CriticalEvent
+          expr: |
+            increase(falco_events{priority="CRITICAL"}[5m]) > 0
+          for: 0s
+          labels:
+            severity: emergency
+            snisid_alert_type: runtime_security
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID FALCO — Événement CRITIQUE runtime"
+            description: "{{ $value }} événements CRITICAL détectés par Falco. Vérifier SOC National immédiatement."
+            
+        - alert: SNISID_Falco_EmergencyEvent
+          expr: |
+            increase(falco_events{priority="EMERGENCY"}[1m]) > 0
+          for: 0s
+          labels:
+            severity: emergency
+            snisid_alert_type: runtime_security
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID FALCO — Événement EMERGENCY"
+            description: "Menace EMERGENCY détectée sur {{ $labels.instance }}. Isolation automatique recommandée."
+            
+        - alert: SNISID_Cilium_DropHigh
+          expr: |
+            rate(cilium_drop_count_total[5m]) > 100
+          for: 2m
+          labels:
+            severity: warning
+            snisid_alert_type: network_security
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID Cilium — Drops réseau élevés"
+            description: "{{ $value }} paquets drops/s — possible scan ou policy mismatch."

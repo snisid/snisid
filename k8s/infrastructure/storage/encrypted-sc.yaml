@@ -1,0 +1,13 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: encrypted-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com # Example generic CSI provisioner
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+  encrypted: "true"
+  kmsKeyId: "arn:aws:kms:region:account:key/kms-key-id" # Placeholder KMS key

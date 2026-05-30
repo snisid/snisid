@@ -1,0 +1,76 @@
+---
+# SNISID — Kafka ACL declarative
+# Format propre, traduit en commandes kafka-acls.sh
+apiVersion: snisid.gouv.ht/v1
+kind: KafkaACLs
+metadata:
+  name: snisid-acls
+spec:
+  principals:
+
+    - principal: "User:CN=civil-registry-service,O=SNISID,C=HT"
+      produce:
+        - prefix: "civil-registry."
+      consume:
+        - prefix: "identity.state"
+        - prefix: "judicial.flagged"
+
+    - principal: "User:CN=identity-service,O=SNISID,C=HT"
+      produce:
+        - prefix: "identity."
+      consume:
+        - prefix: "civil-registry."
+        - prefix: "judicial.order.suspension"
+        - prefix: "fraud.detected"
+
+    - principal: "User:CN=judicial-service,O=SNISID,C=HT"
+      produce:
+        - prefix: "judicial."
+      consume:
+        - prefix: "civil-registry."
+        - prefix: "identity."
+        - prefix: "fraud."
+
+    - principal: "User:CN=elections-service,O=SNISID,C=HT"
+      produce:
+        - prefix: "elections."
+      consume:
+        - prefix: "identity.state"
+        - prefix: "judicial.order"
+
+    - principal: "User:CN=fraud-service,O=SNISID,C=HT"
+      produce:
+        - prefix: "fraud."
+      consume:
+        - prefix: "civil-registry."
+        - prefix: "identity."
+        - prefix: "judicial."
+        - prefix: "tax."
+        - prefix: "immigration."
+
+    - principal: "User:CN=audit-service,O=SNISID,C=HT"
+      produce:
+        - prefix: "audit."
+      consume:
+        - prefix: ""   # everything (READ ONLY)
+
+    - principal: "User:CN=siem-collector,O=SNISID,C=HT"
+      produce: []
+      consume:
+        - prefix: "security."
+        - prefix: "audit."
+        - prefix: "fraud."
+
+    - principal: "User:CN=offline-sync-hub,O=SNISID,C=HT"
+      produce:
+        - prefix: "offline."
+      consume:
+        - prefix: "offline.sync.command"
+
+    - principal: "User:CN=bi-readonly,O=SNISID,C=HT"
+      produce: []
+      consume:
+        - prefix: "civil-registry."
+        - prefix: "identity.enrolled"
+        - prefix: "tax.declaration"
+        - prefix: "elections."

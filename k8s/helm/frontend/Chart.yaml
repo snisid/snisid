@@ -1,0 +1,6 @@
+apiVersion: v2
+name: snisid-frontend
+description: SNISID Frontend Web Application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

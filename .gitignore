@@ -1,0 +1,137 @@
+# --- OS files ---
+.DS_Store
+.DS_Store?
+Desktop.ini
+Thumbs.db
+ehthumbs.db
+*.swp
+*.swo
+*~
+
+# --- IDE / Editor ---
+.idea/
+.vscode/
+*.sublime-*
+.agents/
+.claude/
+.cursor/
+.sixth/
+
+# --- Go ---
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+vendor/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+.venv/
+.venvs/
+venv/
+virtualenv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+
+# --- Node / Frontend ---
+node_modules/
+package-lock.json
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/tsconfig.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js
+*.tsbuildinfo
+
+# --- Environment / Secrets ---
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*-key.pem
+certificates/*.p12
+certificates/*.jks
+
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+crash.log
+override.tf
+override.tf.json
+.terraform.lock.hcl
+
+# --- Temp / Cache ---
+tmp/
+temp/
+.tmp/
+.tmp.driveupload/
+*.tmp
+*.temp
+.cache/
+temp_phase*/
+phase13/
+phase14/
+phase15/
+phase17/
+
+# --- Build / Output ---
+*.tar.gz
+*.zip
+*.iso
+!iso/*.iso
+*.img
+*.bin
+*.o
+*.a
+
+# --- Logs ---
+*.log
+
+# --- Scratch / Working ---
+scratch.md
+phase2_scratch.md
+
+# --- Large data / ML ---
+*.onnx
+*.pt
+*.pth
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+model_store/
+data/
+
+# --- Protobuf generated ---
+*.pb.go
+*.pb.py
+*_pb2.py
+*_pb2.pyi
+*_grpc.py
+*_grpc.pb.go
+
+# --- Container / Infra ---
+*.docker-cache
+*.container

@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: snisid-default-deny
+  namespace: snisid
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-identity-api-to-postgres
+  namespace: snisid
+spec:
+  podSelector:
+    matchLabels:
+      app: identity-api
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: gateway
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-fraud-engine-to-kafka
+  namespace: snisid
+spec:
+  podSelector:
+    matchLabels:
+      app: fraud-engine
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kafka

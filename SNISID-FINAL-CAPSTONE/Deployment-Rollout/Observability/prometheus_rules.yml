@@ -1,0 +1,58 @@
+groups:
+  - name: snisid_rollout_alerts
+    rules:
+      
+      # 1. Alert if a Local Edge Node (LEN) has not synchronized for over 24 hours (Delayed Sync failure)
+      - alert: SNISIDEdgeNodeSyncDelay
+        expr: snisid_offline_sync_delay_seconds > 86400
+        for: 10m
+        labels:
+          severity: critical
+          infrastructure: edge_node
+        annotations:
+          summary: "Local Edge Node {{ $labels.node_id }} sync delay is critical"
+          description: "The Edge Node in {{ $labels.commune }} ({{ $labels.department }}) has not synced with the central database for more than 24 hours. Offline storage might be getting close to full capacity."
+
+      # 2. Alert if the biometric match latency is too high (paralyzing the enrollers)
+      - alert: SNISIDBiometricMatchLatencySpike
+        expr: histogram_quantile(0.95, sum(rate(snisid_biometric_match_duration_seconds_bucket[5m])) by (le)) > 3.5
+        for: 5m
+        labels:
+          severity: warning
+          infrastructure: abis_central
+        annotations:
+          summary: "ABIS 95th percentile match latency is too high: {{ $value }}s"
+          description: "The central ABIS is experiencing heavy computation or load. 95% of biometric cross-matches are taking longer than 3.5 seconds, causing operator queues on the field."
+
+      # 3. Alert on physical power failure on an Edge Node (running on batteries)
+      - alert: SNISIDEdgeNodePowerGridFailure
+        expr: snisid_edge_power_source_type == 0  # 1 = Grid/Solaire, 0 = Battery discharge active
+        for: 15m
+        labels:
+          severity: warning
+          infrastructure: power_grid
+        annotations:
+          summary: "Edge Node {{ $labels.node_id }} is operating on emergency battery"
+          description: "Main grid or solar power has been lost in {{ $labels.commune }} ({{ $labels.department }}). The LEN is discharging battery. 72 hours autonomy counting down."
+
+      # 4. Alert if Migration Factory fails to clean/reconcile massive batches of data
+      - alert: SNISIDMigrationFactoryHighFailureRate
+        expr: rate(snisid_migration_failures_total[5m]) / rate(snisid_migration_attempts_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          infrastructure: migration_factory
+        annotations:
+          summary: "Migration Factory failure rate is extremely high: {{ $value }}%"
+          description: "The ETL pipeline is failing to parse or cleanse the imported legacy records. Over 5% of recent legacy batches are getting quarantined immediately."
+
+      # 5. Alert if biometric duplicate fraud is detected in rapid succession (coordinated attack)
+      - alert: SNISIDCoordinatedFraudAttackSuspicion
+        expr: sum(rate(snisid_biometric_fraud_detections_total[10m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+          infrastructure: security_nire
+        annotations:
+          summary: "Coordinated Identity Fraud attack suspected on SNISID"
+          description: "The NIRE engine has caught more than 10 biometric-identity mismatch conflicts in the last 10 minutes. A coordinated biometric theft attempt might be taking place."

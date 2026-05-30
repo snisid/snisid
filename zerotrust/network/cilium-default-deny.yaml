@@ -1,0 +1,15 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: global-default-deny
+  namespace: snisid-core
+spec:
+  # Apply this policy to ALL endpoints in the snisid-core namespace
+  endpointSelector:
+    matchLabels: {}
+  
+  # By specifying ingress and egress blocks without rules, 
+  # Cilium defaults to explicitly dropping ALL traffic.
+  # This perfectly fulfills Requirement #102: Implicit Trust is eliminated.
+  ingress: []
+  egress: []

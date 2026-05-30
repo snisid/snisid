@@ -1,0 +1,195 @@
+NIVEAU “opérationnel réel” :
+🔥 architecture data center Haïti (physique + réseau + redondance)
+🔥 schéma réseau ANH/DGI/DCPJ détaillé
+🔥 design SOC national 24/7 (staff + tooling)
+🔥 plan de migration progressive des données existantes
+“build SNISID national data center & SOC architecture physical layer”
+Pour passer du Gouvernement Logique → Infrastructure Physique Réelle Deployable
+
+un design d’architecture nationale critique, pas comme un projet “IT classique”.
+
+🧱 SNISID PHYSICAL LAYER — NATIONAL ARCHITECTURE
+🧠 0) OBJECTIF
+
+Créer une infrastructure :
+
+résiliente aux pannes (énergie, réseau, attaque)
+multi-sites (Haïti)
+isolée par agences
+capable de SOC 24/7
+avec redondance géographique
+🌍 1) ARCHITECTURE DATA CENTER HAÏTI (PHYSIQUE)
+🏗️ TOPOLOGIE GÉNÉRALE
+
+👉 Minimum viable national :
+
+           ┌────────────────────────────┐
+           │  DC1: Port-au-Prince      │  (PRIMARY)
+           └───────────┬────────────────┘
+                       │
+           ┌───────────▼────────────────┐
+           │  DC2: Cap-Haïtien         │  (SECONDARY)
+           └───────────┬────────────────┘
+                       │
+           ┌───────────▼────────────────┐
+           │  DC3: Disaster Recovery    │  (OFFSITE)
+           └────────────────────────────┘
+⚙️ RÔLES
+Site	Rôle
+DC1	production principale
+DC2	failover actif
+DC3	backup + cold storage
+⚡ INFRASTRUCTURE PHYSIQUE PAR DC
+🧠 Compute layer
+Kubernetes nodes (bare metal)
+GPU nodes (AI / GNN)
+High RAM nodes (graph DB)
+💾 Storage layer
+Ceph cluster (distributed storage)
+MinIO S3-compatible backup
+SSD NVMe tier (hot data)
+🔌 Network layer
+100GbE backbone interne
+redundant switches (dual core)
+🔋 POWER & RESILIENCE
+UPS redondants (N+1)
+générateurs diesel
+double alimentation électrique
+cooling redondant (N+1 HVAC)
+🌐 2) SCHÉMA RÉSEAU INTER-AGENCES
+🧱 PRINCIPLE
+
+👉 chaque agence = zone isolée
+
+🔐 ZONES RÉSEAU
+        ┌───────────────┐
+        │  SNISID CORE  │
+        └──────┬────────┘
+               │
+ ┌─────────────┼─────────────────┐
+ │             │                 │
+▼             ▼                 ▼
+ANH Zone     DGI Zone       DCPJ Zone
+(Isolated)   (Isolated)     (Isolated)
+🔐 COMMUNICATION RULES
+pas de connexion directe inter-agence
+communication via event bus sécurisé
+toutes les requêtes signées
+📡 EVENT LAYER
+ANH → Kafka → SNISID Core → DCPJ (via policy engine)
+🔒 SECURITY
+mTLS obligatoire
+SPIFFE identity
+firewall par namespace
+zero trust model
+🛡️ 3) SOC NATIONAL 24/7
+🧠 STRUCTURE ORGANISATIONNELLE
+SHIFT SYSTEM
+Shift	Coverage
+A	00h–08h
+B	08h–16h
+C	16h–00h
+👥 TEAM STRUCTURE
+🔵 Tier 1 (Monitoring)
+alert handling
+dashboard supervision
+🟠 Tier 2 (Investigation)
+fraud analysis
+graph review
+🔴 Tier 3 (Response)
+incident containment
+coordination agencies
+⚫ AI SOC Layer
+anomaly detection
+auto-prioritization
+🧠 TOOLING STACK
+CORE
+Grafana (visualization)
+Prometheus (metrics)
+Loki (logs)
+Elasticsearch (search)
+AI
+GNN fraud engine
+ArcFace biometrics
+anomaly detection models
+📡 SOC FLOW
+Alert → AI classification → human validation → action → audit log
+🚨 RESPONSE TYPES
+identity freeze
+alert agency
+isolate device
+flag investigation
+🔄 4) DATA MIGRATION PLAN (EXISTING SYSTEMS)
+🎯 OBJECTIF
+
+Migrer sans interruption :
+
+ANH registry
+DGI fiscal data
+DCPJ records
+🧱 PHASES
+🟢 PHASE 1 — DATA INVENTORY
+catalog all databases
+classify sensitivity
+map schema
+🟡 PHASE 2 — ETL PIPELINE
+Legacy DB → ETL → Kafka → SNISID Core
+🔵 PHASE 3 — PARALLEL RUN
+ancien système + SNISID coexistent
+validation croisée
+🔴 PHASE 4 — CUTOVER
+switch gradual
+rollback possible
+🧠 MIGRATION TOOLING
+Apache NiFi (ETL)
+Debezium (CDC change tracking)
+Kafka ingestion layer
+🧠 5) REDONDANCE & FAILOVER
+🔁 STRATEGY
+active-active DC1/DC2
+DC3 backup froid
+⚙️ FAILOVER FLOW
+DC1 down → traffic rerouted → DC2 active → DC3 backup sync
+🧠 DATA REPLICATION
+Neo4j causal cluster
+Kafka MirrorMaker
+Ceph replication
+⚡ 6) NETWORK PERFORMANCE TARGETS
+Metric	Target
+latency inter-DC	< 30ms
+SOC alert time	< 1s
+failover time	< 60s
+data sync lag	< 5s
+🔐 7) SECURITY ARCHITECTURE (PHYSICAL + LOGICAL)
+🧱 LAYERS
+1. Physical
+biometric access datacenter
+CCTV + logging
+2. Network
+segmentation VLAN
+firewalls per agency
+3. Identity
+SPIFFE workload identity
+4. Data
+encryption at rest + transit
+🧠 8) RISQUES RÉELS
+⚠️ TECHNIQUES
+fibre coupée entre DC
+overload SOC
+GPU bottlenecks
+⚠️ OPÉRATIONNELS
+mauvaise classification incidents
+surcharge analystes
+⚠️ POLITIQUES
+conflits inter-agences
+accès non autorisés
+🧠 9) CE QUE TU AS MAINTENANT
+
+👉 tu as un vrai design :
+
+✔ 3 data centers nationaux
+✔ réseau inter-agences isolé
+✔ SOC 24/7 structuré
+✔ migration progressive réelle
+✔ redondance active
+✔ sécurité multi-couches

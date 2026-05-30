@@ -1,0 +1,45 @@
+groups:
+  - name: snisid.platform
+    rules:
+
+      - alert: ZeebeGatewayDown
+        expr: up{job="zeebe-gateway"} == 0
+        for: 1m
+        labels: { severity: sev1, team: platform, page: 'true' }
+        annotations:
+          summary: "💀 Zeebe gateway HS sur {{ $labels.instance }}"
+
+      - alert: ZeebeIncidentsRising
+        expr: rate(zeebe_incident_events_total{action="CREATED"}[5m]) > 0.5
+        for: 5m
+        labels: { severity: sev2, team: wgo, runbook: runbooks/01-workflow-failure.md }
+        annotations:
+          summary: "🚧 Beaucoup d'incidents Zeebe : {{ $value }}/s"
+
+      - alert: TemporalServiceDown
+        expr: up{job="temporal"} == 0
+        for: 1m
+        labels: { severity: sev1, team: platform, page: 'true' }
+        annotations:
+          summary: "💀 Temporal {{ $labels.instance }} HS"
+
+      - alert: NodeDiskAlmostFull
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes) < 0.15
+        for: 15m
+        labels: { severity: sev2, team: platform }
+        annotations:
+          summary: "💾 Disque {{ $labels.device }} sur {{ $labels.instance }} < 15%"
+
+      - alert: NodeHighCPU
+        expr: 100 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100 > 90
+        for: 15m
+        labels: { severity: sev3, team: platform }
+        annotations:
+          summary: "🔥 CPU élevé : {{ $labels.instance }} > 90%"
+
+      - alert: BlackboxProbeFailed
+        expr: probe_success == 0
+        for: 5m
+        labels: { severity: sev1, team: platform, page: 'true' }
+        annotations:
+          summary: "🌐 Service externe {{ $labels.instance }} indisponible"

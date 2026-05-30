@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- offline.validation.field v1.0.0 — Validation hors-ligne d'une identité existante (vérif kiosque/agent terrain sans réseau) -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_off_val" targetNamespace="https://snisid.gouv.ht/bpmn/offline">
+  <bpmn:process id="offline.validation.field" name="Validation terrain (offline)"
+                isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S" name="Demande validation offline"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+
+    <bpmn:serviceTask id="AuditL" name="Audit local chiffré">
+      <bpmn:extensionElements><zeebe:taskDefinition type="audit.local.encrypted"/></bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="ReadCard" name="Lecture carte e-ID (NFC/contact)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="card.read.offline"/></bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="VerifyCardSig" name="Vérification signature carte (CRL embarquée)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="card.signature.verify.offline"/></bpmn:extensionElements>
+      <bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="BioMatch" name="Match biométrique 1:1 local (template carte)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="biometric.match.1to1.offline"/></bpmn:extensionElements>
+      <bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="GwMatch" name="Match OK ?">
+      <bpmn:incoming>f5</bpmn:incoming>
+      <bpmn:outgoing>fOk</bpmn:outgoing><bpmn:outgoing>fKo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="LocalSign" name="Signature locale hardware-kit + horodatage TSA cache">
+      <bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.hardware-kit"/></bpmn:extensionElements>
+      <bpmn:incoming>fOk</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Outbox" name="Outbox local (CRDT) - validation enregistrée">
+      <bpmn:extensionElements><zeebe:taskDefinition type="outbox.local.store"/></bpmn:extensionElements>
+      <bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndOk" name="Identité validée hors-ligne"><bpmn:incoming>f7</bpmn:incoming></bpmn:endEvent>
+    <bpmn:endEvent id="EndKo" name="Validation refusée"><bpmn:incoming>fKo</bpmn:incoming></bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="AuditL"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="AuditL" targetRef="ReadCard"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="ReadCard" targetRef="VerifyCardSig"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="VerifyCardSig" targetRef="BioMatch"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="BioMatch" targetRef="GwMatch"/>
+    <bpmn:sequenceFlow id="fOk" sourceRef="GwMatch" targetRef="LocalSign">
+      <bpmn:conditionExpression>= matchScore &gt;= 0.85 and signatureValid = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fKo" sourceRef="GwMatch" targetRef="EndKo">
+      <bpmn:conditionExpression>= matchScore &lt; 0.85 or signatureValid = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f6" sourceRef="LocalSign" targetRef="Outbox"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Outbox" targetRef="EndOk"/>
+  </bpmn:process>
+</bpmn:definitions>

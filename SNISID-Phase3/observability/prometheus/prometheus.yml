@@ -1,0 +1,163 @@
+# SNISID — Prometheus configuration
+# Multi-DC via Thanos. mTLS pour tous les scrapes.
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: snisid-prod
+    region: ${REGION}        # DC1-PAP / DC2-CAP / DC3-CAYES
+    env: production
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+  - /etc/prometheus/alerts/*.yml
+
+alerting:
+  alertmanagers:
+    - scheme: https
+      tls_config:
+        ca_file: /etc/snisid/tls/ca.crt
+        cert_file: /etc/snisid/tls/prom.crt
+        key_file: /etc/snisid/tls/prom.key
+      static_configs:
+        - targets: ['alertmanager-1:9093','alertmanager-2:9093','alertmanager-3:9093']
+
+scrape_configs:
+
+  # --- Self ---
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # --- Workflow Engine (Temporal + Zeebe workers) ---
+  - job_name: snisid-workflow-engine
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces: { names: [snisid] }
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: snisid-workflow-engine
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_number]
+        regex: '9464'
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_label_version]
+        target_label: engine_version
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        target_label: node
+
+  # --- Zeebe (Camunda 8) ---
+  - job_name: zeebe-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['zeebe-gateway-0:9600','zeebe-gateway-1:9600','zeebe-gateway-2:9600']
+        labels: { component: zeebe-gateway }
+  - job_name: zeebe-broker
+    metrics_path: /actuator/prometheus
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces: { names: [zeebe] }
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: zeebe
+        action: keep
+
+  # --- Temporal ---
+  - job_name: temporal
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - temporal-frontend:9090
+          - temporal-history:9090
+          - temporal-matching:9090
+          - temporal-worker:9090
+
+  # --- Kafka cluster (JMX exporter sidecar) ---
+  - job_name: kafka-broker
+    static_configs:
+      - targets:
+          - kafka-1:9404
+          - kafka-2:9404
+          - kafka-3:9404
+          - kafka-4:9404
+          - kafka-5:9404
+          - kafka-6:9404
+        labels: { component: kafka-broker, dc: dc1 }
+      - targets:
+          - kafka-13:9404
+          - kafka-14:9404
+          - kafka-15:9404
+          - kafka-16:9404
+          - kafka-17:9404
+          - kafka-18:9404
+        labels: { component: kafka-broker, dc: dc2 }
+
+  # --- Kafka consumer lag (Burrow / kafka-lag-exporter) ---
+  - job_name: kafka-lag
+    static_configs:
+      - targets: ['kafka-lag-exporter:8000']
+
+  # --- Schema Registry ---
+  - job_name: schema-registry
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['schema-registry-1:9101','schema-registry-2:9101']
+
+  # --- PKI / TSA ---
+  - job_name: pki
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['pki-signer:9090','pki-signer-dc2:9090']
+  - job_name: tsa
+    static_configs:
+      - targets: ['tsa-1:9090','tsa-2:9090']
+
+  # --- Domain microservices ---
+  - job_name: domain-services
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces: { names: [snisid] }
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        regex: 'true'
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        target_label: app
+      - source_labels: [__meta_kubernetes_pod_label_domain]
+        target_label: domain
+
+  # --- Node / cAdvisor ---
+  - job_name: node-exporter
+    kubernetes_sd_configs: [{ role: node }]
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '(.*):.*'
+        replacement: '${1}:9100'
+        target_label: __address__
+
+  # --- Blackbox (probes externes) ---
+  - job_name: blackbox-citizen-portals
+    metrics_path: /probe
+    params: { module: [https_2xx] }
+    static_configs:
+      - targets:
+          - https://portal.snisid.ht/healthz
+          - https://api.snisid.ht/healthz
+          - https://transparence.snisid.ht/healthz
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+# --- Thanos sidecar exposera ces TSDB blocks pour la requête multi-DC ---
+storage:
+  tsdb:
+    retention.time: 15d   # short-term ; long-term via Thanos store
+    out_of_order_time_window: 30m

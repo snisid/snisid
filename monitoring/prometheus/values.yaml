@@ -1,0 +1,55 @@
+# kube-prometheus-stack overrides
+prometheus:
+  prometheusSpec:
+    # Retain metrics locally for 30 days. (Long-term metrics could be sent to Thanos/Mimir later)
+    retention: 30d
+    # Enable automatic discovery of ServiceMonitors across all namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: encrypted-sc
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 100Gi
+
+alertmanager:
+  config:
+    global:
+      slack_api_url: "https://hooks.slack.com/services/REPLACED
+    route:
+      group_by: ['namespace', 'alertname', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'slack-notifications'
+      routes:
+      - matchers:
+        - severity="critical"
+        receiver: 'pagerduty-critical'
+        continue: true
+    receivers:
+    - name: 'slack-notifications'
+      slack_configs:
+      - channel: '#snisid-alerts'
+        send_resolved: true
+    - name: 'pagerduty-critical'
+      pagerduty_configs:
+      - routing_key: "vault_injected_pagerduty_key"
+        send_resolved: true
+        description: |-
+          [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.SortedPairs.Values | join " " }} {{ if gt (len .CommonLabels) (len .GroupLabels) }}({{ with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join " " }}{{ end }}){{ end }}
+
+grafana:
+  enabled: true
+  adminPassword: "vault_injected_admin_password"
+  # Provision dashboards automatically via ConfigMaps
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+    datasources:
+      enabled: true
+      label: grafana_datasource

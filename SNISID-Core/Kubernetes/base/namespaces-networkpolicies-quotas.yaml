@@ -1,0 +1,430 @@
+---
+# ============================================================
+# SNISID-Core — Kubernetes Base Layer
+# Namespaces + Network Policies + Resource Quotas
+# Document ID: SNISID-K8S-BASE-001
+# Version: 1.0.0
+# ============================================================
+
+# ============================================================
+# NAMESPACES
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-api-gateway
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+    snisid.gov.ht/tier: platform
+    snisid.gov.ht/data-classification: public
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-identity
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    snisid.gov.ht/tier: critical
+    snisid.gov.ht/data-classification: sovereign-critical
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-biometrics
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    snisid.gov.ht/tier: critical
+    snisid.gov.ht/data-classification: biometric-sensitive
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-civil-registry
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    snisid.gov.ht/tier: critical
+    snisid.gov.ht/data-classification: legal-data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-workflows
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: baseline
+    snisid.gov.ht/tier: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-event-bus
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: baseline
+    snisid.gov.ht/tier: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-databases
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    snisid.gov.ht/tier: critical
+    snisid.gov.ht/data-classification: sovereign-critical
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-security
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    snisid.gov.ht/tier: critical
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-observability
+  labels:
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: baseline
+    snisid.gov.ht/tier: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-gitops
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    snisid.gov.ht/tier: platform
+---
+
+# ============================================================
+# NETWORK POLICIES — Default Deny All (Zero Trust)
+# ============================================================
+
+# Deny all ingress/egress for every namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: snisid-identity
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: snisid-biometrics
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: snisid-civil-registry
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: snisid-databases
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+
+# Allow DNS resolution (required for all pods)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: snisid-identity
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: snisid-biometrics
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: snisid-civil-registry
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+---
+
+# Allow identity-service ← api-gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-api-gateway
+  namespace: snisid-identity
+spec:
+  podSelector:
+    matchLabels:
+      app: identity-service
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-api-gateway
+    ports:
+    - port: 8443
+      protocol: TCP
+---
+
+# Allow biometrics ← identity + api-gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-identity-and-gateway
+  namespace: snisid-biometrics
+spec:
+  podSelector:
+    matchLabels:
+      app: biometric-service
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-identity
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-api-gateway
+    ports:
+    - port: 8082
+      protocol: TCP
+---
+
+# Allow databases ← identity + biometrics + civil-registry
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-services
+  namespace: snisid-databases
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-identity
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-biometrics
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-civil-registry
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-workflows
+    ports:
+    - port: 26257   # CockroachDB
+    - port: 5432    # PostgreSQL
+    - port: 6379    # Redis
+    - port: 9200    # OpenSearch
+---
+
+# Allow observability to scrape all namespaces
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: snisid-identity
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-observability
+    ports:
+    - port: 9090
+      protocol: TCP
+---
+
+# ============================================================
+# RESOURCE QUOTAS
+# ============================================================
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-identity-quota
+  namespace: snisid-identity
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    pods: "50"
+    services: "20"
+    persistentvolumeclaims: "10"
+    count/deployments.apps: "10"
+    count/secrets: "50"
+    count/configmaps: "30"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-biometrics-quota
+  namespace: snisid-biometrics
+spec:
+  hard:
+    requests.cpu: "40"        # GPU workloads need more CPU
+    requests.memory: 128Gi   # ABIS in-memory gallery
+    limits.cpu: "80"
+    limits.memory: 256Gi
+    pods: "30"
+    services: "15"
+    persistentvolumeclaims: "20"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-civil-registry-quota
+  namespace: snisid-civil-registry
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "30"
+    services: "15"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-databases-quota
+  namespace: snisid-databases
+spec:
+  hard:
+    requests.cpu: "30"
+    requests.memory: 64Gi
+    limits.cpu: "60"
+    limits.memory: 128Gi
+    pods: "20"
+    persistentvolumeclaims: "30"
+    requests.storage: "10Ti"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-event-bus-quota
+  namespace: snisid-event-bus
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 48Gi
+    limits.cpu: "40"
+    limits.memory: 96Gi
+    pods: "20"
+    persistentvolumeclaims: "20"
+    requests.storage: "5Ti"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-observability-quota
+  namespace: snisid-observability
+spec:
+  hard:
+    requests.cpu: "15"
+    requests.memory: 32Gi
+    limits.cpu: "30"
+    limits.memory: 64Gi
+    pods: "30"
+    persistentvolumeclaims: "20"
+    requests.storage: "20Ti"   # Long-term metrics storage (Thanos)
+---
+
+# ============================================================
+# LIMIT RANGES — Default resource limits
+# ============================================================
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: snisid-identity
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    max:
+      cpu: "4"
+      memory: 8Gi
+    min:
+      cpu: 50m
+      memory: 64Mi
+  - type: Pod
+    max:
+      cpu: "8"
+      memory: 16Gi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: snisid-civil-registry
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    max:
+      cpu: "4"
+      memory: 8Gi
+---

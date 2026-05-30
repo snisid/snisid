@@ -1,0 +1,83 @@
+# OpenTelemetry Collector Configuration for SNISID National Rollout
+# Aggregates metrics, logs, and traces from 140 Local Edge Nodes and exports them to Datacenter central backends.
+
+receivers:
+  # 1. Receive metrics/traces/logs from local edge nodes via secure gRPC/HTTP
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # 2. Collect host metrics from the Edge Node system (disk, memory, cpu, solar battery)
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      network:
+      load:
+
+  # 3. Collect local Prometheus metrics exposed by the LEN SQLite/sync client
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'snisid_local_edge_node'
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['localhost:8000']
+
+processors:
+  # Batch data together before sending to optimize narrow bandwidth Starlink/4G connections
+  batch:
+    send_batch_size: 256
+    timeout: 5s
+    send_batch_max_size: 512
+
+  # Restrict metadata attributes to preserve bandwidth and encrypt node details
+  attributes:
+    actions:
+      - key: snisid.edge.node.signature
+        action: insert
+        value: "signed_via_hardware_tpm"
+
+exporters:
+  # 1. Export metrics to the central Prometheus TSDB
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: "snisid"
+
+  # 2. Export logs to Grafana Loki Cluster
+  loki:
+    endpoint: "http://loki-central.snisid.gouv.ht:3100/loki/api/v1/push"
+    tenant_id: "snisid-national-rollout"
+
+  # 3. Export traces to Grafana Tempo for performance troubleshooting
+  otlp/tempo:
+    endpoint: "tempo-central.snisid.gouv.ht:4317"
+    tls:
+      insecure: false
+      ca_file: "/etc/ssl/certs/snisid_root_ca.pem"
+      cert_file: "/etc/ssl/certs/otel_collector_client.pem"
+      key_file: "/etc/ssl/certs/otel_collector_client.key"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp, hostmetrics, prometheus]
+      processors: [batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch, attributes]
+      exporters: [loki]
+    traces:
+      receivers: [otlp]
+      processors: [batch, attributes]
+      exporters: [otlp/tempo]
+
+  telemetry:
+    logs:
+      level: "info"

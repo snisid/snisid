@@ -1,0 +1,80 @@
+# SNISID — K3s Configuration : Regional Edge Nodes
+# Classification: RESTREINT DEFENSE
+# Role: Déploiement K8s lightweight dans les départements/régions
+# Autonomie: 72h minimum offline avec cache local
+
+write-kubeconfig-mode: "0644"
+tls-san:
+  - "edge-regional-01.snisid.gouv.local"
+  - "10.2.1.11"
+  - "127.0.0.1"
+
+# Disable components non nécessaires en edge
+disable:
+  - traefik
+  - servicelb
+  - metrics-server  # Fourni par scraping Prometheus edge
+  - coredns         # Remplacé par CoreDNS national custom
+
+# etcd externe remplacé par SQLite (single node) ou embedded etcd (3 nodes regional)
+# Pour regional nodes : 3 nœuds avec etcd intégré K3s
+cluster-init: true
+
+# Container runtime
+container-runtime-endpoint: "unix:///run/containerd/containerd.sock"
+
+# Réseau — Cilium est installé post-boot via manifeste
+flannel-backend: "none"  # Cilium remplace Flannel
+
+# Kubelet — durci CIS
+kubelet-arg:
+  - "protect-kernel-defaults=true"
+  - "read-only-port=0"
+  - "tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+  - "event-qps=0"
+  - "eviction-hard=memory.available<500Mi,nodefs.available<10%"
+
+# API Server — restrictions strictes
+kube-apiserver-arg:
+  - "authorization-mode=Node,RBAC"
+  - "audit-log-path=/var/log/k3s/audit.log"
+  - "audit-log-maxage=30"
+  - "audit-log-maxbackup=10"
+  - "audit-policy-file=/etc/rancher/k3s/audit-policy.yaml"
+  - "request-timeout=300s"
+  - "enable-admission-plugins=NodeRestriction,PodSecurityPolicy,ResourceQuota,LimitRanger"
+
+# Agent — registry interne uniquement
+kube-proxy-arg:
+  - "metrics-bind-address=0.0.0.0"
+
+# Registry mirror — pointe vers registry nationale (cache edge local)
+private-registry: "/etc/rancher/k3s/registries.yaml"
+
+# Node labels pour scheduling edge
+node-label:
+  - "snisid.gov/tier=tier-4"
+  - "snisid.gov/region=regional-01"
+  - "snisid.gov/role=edge-regional"
+  - "snisid.gov/offline-capable=true"
+  - "snisid.gov/storage-node=true"
+
+# Taints pour isolation workloads
+node-taint:
+  - "snisid.gov/tier=tier-4:NoSchedule"
+
+# Data dir sur SSD local (pas de Ceph distant en edge — autonomie)
+data-dir: /var/lib/rancher/k3s
+
+# Snapshots etcd locaux fréquents (toutes les heures)
+etcd-snapshot-schedule-cron: "0 * * * *"
+etcd-snapshot-retention: 72  # 72 snapshots = 72h
+
+# S3 backup vers stockage edge local (pas internet)
+etcd-s3: false
+
+# Token jointure sécurisé (fourni par Vault edge lors provisioning)
+token-file: /etc/rancher/k3s/token
+
+# Profilage désactivé
+protect-kernel-defaults: true

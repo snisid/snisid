@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- identity.verification.online v1.0.0 — SLA 5min -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_id_verif" targetNamespace="https://snisid.gouv.ht/bpmn/identity">
+  <bpmn:process id="identity.verification.online" name="Vérification identité (en ligne)" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="LU" name="Lookup NIN + statut"><bpmn:extensionElements><zeebe:taskDefinition type="identity.lookup"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Match" name="Matching biométrique (1:1)"><bpmn:extensionElements><zeebe:taskDefinition type="biometric.match.1to1"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Liveness" name="Détection vivacité (anti-spoofing)"><bpmn:extensionElements><zeebe:taskDefinition type="biometric.liveness"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:callActivity id="Fraud"><bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:serviceTask id="Token" name="Émission token vérification + signature"><bpmn:extensionElements><zeebe:taskDefinition type="identity.token.issue"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f8</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="LU"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="LU" targetRef="Match"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Match" targetRef="Liveness"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Liveness" targetRef="Fraud"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Fraud" targetRef="Token"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Token" targetRef="K"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="K" targetRef="E"/>
+  </bpmn:process>
+</bpmn:definitions>

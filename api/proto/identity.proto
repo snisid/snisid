@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package snisid.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/snisid/platform/backend/api/proto/v1";
+
+service IdentityService {
+  rpc CreateIdentity(CreateIdentityRequest) returns (IdentityResponse);
+  rpc GetIdentity(GetIdentityRequest) returns (IdentityResponse);
+}
+
+message Citizen {
+  string id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string dob = 4;
+  string national_id = 5;
+  string status = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  map<string, string> attributes = 9;
+}
+
+message CreateIdentityRequest {
+  string first_name = 1;
+  string last_name = 2;
+  string dob = 3;
+  string national_id = 4;
+  string agency = 5;
+}
+
+message GetIdentityRequest {
+  string id = 1;
+}
+
+message IdentityResponse {
+  Citizen citizen = 1;
+}
+

@@ -1,0 +1,11 @@
+ISO_Control,Title,Status,Implementation_Details,SNISID_Artifact
+A.5.1,Information Security Policies,Implemented,Governed by national mandate and SOC playbooks,soc/playbooks/
+A.8.2,Information Classification,Implemented,Data classification matrix defines RESTRICTED and CONFIDENTIAL tiers,zerotrust/data/data-classification-matrix.json
+A.9.2,User Access Provisioning,Implemented,RBAC and ABAC managed via Keycloak and OPA,iam/keycloak/
+A.9.4,System and Application Access Control,Implemented,100% MFA enforced. Istio L7 authorization policies restrict endpoints.,zerotrust/mesh/istio-authorization-policies.yaml
+A.10.1,Cryptographic Controls,Implemented,Vault Transit Engine for Biometrics. TDE for databases. mTLS for transport.,security/vault/
+A.12.1,Operational Procedures and Responsibilities,Implemented,Fully automated via ArgoCD GitOps pipelines.,k8s/argocd/
+A.12.4,Logging and Monitoring,Implemented,Hash-chain logger in S3 WORM. SIEM with 7-year retention.,audit/immutability/hash-chain-logger.py
+A.13.1,Network Security Management,Implemented,Cilium eBPF Default Deny. Micro-segmentation enforced.,zerotrust/network/cilium-default-deny.yaml
+A.16.1,Information Security Incident Management,Implemented,SOC Elastic SIEM + TheHive + 72h RGPD playbook.,audit/rgpd/breach-notification-playbook.md
+A.17.1,Information Security Continuity,Implemented,Monthly automated DB restore testing in GitHub Actions.,.github/workflows/db-restore-test.yml

@@ -1,0 +1,71 @@
+# persistence.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-risk-pvc
+  namespace: nexus-infra
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-risk
+  namespace: nexus-infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-risk
+  template:
+    metadata:
+      labels:
+        app: postgres-risk
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_DB
+          value: riskdb
+        - name: POSTGRES_USER
+          value: snisid
+        - name: POSTGRES_PASSWORD
+          value: snisid
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: postgres-risk-pvc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neo4j-graph
+  namespace: nexus-infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
+  template:
+    metadata:
+      labels:
+        app: neo4j
+    spec:
+      containers:
+      - name: neo4j
+        image: neo4j:5
+        env:
+        - name: NEO4J_AUTH
+          value: neo4j/snisid_graph_pwd
+        ports:
+        - containerPort: 7687
+        - containerPort: 7474

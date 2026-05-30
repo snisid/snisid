@@ -1,0 +1,29 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-snisid-data-backup
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedNamespaces:
+    - snisid-data
+    snapshotVolumes: true
+    storageLocation: aws-s3-backup # Points to a BackupStorageLocation config
+    ttl: 720h0m0s # 30 days
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: hourly-etcd-state-backup
+  namespace: velero
+spec:
+  schedule: "0 * * * *"
+  template:
+    includedNamespaces:
+    - kube-system
+    includedResources:
+    - secrets
+    - configmaps
+    snapshotVolumes: false
+    ttl: 168h0m0s # 7 days

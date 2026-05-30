@@ -1,0 +1,9 @@
+# Fulfills Requirement #104: mTLS active between all services
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: snisid-global-mtls
+  namespace: istio-system # Applying to the root namespace makes it global
+spec:
+  mtls:
+    mode: STRICT

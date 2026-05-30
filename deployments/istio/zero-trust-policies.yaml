@@ -1,0 +1,44 @@
+# peer-auth.yaml
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: nexus-system
+spec:
+  mtls:
+    mode: STRICT
+---
+# auth-policy.yaml
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: identity-svc-policy
+  namespace: nexus-system
+spec:
+  selector:
+    matchLabels:
+      app: identity-service
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nexus-system/sa/api-gateway"]
+    to:
+    - operation:
+        methods: ["POST", "GET"]
+        paths: ["/v1/identity/*"]
+---
+# dest-rule.yaml
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: identity-service-lb
+  namespace: nexus-system
+spec:
+  host: identity-service
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 100
+        maxRequestsPerConnection: 10

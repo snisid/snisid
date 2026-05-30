@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-core
+  labels:
+    name: snisid-core
+    # Enforce Pod Security Standards: Restricted
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-data
+  labels:
+    name: snisid-data
+    # Data layer might require baseline or specific exemptions, but we enforce restricted by default
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-security
+  labels:
+    name: snisid-security
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-monitoring
+  labels:
+    name: snisid-monitoring
+    # Monitoring agents (like node-exporter) often need privileged access, so we use baseline or privileged.
+    # We set to baseline and will rely on Gatekeeper for granular exceptions.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest

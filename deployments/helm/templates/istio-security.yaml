@@ -1,0 +1,38 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: snisid-strict-mtls
+  namespace: snisid
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-gateway-to-identity
+  namespace: snisid
+spec:
+  selector:
+    matchLabels:
+      app: identity-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/snisid/sa/api-gateway-sa"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-identity-to-postgres
+  namespace: snisid
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/snisid/sa/identity-api-sa"]

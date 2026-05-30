@@ -1,0 +1,80 @@
+name: SNISID - Tests Critiques Phases 13/14/15/17
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+ 
+jobs:
+  check-disk-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verifier espace disque disponible (min 500Go requis)
+        run: |
+          AVAILABLE=$(df / | awk 'NR==2{print $4}')
+          if [ "$AVAILABLE" -lt 524288 ]; then
+            echo "ERREUR: Espace insuffisant: ${AVAILABLE}K < 512MB"
+            exit 1
+          fi
+          echo "OK: Espace disponible: ${AVAILABLE}K"
+ 
+  test-phase13-signature:
+    runs-on: ubuntu-latest
+    needs: check-disk-space
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: snisid_test
+          POSTGRES_PASSWORD: test_pwd_ci_only
+        ports: ["5432:5432"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Tests Phase 13 - Signature PKI
+        env:
+          DB_DSN: "postgres://postgres:test_pwd_ci_only@localhost:5432/snisid_test"
+          HSM_MODE: "mock"
+        run: |
+          cd phase13/
+          go test ./... -v -race -coverprofile=coverage13.out -timeout=120s
+          COVERAGE=$(go tool cover -func=coverage13.out | grep total | awk '{print $3}' | tr -d '%')
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "ERREUR Coverage Phase 13: ${COVERAGE}% < 80%"
+            exit 1
+          fi
+          echo "OK Coverage Phase 13: ${COVERAGE}%"
+ 
+  test-phase14-opa:
+    runs-on: ubuntu-latest
+    needs: check-disk-space
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer OPA v0.65.0
+        run: |
+          curl -L -o opa https://openpolicyagent.org/downloads/v0.65.0/opa_linux_amd64_static
+          chmod +x opa && sudo mv opa /usr/local/bin/
+      - name: Tests OPA Zero Trust
+        run: |
+          cd phase14/policies/
+          opa test . -v
+          echo "Test mode audit - aucune requete legitime ne doit etre bloquee"
+          opa eval --data . --input test_data/legitimate_request.json \
+            "data.snisid.zerotrust.allow" | grep -q '"result": true'
+          echo "OK - Requetes legitimes non bloquees"
+ 
+  test-phase15-nire:
+    runs-on: ubuntu-latest
+    needs: check-disk-space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Tests NIRE API
+        run: |
+          pip install pytest pytest-cov httpx fastapi uvicorn sqlalchemy
+          cd phase15/
+          pytest api_nire.py test_nire.py -v --cov=. --cov-fail-under=80

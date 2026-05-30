@@ -1,0 +1,221 @@
+---
+# SNISID — National SLA / SLO catalog (machine readable)
+# Source of truth for Prometheus alerts + Grafana SLO dashboards.
+apiVersion: snisid.gouv.ht/v1
+kind: SLACatalog
+metadata:
+  name: snisid-national-sla
+spec:
+  defaults:
+    measurementWindow: 30d
+    retry:
+      strategy: exponential
+      initial: 30s
+      max: 1h
+      attempts: 8
+    timeoutDefault: 5m
+  workflows:
+
+    - id: civil-registry.birth.simple
+      criticality: CRITICAL
+      sla:   { max: 24h }
+      slo:   { p95: 18h, success: 99.9% }
+      escalation: escalation.sla.breach
+      timeout: 24h
+
+    - id: civil-registry.birth.recognition
+      criticality: CRITICAL
+      sla:   { max: 72h }
+      slo:   { p95: 48h, success: 99.9% }
+      escalation: escalation.sla.breach
+      timeout: 72h
+
+    - id: civil-registry.birth.late-declaration
+      criticality: CRITICAL
+      sla:   { max: 30d }
+      slo:   { p95: 20d, success: 99% }
+      escalation: escalation.sla.breach
+      timeout: 30d
+
+    - id: civil-registry.birth.executive-decree
+      criticality: CRITICAL
+      sla:   { max: 90d }
+      slo:   { p95: 60d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.birth.judicial-judgment
+      criticality: CRITICAL
+      sla:   { max: 60d }
+      slo:   { p95: 40d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.death.standard
+      criticality: CRITICAL
+      sla:   { max: 24h }
+      slo:   { p95: 12h, success: 99.9% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.death.judicial
+      criticality: CRITICAL
+      sla:   { max: 30d }
+      slo:   { p95: 20d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.death.disaster
+      criticality: CRITICAL
+      sla:   { max: 7d }
+      slo:   { p95: 4d, success: 99.5% }
+      escalation: escalation.crisis.national
+
+    - id: civil-registry.disappearance.administrative
+      criticality: CRITICAL
+      sla:   { max: 365d }
+      slo:   { p95: 300d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.marriage.civil
+      criticality: HIGH
+      sla:   { max: 7d }
+      slo:   { p95: 5d, success: 99.5% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.marriage.judicial
+      criticality: HIGH
+      sla:   { max: 30d }
+      slo:   { p95: 20d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.marriage.religious-recognized
+      criticality: HIGH
+      sla:   { max: 30d }
+      slo:   { p95: 20d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.divorce.administrative
+      criticality: HIGH
+      sla:   { max: 30d }
+      slo:   { p95: 20d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.divorce.judicial
+      criticality: HIGH
+      sla:   { max: 180d }
+      slo:   { p95: 120d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.adoption.national
+      criticality: HIGH
+      sla:   { max: 180d }
+      slo:   { p95: 120d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: civil-registry.adoption.international
+      criticality: HIGH
+      sla:   { max: 365d }
+      slo:   { p95: 300d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: identity.enrollment.standard
+      criticality: CRITICAL
+      sla:   { max: 24h }
+      slo:   { p95: 12h, success: 99.9% }
+      escalation: escalation.sla.breach
+      timeout: 24h
+
+    - id: identity.verification.online
+      criticality: CRITICAL
+      sla:   { max: 5m }
+      slo:   { p99: 30s, success: 99.95% }
+      escalation: escalation.sla.breach
+      timeout: 5m
+
+    - id: identity.verification.biometric
+      criticality: CRITICAL
+      sla:   { max: 30s }
+      slo:   { p99: 5s, success: 99.95% }
+      escalation: escalation.sla.breach
+      timeout: 30s
+
+    - id: identity.recovery.standard
+      criticality: CRITICAL
+      sla:   { max: 72h }
+      slo:   { p95: 48h, success: 99.9% }
+      escalation: escalation.sla.breach
+
+    - id: identity.revocation.administrative
+      criticality: CRITICAL
+      sla:   { max: 24h }
+      slo:   { p95: 4h, success: 99.9% }
+      escalation: escalation.sla.breach
+
+    - id: identity.correction.minor
+      criticality: HIGH
+      sla:   { max: 7d }
+      slo:   { p95: 3d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: identity.correction.major
+      criticality: HIGH
+      sla:   { max: 30d }
+      slo:   { p95: 20d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: identity.duplicate.resolution
+      criticality: CRITICAL
+      sla:   { max: 14d }
+      slo:   { p95: 10d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: identity.appeal.citizen
+      criticality: HIGH
+      sla:   { max: 30d }
+      slo:   { p95: 20d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: identity.suspension.judicial
+      criticality: CRITICAL
+      sla:   { max: 4h }
+      slo:   { p95: 1h, success: 99.95% }
+      escalation: escalation.sla.breach
+
+    - id: judicial.validation.act
+      criticality: HIGH
+      sla:   { max: 48h }
+      slo:   { p95: 24h, success: 99.5% }
+      escalation: escalation.sla.breach
+
+    - id: judicial.investigation.fraud
+      criticality: HIGH
+      sla:   { max: 90d }
+      slo:   { p95: 60d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: judicial.appeal.management
+      criticality: HIGH
+      sla:   { max: 90d }
+      slo:   { p95: 60d, success: 99% }
+      escalation: escalation.sla.breach
+
+    - id: judicial.court.integration
+      criticality: HIGH
+      sla:   { max: 24h }
+      slo:   { p95: 4h, success: 99.5% }
+      escalation: escalation.sla.breach
+
+    - id: elections.voter.validation
+      criticality: HIGH
+      sla:   { max: 1h }
+      slo:   { p95: 5m, success: 99.95% }
+      escalation: escalation.sla.breach
+
+    - id: fraud.detection.automated
+      criticality: HIGH
+      sla:   { max: 1m }
+      slo:   { p99: 10s, success: 99.95% }
+      escalation: escalation.sla.breach
+
+    - id: escalation.sla.breach
+      criticality: CRITICAL
+      sla:   { max: 5m }
+      slo:   { p99: 1m, success: 99.99% }
+      escalation: escalation.crisis.national

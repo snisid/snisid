@@ -1,0 +1,37 @@
+{
+  "namespace": "snisid.identity.v1",
+  "type": "record",
+  "name": "VerificationEvent",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "verificationId", "type": "string"},
+    {"name": "identityId", "type": "string"},
+    {"name": "status", "type": "string"},
+    {
+      "name": "results",
+      "type": {
+        "type": "map",
+        "values": {
+          "type": "record",
+          "name": "CheckResult",
+          "fields": [
+            {"name": "status", "type": "string"},
+            {"name": "reason", "type": "string"},
+            {"name": "score", "type": "int"}
+          ]
+        }
+      }
+    }
+  ]
+}

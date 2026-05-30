@@ -1,0 +1,78 @@
+{
+  "uid": "snisid-citizen-xp",
+  "title": "SNISID — Citizen Experience",
+  "tags": ["snisid", "citizen", "direction"],
+  "timezone": "America/Port-au-Prince",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": {
+    "list": [
+      { "name":"domain","type":"query","datasource":{"type":"prometheus","uid":"prom-snisid"},
+        "query":"label_values(snisid_citizen_request_duration_seconds_bucket, domain)","includeAll":true,"multi":true },
+      { "name":"channel","type":"query","datasource":{"type":"prometheus","uid":"prom-snisid"},
+        "query":"label_values(snisid_citizen_request_duration_seconds_bucket, channel)","includeAll":true,"multi":true }
+    ]
+  },
+  "panels": [
+    { "type": "stat", "title": "Demandes citoyens (7j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":0,"y":0,"w":6,"h":4},
+      "targets": [{"refId":"A","expr":"sum(increase(snisid_citizen_request_total{domain=~\"$domain\",channel=~\"$channel\"}[7d]))"}]
+    },
+    { "type": "stat", "title": "Naissances enregistrées (7j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":6,"y":0,"w":6,"h":4},
+      "targets": [{"refId":"A","expr":"sum(increase(snisid_workflow_completed_total{workflow_id=\"civil-registry.birth.simple\",result=\"SUCCESS\"}[7d]))"}]
+    },
+    { "type": "stat", "title": "Identités créées (7j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":12,"y":0,"w":6,"h":4},
+      "targets": [{"refId":"A","expr":"sum(increase(snisid_workflow_completed_total{workflow_id=\"identity.enrollment.standard\",result=\"SUCCESS\"}[7d]))"}]
+    },
+    { "type": "stat", "title": "Contestations citoyens (7j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":18,"y":0,"w":6,"h":4},
+      "targets": [{"refId":"A","expr":"sum(increase(snisid_workflow_started_total{workflow_id=\"identity.appeal.citizen\"}[7d]))"}]
+    },
+
+    { "type": "timeseries", "title": "Durée perçue p95 (s) par domaine",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":0,"y":4,"w":12,"h":8},
+      "fieldConfig":{"defaults":{"unit":"s"}},
+      "targets": [{"refId":"A","expr":"snisid:citizen_request_duration:p95:5m{domain=~\"$domain\",channel=~\"$channel\"}","legendFormat":"{{domain}} / {{channel}}"}]
+    },
+    { "type": "timeseries", "title": "Distribution par canal",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":12,"y":4,"w":12,"h":8},
+      "targets": [{"refId":"A","expr":"sum by (channel) (rate(snisid_citizen_request_total{domain=~\"$domain\"}[1h]))","legendFormat":"{{channel}}"}]
+    },
+
+    { "type": "geomap", "title": "Demandes par département (carte HT)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":0,"y":12,"w":12,"h":10},
+      "options": { "view": { "id": "coords", "lat": 18.9712, "lon": -72.2852, "zoom": 7 } },
+      "targets": [{"refId":"A","expr":"sum by (department, lat, lon) (snisid_citizen_request_geo{domain=~\"$domain\"})"}]
+    },
+    { "type": "barchart", "title": "Délai moyen perçu par workflow (min)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":12,"y":12,"w":12,"h":10},
+      "targets": [{"refId":"A","expr":"sort_desc(avg by (workflow_id) (snisid:workflow_duration:p95:5m / 60))","legendFormat":"{{workflow_id}}"}]
+    },
+
+    { "type": "stat", "title": "Score satisfaction (NPS proxy)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":0,"y":22,"w":8,"h":5},
+      "fieldConfig": { "defaults": { "unit": "short", "min": -100, "max": 100,
+        "thresholds": { "mode": "absolute", "steps": [
+          {"color":"red","value":-100},{"color":"orange","value":0},{"color":"green","value":50}]}}},
+      "targets": [{"refId":"A","expr":"avg(snisid_citizen_satisfaction_score)"}]
+    },
+    { "type": "timeseries", "title": "Appels portail / kiosques / mobile (7j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":8,"y":22,"w":16,"h":5},
+      "targets": [{"refId":"A","expr":"sum by (channel) (rate(snisid_citizen_request_total[10m]))","legendFormat":"{{channel}}"}]
+    }
+  ]
+}

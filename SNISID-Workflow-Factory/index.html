@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNISID — National BPMN Orchestration & Workflow Factory</title>
+    <!-- Tailwind CSS Embedded/Loaded safely or styled custom -->
+    <style>
+        /* Modern UI Style Guide - Glassmorphism, Deep Dark Palette & Smooth Transitions */
+        :root {
+            --bg-main: #0B0F19;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #F3F4F6;
+            --text-secondary: #9CA3AF;
+            --primary: #3B82F6;
+            --primary-glow: rgba(59, 130, 246, 0.15);
+            --accent-green: #10B981;
+            --accent-green-glow: rgba(16, 185, 129, 0.15);
+            --accent-red: #EF4444;
+            --accent-red-glow: rgba(239, 68, 68, 0.15);
+            --accent-orange: #F59E0B;
+            --accent-purple: #8B5CF6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.08) 0, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        /* Glassmorphism card utility */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        /* Navigation elements */
+        header {
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .nav-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-badge {
+            background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+            color: white;
+            font-weight: 800;
+            padding: 6px 12px;
+            border-radius: 8px;
+            letter-spacing: 1px;
+            font-size: 14px;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Tabs and layout grid */
+        .tab-menu {
+            display: flex;
+            gap: 6px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 12px 18px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 640px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .metric-card {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .metric-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .metric-footer {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .metric-up { color: var(--accent-green); }
+        .metric-down { color: var(--accent-red); }
+
+        /* Main Workspace Splitting */
+        .workspace-split {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .workspace-split {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Action Buttons */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-success {
+            background: var(--accent-green);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+        .btn-success:hover {
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+        .btn-danger:hover {
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: none;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Form styling */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.07);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Badge elements */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-pending { background: rgba(245, 158, 11, 0.12); color: var(--accent-orange); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .badge-completed { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .badge-failed { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .badge-escalated { background: rgba(139, 92, 246, 0.12); color: var(--accent-purple); border: 1px solid rgba(139, 92, 246, 0.2); }
+        .badge-secondary { background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); border: 1px solid var(--border-color); }
+
+        /* Tables & Lists */
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .custom-table th {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .custom-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+
+        .custom-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Console styling (Kafka and Audit) */
+        .console-box {
+            background: #060913;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 12px;
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            color: #A7F3D0;
+            line-height: 1.5;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .console-line {
+            margin-bottom: 8px;
+            border-left: 2px solid var(--primary);
+            padding-left: 8px;
+        }
+
+        .console-line.audit { border-color: var(--accent-purple); color: #E9D5FF; }
+        .console-line.alarm { border-color: var(--accent-red); color: #FCA5A5; }
+        .console-line.success { border-color: var(--accent-green); color: #A7F3D0; }
+
+        /* BPMN Node graph simulation */
+        .bpmn-graph {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(6, 9, 19, 0.6);
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .bpmn-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 110px;
+            text-align: center;
+            position: relative;
+            z-index: 5;
+        }
+
+        .bpmn-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(17, 24, 39, 0.9);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+
+        .bpmn-node.active .bpmn-circle {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            transform: scale(1.1);
+        }
+
+        .bpmn-node.completed .bpmn-circle {
+            border-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+        }
+
+        .bpmn-node.escalated .bpmn-circle {
+            border-color: var(--accent-purple);
+            background: rgba(139, 92, 246, 0.2);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+        }
+
+        .bpmn-text {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            max-width: 120px;
+        }
+
+        .bpmn-node.active .bpmn-text {
+            color: var(--text-primary);
+        }
+
+        .bpmn-arrow {
+            flex-grow: 1;
+            height: 2px;
+            background: var(--border-color);
+            margin: 0 10px;
+            position: relative;
+            min-width: 30px;
+        }
+
+        .bpmn-arrow::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 6px solid var(--border-color);
+        }
+
+        .bpmn-node.completed + .bpmn-arrow {
+            background: var(--accent-green);
+        }
+        .bpmn-node.completed + .bpmn-arrow::after {
+            border-left-color: var(--accent-green);
+        }
+
+        .offline-badge {
+            background: linear-gradient(135deg, #EF4444, #F59E0B);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { opacity: 1; box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { opacity: 0.8; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* SVG graph animation */
+        .chart-svg {
+            width: 100%;
+            height: 120px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header>
+        <div class="container nav-wrapper">
+            <div class="logo-area">
+                <span class="logo-badge">SNISID v4.0</span>
+                <span class="logo-text">National BPMN & Workflow Factory</span>
+            </div>
+            <div id="connectionStatus" style="display: flex; align-items: center; gap: 10px;">
+                <span class="badge badge-completed" id="networkIndicator">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right:4px;"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+                    CONNECTÉ AU BUS KAFKA CENTRAL
+                </span>
+                <button class="btn btn-secondary" onclick="toggleOfflineMode()" id="offlineToggleBtn" style="padding:6px 12px; font-size:12px;">
+                    Simuler Mode Hors-Ligne
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" style="padding-top: 24px; padding-bottom: 60px;">
+        
+        <!-- Tab Menu Navigation -->
+        <div class="tab-menu">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                Tableau de Bord & Métriques
+            </button>
+            <button class="tab-btn" onclick="switchTab('factory')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Usine de Workflows (Initier)
+            </button>
+            <button class="tab-btn" onclick="switchTab('cases')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                Gestion de Dossiers (Case Mgmt)
+            </button>
+            <button class="tab-btn" id="taskTabHeader" onclick="switchTab('tasks')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Validation Humaine (<span id="taskCountBadge">0</span>)
+            </button>
+            <button class="tab-btn" onclick="switchTab('sla')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Moteur de SLA
+            </button>
+            <button class="tab-btn" onclick="switchTab('kafka')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></svg>
+                Kafka & Traces d'Audit
+            </button>
+            <button class="tab-btn" id="offlineTabHeader" onclick="switchTab('offline')" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
+                File d'attente Offline (<span id="offlineCountBadge">0</span>)
+            </button>
+        </div>
+
+        <!-- 1. DASHBOARD & METRICS TAB -->
+        <div id="tab-dashboard" class="tab-content">
+            <!-- Metrics Summary -->
+            <div class="dashboard-grid">
+                <div class="glass-card metric-card">
+                    <span class="metric-title">Dossiers Totaux Actifs</span>
+                    <span class="metric-value" id="statTotalCases">0</span>
+                    <span class="metric-footer metric-up">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+                        +100% Ce jour
+                    </span>
+                </div>
+                <div class="glass-card metric-card">
+                    <span class="metric-title">Tâches Humaines en attente</span>
+                    <span class="metric-value text-amber-500" id="statPendingTasks" style="color:var(--accent-orange);">0</span>
+                    <span class="metric-footer text-gray-400">Actions d'officiers requises</span>
+                </div>
+                <div class="glass-card metric-card">
+                    <span class="metric-title">Violations de SLA Détectées</span>
+                    <span class="metric-value" id="statSlaBreaches" style="color:var(--accent-red);">0</span>
+                    <span class="metric-footer" id="slaStatFooter" style="color:var(--text-secondary);">Aucune défaillance</span>
+                </div>
+                <div class="glass-card metric-card">
+                    <span class="metric-title">Taux de Résilience Terrain</span>
+                    <span class="metric-value" style="color:var(--accent-green);">100%</span>
+                    <span class="metric-footer metric-up">
+                        Synchronisation Offline active
+                    </span>
+                </div>
+            </div>
+
+            <div class="workspace-split">
+                <!-- Left column: Fast actions -->
+                <div class="glass-card" style="padding: 20px;">
+                    <h3 style="font-size:16px; font-weight:700; margin-bottom:16px;">Contrôle Rapide & Simulation</h3>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px; line-height:1.4;">
+                        Interagissez avec le moteur d'orchestration en temps réel. Utilisez ces raccourcis de démonstration ou créez des cas personnalisés dans l'Usine.
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="simulateBirthScenario()" style="justify-content: flex-start;">
+                            ⚡ Simuler "Naissance Simple"
+                        </button>
+                        <button class="btn btn-secondary" onclick="simulateWarrantScenario()" style="justify-content: flex-start;">
+                            ⚖️ Simuler "Mandat Judiciaire P1"
+                        </button>
+                        <button class="btn btn-secondary" onclick="simulateArrestScenario()" style="justify-content: flex-start;">
+                            👮 Simuler "Arrestation GAV (SLA 24h)"
+                        </button>
+                        <button class="btn btn-secondary" onclick="simulateSlaBreachTrigger()" style="justify-content: flex-start;">
+                            ⏱️ Forcer un Déclenchement SLA
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right column: Workflow Visualizer / BPMN flow state -->
+                <div class="glass-card" style="padding: 20px;">
+                    <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;">Visualisation Active du Workflow BPMN</h3>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;" id="visualizerDesc">
+                        Sélectionnez ou créez un dossier pour analyser l'exécution de ses jetons d'état à travers les passerelles nationales.
+                    </p>
+
+                    <div class="bpmn-graph" id="bpmnGraphContainer">
+                        <!-- Default empty state -->
+                        <div style="text-align: center; width: 100%; padding: 20px; color: var(--text-secondary);">
+                            <p>Aucun dossier actif sélectionné. Lancez un scénario pour visualiser le graphe BPMN d'exécution en temps réel.</p>
+                        </div>
+                    </div>
+
+                    <!-- Live active case detail overlay -->
+                    <div id="activeCaseDetailBox" class="glass-card" style="background: rgba(255,255,255,0.02); padding: 16px; display: none;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <h4 id="detailCaseId" style="font-size:14px; font-weight:700;">CASE-XXXX</h4>
+                            <span class="badge" id="detailCaseStatus">CREATED</span>
+                        </div>
+                        <div style="font-size:12px; color:var(--text-secondary); display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <div><strong>Type:</strong> <span id="detailCaseType">-</span></div>
+                            <div><strong>Agence:</strong> <span id="detailCaseAgency">-</span></div>
+                            <div><strong>Classification:</strong> <span id="detailCaseSec">-</span></div>
+                            <div><strong>SLA Restant:</strong> <span id="detailCaseSla">-</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. WORKFLOW FACTORY TAB (INITIATE) -->
+        <div id="tab-factory" class="tab-content" style="display: none;">
+            <div class="workspace-split" style="grid-template-columns: 1fr 1fr;">
+                <!-- Form to initiate workflow -->
+                <div class="glass-card" style="padding: 20px;">
+                    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 20px; display:flex; align-items:center; gap:8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Instancier un Workflow National Standardisé
+                    </h2>
+
+                    <form id="initiateWorkflowForm" onsubmit="handleFormSubmission(event)">
+                        <div class="form-group">
+                            <label class="form-label" for="wf_domain">Domaine Administratif (BPMN Namespace)</label>
+                            <select class="form-select" id="wf_domain" onchange="updateSubWorkflowOptions()">
+                                <option value="civil">État Civil (Namespace: civil.registry)</option>
+                                <option value="identity">Identité Nationale (Namespace: identity.registry)</option>
+                                <option value="justice">Justice & Tribunal (Namespace: justice.registry)</option>
+                                <option value="police">Police & Enquêtes (Namespace: police.registry)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="wf_type">Processus BPMN Standardisé</label>
+                            <select class="form-select" id="wf_type">
+                                <!-- Options populated dynamically -->
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="wf_sec">Classification de Sécurité</label>
+                            <select class="form-select" id="wf_sec">
+                                <option value="PUBLIC">PUBLIC (Niveau 1)</option>
+                                <option value="RESTREINT">RESTREINT (Niveau 2)</option>
+                                <option value="CONFIDENTIEL" selected>CONFIDENTIEL (Niveau 3 - PII)</option>
+                                <option value="SECRET-DEFENSE">SECRET-DÉFENSE (Niveau 4 - Sensible)</option>
+                            </select>
+                        </div>
+
+                        <h3 style="font-size:14px; font-weight:700; margin-top:20px; margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:6px;">Payload du Dossier (Données d'Enregistrement)</h3>
+
+                        <div id="dynamicPayloadFields">
+                            <!-- Dynamic fields will be rendered here based on selected domain -->
+                        </div>
+
+                        <button type="submit" class="btn" style="width:100%; margin-top:10px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                            Déployer & Lancer le Workflow dans Kafka
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Library description and standards list -->
+                <div class="glass-card" style="padding: 20px;">
+                    <h2 style="font-size:18px; font-weight:700; margin-bottom:16px;">Catalogue National de Processus (BPMN v2.0)</h2>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px; line-height:1.4;">
+                        Tous les processus ci-dessous sont standardisés par les décrets d'application numérique de l'État. Aucun traitement ne peut être initié en dehors de ce cadre normatif approuvé.
+                    </p>
+
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <div style="background: rgba(255,255,255,0.02); padding:12px; border-radius:8px; border-left:4px solid var(--primary);">
+                            <h4 style="font-size:13px; font-weight:700;">Sous-système État Civil</h4>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:4px;">
+                                Naissance Simple, par Reconnaissance, Déclaration Tardive, par Décret, ou Jugement de Tribunal. Intègre le double-contrôle des signatures cryptographiques des officiers.
+                            </p>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.02); padding:12px; border-radius:8px; border-left:4px solid var(--accent-purple);">
+                            <h4 style="font-size:13px; font-weight:700;">Sous-système Identité Biométrique (ONI)</h4>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:4px;">
+                                Enrôlement, Vérification de doublons, Correction d'état civil, Révocation et Suspension d'urgence (P1), Récupération.
+                            </p>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.02); padding:12px; border-radius:8px; border-left:4px solid var(--accent-red);">
+                            <h4 style="font-size:13px; font-weight:700;">Sous-système Sécurité & Police</h4>
+                            <p style="font-size:12px; color:var(--text-secondary); margin-top:4px;">
+                                Mandats de justice, dossiers d'arrestations DCPJ et GAV (Garde à vue - SLA 24h constitutionnelle stricte).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. NATIONAL CASE MANAGEMENT (CASES) -->
+        <div id="tab-cases" class="tab-content" style="display: none;">
+            <div class="glass-card" style="padding: 20px;">
+                <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 20px; display:flex; align-items:center; justify-content:space-between;">
+                    <span>Registre National de Dossiers (Case Management)</span>
+                    <span class="badge badge-secondary" id="caseCountBadge">0 Dossiers</span>
+                </h2>
+
+                <div style="overflow-x: auto;">
+                    <table class="custom-table" id="casesTable">
+                        <thead>
+                            <tr>
+                                <th>Référence Dossier</th>
+                                <th>Type de Cas</th>
+                                <th>Agence Initiatrice</th>
+                                <th>Classification</th>
+                                <th>Statut du Jeton</th>
+                                <th>Dernière MAJ</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="casesTableBody">
+                            <!-- Populated via script -->
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                                    Aucun dossier créé pour le moment. Accédez à l'Usine pour instancier un processus.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. HUMAN VALIDATION (TASKS) -->
+        <div id="tab-tasks" class="tab-content" style="display: none;">
+            <div class="glass-card" style="padding: 20px;">
+                <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 20px;">
+                    File d'Attente de Validation Humaine (Règle des 4 Yeux)
+                </h2>
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px; line-height:1.4;">
+                    Ces validations nécessitent l'action explicite d'un officier ou superviseur habilité. Les actions sont signées cryptographiquement et ajoutées au journal d'audit forensic.
+                </p>
+
+                <div style="overflow-x: auto;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Réf Tâche</th>
+                                <th>Intitulé du Rôle requis</th>
+                                <th>Dossier Attaché</th>
+                                <th>Limite SLA (Deadline)</th>
+                                <th>État du Jeton</th>
+                                <th>Actions Opérationnelles</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasksTableBody">
+                            <!-- Populated via script -->
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                                    Aucune tâche de validation humaine en attente.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. SLA ENGINE TAB -->
+        <div id="tab-sla" class="tab-content" style="display: none;">
+            <div class="glass-card" style="padding: 20px;">
+                <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 12px; display:flex; align-items:center; justify-content:space-between;">
+                    <span>Contrôle Industriel des Délais (SLA Engine)</span>
+                    <span class="badge badge-failed" id="activeSlaCounter">0 Vigilances actives</span>
+                </h2>
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;">
+                    Le moteur de SLA audite en continu les temps de traitement pour empêcher tout blocage ou déni de service administratif.
+                </p>
+
+                <div style="overflow-x: auto;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>ID Timer</th>
+                                <th>Cible d'Audit</th>
+                                <th>Priorité</th>
+                                <th>Date Limite Légal</th>
+                                <th>Statut de Conformité</th>
+                                <th>Déclencheur manuel</th>
+                            </tr>
+                        </thead>
+                        <tbody id="slaTableBody">
+                            <!-- Populated via script -->
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                                    Aucun timer de délai en cours d'évaluation.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. KAFKA & AUDIT LOGS -->
+        <div id="tab-kafka" class="tab-content" style="display: none;">
+            <div class="workspace-split" style="grid-template-columns: 1fr 1fr;">
+                <!-- Kafka Stream -->
+                <div class="glass-card" style="padding: 20px;">
+                    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 10px; display:flex; align-items:center; justify-content:space-between;">
+                        <span>Flux de Messages Kafka (Live Stream)</span>
+                        <span class="badge badge-completed">Asynchrone</span>
+                    </h2>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+                        Événements CloudEvents standardisés transitant en temps réel sur le bus national.
+                    </p>
+                    <div class="console-box" id="kafkaConsole">
+                        <div style="color:var(--text-secondary);">[KAFKA] Initialisation du cluster de bus de messages nationaux... Connecté.</div>
+                    </div>
+                </div>
+
+                <!-- Audit Fabric Logs -->
+                <div class="glass-card" style="padding: 20px;">
+                    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 10px; display:flex; align-items:center; justify-content:space-between;">
+                        <span>Registre Forensic d'Audit (Audit Fabric)</span>
+                        <span class="badge badge-escalated">Immuable</span>
+                    </h2>
+                    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+                        Chaque étape, approbation humaine, transition et modification de données est logguée et chaînée.
+                    </p>
+                    <div class="console-box" id="auditConsole" style="color:#C084FC;">
+                        <div style="color:var(--text-secondary);">[AUDIT] En attente de transactions étatiques...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. OFFLINE QUEUE HUB -->
+        <div id="tab-offline" class="tab-content" style="display: none;">
+            <div class="glass-card" style="padding: 20px;">
+                <h2 style="font-size:18px; font-weight:700; margin-bottom:12px; color:var(--accent-red); display:flex; align-items:center; gap:8px;">
+                    <span class="badge offline-badge" style="width:10px; height:10px; border-radius:50%; display:inline-block; padding:0;"></span>
+                    Console de Gestion de File Hors-Ligne (Terrain)
+                </h2>
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px; line-height:1.4;">
+                    Le terminal est actuellement en mode <strong>Hors-Ligne (Zone Blanche)</strong>. Tous les workflows initiés ou actions validées sont temporairement conservés dans le stockage crypté local de votre terminal mobile. Dès rétablissement du réseau, rejouez les événements.
+                </p>
+
+                <div style="background: rgba(239,68,68,0.04); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong style="font-size:14px; color:var(--text-primary);">Événements mis en attente localement : <span id="offlineCountText" style="color:var(--accent-red); font-weight:800;">0</span></strong>
+                        <p style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Ces événements seront diffusés sur Kafka une fois la synchronisation forcée lancée.</p>
+                    </div>
+                    <button class="btn btn-success" onclick="triggerOnlineSynchronization()" id="syncBtn" disabled>
+                        Synchroniser & Rejouer les événements
+                    </button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Réf Hors-Ligne</th>
+                                <th>Action Déclenchée</th>
+                                <th>ID Dossier Cible</th>
+                                <th>Payload Local</th>
+                                <th>Opérateur</th>
+                                <th>Horodatage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="offlineTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                                    Aucune transaction enregistrée hors-ligne.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JS MOTEUR SIMULATEUR COMPLET -->
+    <script>
+        // MOTEUR DE DONNÉES IN-MEMORY DE LA WORKFLOW FACTORY (Similaire au modèle Python)
+        let cases = {};
+        let tasks = {};
+        let timers = {};
+        let kafkaLogs = [];
+        let auditLogs = [];
+        let offlineQueue = [];
+        let isOffline = false;
+
+        // Statistics counters
+        let totalCasesCount = 0;
+        let pendingTasksCount = 0;
+        let slaBreachCount = 0;
+
+        // Form templates definition
+        const formTemplates = {
+            civil: [
+                { id: "SIMPLE", label: "Naissance Simple" },
+                { id: "RECONNAISSANCE", label: "Naissance par Reconnaissance" },
+                { id: "DECLARATION_TARDIVE", label: "Naissance par Déclaration Tardive" },
+                { id: "DECRET", label: "Naissance par Décret" },
+                { id: "JUGEMENT", label: "Naissance par Jugement au Rend des Minutes" },
+                { id: "MARIAGE", label: "Enregistrement de Mariage" },
+                { id: "DECES", label: "Enregistrement de Décès" }
+            ],
+            identity: [
+                { id: "ENROLLMENT", label: "Création de Profil (Enrôlement)" },
+                { id: "VERIFICATION", label: "Vérification Administrative & Biométrique" },
+                { id: "CORRECTION", label: "Correction d'État Civil d'identité" },
+                { id: "REVOCATION", label: "Révocation & Suspension Immédiate" },
+                { id: "RECOVERY", label: "Récupération d'identité / Réémission de titre" }
+            ],
+            justice: [
+                { id: "CRIMINAL_CASE", label: "Ouverture Dossier Criminel (Instruction)" },
+                { id: "WARRANT_ARREST", label: "Émission Mandat d'Arrêt Urgent" },
+                { id: "WARRANT_SEARCH", label: "Émission Mandat de Perquisition" }
+            ],
+            police: [
+                { id: "ARREST_GAV", label: "Arrestation & Garde à Vue (GAV)" },
+                { id: "DCPJ_INVESTIGATION", label: "Dossier d'Enquête Préliminaire DCPJ" }
+            ]
+        };
+
+        const payloadSchema = {
+            civil: `
+                <div class="form-group">
+                    <label class="form-label">Nom de l'enfant / déclarant</label>
+                    <input type="text" class="form-input" id="civil_nom" value="DURAND" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Prénom de l'enfant / déclarant</label>
+                    <input type="text" class="form-input" id="civil_prenom" value="Jean-Luc" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date de Naissance / Événement</label>
+                    <input type="date" class="form-input" id="civil_date" value="2026-05-25" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Lieu de l'événement (Commune/Hôpital)</label>
+                    <input type="text" class="form-input" id="civil_lieu" value="Maternité Centrale de Port-au-Prince" required>
+                </div>
+            `,
+            identity: `
+                <div class="form-group">
+                    <label class="form-label">Numéro d'Identité National (NIN)</label>
+                    <input type="text" class="form-input" id="ident_nin" value="NIN-2026-9080-12" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nom complet</label>
+                    <input type="text" class="form-input" id="ident_nom" value="MARCELIN Emeline" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Type d'Empreinte / Capture Biométrique</label>
+                    <select class="form-select" id="ident_biometrie">
+                        <option value="10_PRINTS">10 Empreintes Digitales Completes</option>
+                        <option value="FACIAL">Reconnaissance Faciale HD</option>
+                        <option value="IRIS">Capture Iris Double</option>
+                    </select>
+                </div>
+            `,
+            justice: `
+                <div class="form-group">
+                    <label class="form-label">Nom du suspect / Partie concernée</label>
+                    <input type="text" class="form-input" id="just_suspect" value="FRANÇOIS Emmanuel" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Infraction reprochée / Motif juridique</label>
+                    <input type="text" class="form-input" id="just_motif" value="Détournement de fonds publics et fraude électronique" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Juridiction émettrice / Juge d'instruction</label>
+                    <input type="text" class="form-input" id="just_tribunal" value="Tribunal de Première Instance - Cabinet d'instruction" required>
+                </div>
+            `,
+            police: `
+                <div class="form-group">
+                    <label class="form-label">Nom du Gardé à vue / Suspect</label>
+                    <input type="text" class="form-input" id="police_suspect" value="BATISTE Garry" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Officier enquêteur (Badge)</label>
+                    <input type="text" class="form-input" id="police_badge" value="DCPJ-BADGE-4429" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Motif de l'Interpellation</label>
+                    <input type="text" class="form-input" id="police_motif" value="Flagrant délit d'association de malfaiteurs" required>
+                </div>
+            `
+        };
+
+        // UI Tab Switcher
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabName).style.display = 'block';
+            
+            // Highlight active button
+            const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabName));
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
+        // Toggle Offline mode
+        function toggleOfflineMode() {
+            isOffline = !isOffline;
+            const indicator = document.getElementById('networkIndicator');
+            const toggleBtn = document.getElementById('offlineToggleBtn');
+            const offlineTab = document.getElementById('offlineTabHeader');
+            
+            if (isOffline) {
+                indicator.className = "badge badge-failed offline-badge";
+                indicator.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right:4px;"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg> MODE HORS-LIGNE (DÉCONNECTÉ KAFKA)`;
+                toggleBtn.innerText = "Revenir En-Ligne";
+                toggleBtn.className = "btn btn-success";
+                offlineTab.style.display = "flex";
+                logKafka("SYSTEM_ALERT", "Le nœud réseau local s'est déconnecté du bus de données Kafka central.", "WARNING");
+            } else {
+                indicator.className = "badge badge-completed";
+                indicator.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right:4px;"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg> CONNECTÉ AU BUS KAFKA CENTRAL`;
+                toggleBtn.innerText = "Simuler Mode Hors-Ligne";
+                toggleBtn.className = "btn btn-secondary";
+                logKafka("SYSTEM_INFO", "Rétablissement de la connectivité nationale avec le bus Kafka central.", "INFO");
+            }
+        }
+
+        // Update dropdown list based on domain selection
+        function updateSubWorkflowOptions() {
+            const domain = document.getElementById('wf_domain').value;
+            const subWfDropdown = document.getElementById('wf_type');
+            
+            subWfDropdown.innerHTML = '';
+            formTemplates[domain].forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.innerText = item.label;
+                subWfDropdown.appendChild(opt);
+            });
+
+            // Update dynamic input fields
+            const fieldsContainer = document.getElementById('dynamicPayloadFields');
+            fieldsContainer.innerHTML = payloadSchema[domain];
+        }
+
+        // Event and Audit Log helpers
+        function logKafka(eventType, message, level="INFO") {
+            const timestamp = new Date().toISOString();
+            const logEntry = `[${timestamp}] [${level}] ${eventType} - ${message}`;
+            kafkaLogs.unshift(logEntry);
+            
+            const consoleBox = document.getElementById('kafkaConsole');
+            if (consoleBox) {
+                const lineClass = eventType.includes('approved') ? 'success' : (level === 'WARNING' || level === 'ERROR' ? 'alarm' : '');
+                consoleBox.innerHTML = `<div class="console-line ${lineClass}"><strong>${eventType}</strong>: ${message} <span style="font-size:10px; color:var(--text-secondary); float:right;">${timestamp.substring(11, 19)}</span></div>` + consoleBox.innerHTML;
+            }
+        }
+
+        function logAudit(action, caseId, details, operator="SYSTEM") {
+            const timestamp = new Date().toISOString();
+            const logEntry = `[${timestamp}] [${action.toUpperCase()}] Dossier: ${caseId} | Op: ${operator} | Détails: ${details}`;
+            auditLogs.unshift(logEntry);
+            
+            const consoleBox = document.getElementById('auditConsole');
+            if (consoleBox) {
+                consoleBox.innerHTML = `<div class="console-line audit"><strong>${action}</strong> | Dossier: ${caseId} <br> <span style="font-size:11px; color:#D8B4FE;">${details} (Par: ${operator})</span></div>` + consoleBox.innerHTML;
+            }
+        }
+
+        // Initializer
+        window.onload = function() {
+            updateSubWorkflowOptions();
+            
+            // Seed a default case to show something immediately
+            createCaseInMemory("civil", "SIMPLE", "CONFIDENTIEL", {
+                civil_nom: "LAURENT",
+                civil_prenom: "Marie-Thérèse",
+                civil_date: "2026-05-24",
+                civil_lieu: "Hôpital Universitaire d'État d'Haïti"
+            }, "OFFICIER_ON_DUTY");
+            
+            updateTables();
+        };
+
+        // Form submission handler
+        function handleFormSubmission(e) {
+            e.preventDefault();
+            
+            const domain = document.getElementById('wf_domain').value;
+            const type = document.getElementById('wf_type').value;
+            const secLevel = document.getElementById('wf_sec').value;
+            
+            const payload = {};
+            if (domain === 'civil') {
+                payload.civil_nom = document.getElementById('civil_nom').value;
+                payload.civil_prenom = document.getElementById('civil_prenom').value;
+                payload.civil_date = document.getElementById('civil_date').value;
+                payload.civil_lieu = document.getElementById('civil_lieu').value;
+            } else if (domain === 'identity') {
+                payload.ident_nin = document.getElementById('ident_nin').value;
+                payload.ident_nom = document.getElementById('ident_nom').value;
+                payload.ident_biometrie = document.getElementById('ident_biometrie').value;
+            } else if (domain === 'justice') {
+                payload.just_suspect = document.getElementById('just_suspect').value;
+                payload.just_motif = document.getElementById('just_motif').value;
+                payload.just_tribunal = document.getElementById('just_tribunal').value;
+            } else if (domain === 'police') {
+                payload.police_suspect = document.getElementById('police_suspect').value;
+                payload.police_badge = document.getElementById('police_badge').value;
+                payload.police_motif = document.getElementById('police_motif').value;
+            }
+
+            if (isOffline) {
+                // Queue offline event
+                const offlineId = "OFF-EVT-" + Math.floor(Math.random()*10000);
+                const offEvent = {
+                    id: offlineId,
+                    action: "LOCAL_CASE_CREATE",
+                    domain: domain,
+                    type: type,
+                    security: secLevel,
+                    payload: payload,
+                    timestamp: new Date().toISOString()
+                };
+                offlineQueue.push(offEvent);
+                logKafka("OFFLINE_QUEUE", `Action de création locale mise en attente sur le terminal pour le type ${type}`, "WARNING");
+                updateOfflineUI();
+                switchTab('offline');
+            } else {
+                createCaseInMemory(domain, type, secLevel, payload, "OFFICIER_AGENT");
+                switchTab('cases');
+            }
+        }
+
+        // Logic to create cases in-memory and model state transitions
+        function createCaseInMemory(domain, type, security, payload, operator) {
+            const caseId = "CASE-2026-" + Math.floor(100000 + Math.random() * 900000);
+            const correlationId = "CORR-" + Math.floor(10000000 + Math.random() * 90000000);
+            
+            const creatorAgencies = {
+                civil: "MINISTERE_INTERIEUR_CIVIL",
+                identity: "OFFICE_NATIONAL_IDENTITE_ONI",
+                justice: "MINISTERE_JUSTICE_TRIBUNAL",
+                police: "DCPJ_POLICE_NATIONALE"
+            };
+
+            const newCase = {
+                caseId: caseId,
+                correlationId: correlationId,
+                domain: domain,
+                type: type,
+                agency: creatorAgencies[domain],
+                security: security,
+                status: "PENDING_HUMAN_VALIDATION",
+                updatedAt: new Date().toISOString(),
+                payload: payload,
+                history: [
+                    { time: new Date().toISOString(), action: "CASE_CREATED", details: "Dossier national initialisé" }
+                ]
+            };
+
+            cases[caseId] = newCase;
+            totalCasesCount++;
+
+            // Trigger specific BPMN event based on type
+            const eventTopic = `${domain}.events`;
+            const eventType = `${domain}.${type.toLowerCase()}.created`;
+            logKafka(eventType, `Nouveau dossier créé [ID: ${caseId}] dans Kafka sur le topic ${eventTopic}`, "INFO");
+            logAudit("CASE_CREATED", caseId, `Nouveau dossier de type ${type} initié avec la classification ${security}`, operator);
+
+            // Create corresponding Human Task
+            createHumanTask(caseId, type, domain, correlationId);
+            
+            updateTables();
+            visualizeWorkflow(caseId);
+            return caseId;
+        }
+
+        // Create human task based on workflow type
+        function createHumanTask(caseId, type, domain, correlation) {
+            const taskId = "TASK-" + Math.floor(10000 + Math.random() * 90000);
+            
+            const rolesMap = {
+                civil: "OFFICIER_ETAT_CIVIL",
+                identity: "SUPERVISEUR_IDENTITE_ONI",
+                justice: "JUGE_D_INSTRUCTION",
+                police: "COMMISSAIRE_DCPJ"
+            };
+
+            const taskNamesMap = {
+                SIMPLE: "Validation Administrative Naissance Simple",
+                RECONNAISSANCE: "Validation Double Naissance par Reconnaissance",
+                DECLARATION_TARDIVE: "Instruction Déclaration Tardive",
+                DECRET: "Homologation de Naissance par Décret",
+                JUGEMENT: "Validation Judiciaire de Jugement au Rend des Minutes",
+                ENROLLMENT: "Validation de Dossier d'Enrôlement Biométrique",
+                REVOCATION: "Homologation Révocation d'Urgence",
+                CRIMINAL_CASE: "Validation Réquisitoire d'Instruction Criminelle",
+                WARRANT_ARREST: "Signature Mandat d'Arrêt National (P1)",
+                ARREST_GAV: "Contrôle de Constitutionnalité Garde à Vue",
+                DCPJ_INVESTIGATION: "Validation Piste d'Enquête Criminelle DCPJ"
+            };
+
+            const defaultSlaMinutes = {
+                SIMPLE: 240,
+                RECONNAISSANCE: 480,
+                DECLARATION_TARDIVE: 1440,
+                WARRANT_ARREST: 30, // Extremely urgent
+                ARREST_GAV: 1440 // GAV strict 24h
+            };
+
+            const taskName = taskNamesMap[type] || `Homologation de dossier ${type}`;
+            const slaDuration = defaultSlaMinutes[type] || 480;
+            const deadline = new Date(Date.now() + slaDuration * 60000).toISOString();
+
+            const newTask = {
+                taskId: taskId,
+                caseId: caseId,
+                correlationId: correlation,
+                taskName: taskName,
+                roleRequired: rolesMap[domain],
+                deadline: deadline,
+                status: "PENDING",
+                assignedUser: null
+            };
+
+            tasks[taskId] = newTask;
+            pendingTasksCount++;
+
+            // Register timer in SLA Engine
+            const timerId = "SLA-" + taskId;
+            const priority = (type === 'WARRANT_ARREST' || type === 'ARREST_GAV') ? 'P1' : 'P3';
+            timers[timerId] = {
+                timerId: timerId,
+                targetId: taskId,
+                targetType: "TASK",
+                limitTime: deadline,
+                priority: priority,
+                status: "CONFORME",
+                caseId: caseId
+            };
+
+            logKafka("workflow.task.created", `Tâche humaine [ID: ${taskId}] générée pour le rôle ${rolesMap[domain]}`, "INFO");
+            logAudit("TASK_CREATED", caseId, `Tâche humaine ${taskId} affectée à la file d'attente ${rolesMap[domain]}`, "SYSTEM");
+        }
+
+        // Approve human task
+        function approveTask(taskId, comments, operator) {
+            const task = tasks[taskId];
+            if (!task) return;
+
+            task.status = "COMPLETED";
+            task.assignedUser = operator;
+            pendingTasksCount--;
+
+            // Close SLA Timer
+            const timerId = "SLA-" + taskId;
+            if (timers[timerId]) {
+                timers[timerId].status = "CONVERTED_RESOLVED";
+            }
+
+            const associatedCase = cases[task.caseId];
+            if (associatedCase) {
+                associatedCase.status = "COMPLETED_APPROVED";
+                associatedCase.updatedAt = new Date().toISOString();
+                associatedCase.history.push({
+                    time: new Date().toISOString(),
+                    action: "TASK_APPROVED",
+                    details: `Dossier validé. Commentaire: ${comments}.`
+                });
+
+                logKafka("workflow.approved", `Décision APPROBATION publiée sur le bus national pour le dossier ${task.caseId}`, "SUCCESS");
+                logAudit("TASK_APPROVED", task.caseId, `Validation par l'officier. Commentaire: ${comments}`, operator);
+            }
+
+            updateTables();
+            if (associatedCase) {
+                visualizeWorkflow(associatedCase.caseId);
+            }
+        }
+
+        // Reject human task
+        function rejectTask(taskId, comments, operator) {
+            const task = tasks[taskId];
+            if (!task) return;
+
+            task.status = "REJECTED";
+            task.assignedUser = operator;
+            pendingTasksCount--;
+
+            // Close SLA Timer
+            const timerId = "SLA-" + taskId;
+            if (timers[timerId]) {
+                timers[timerId].status = "CONVERTED_REJECTED";
+            }
+
+            const associatedCase = cases[task.caseId];
+            if (associatedCase) {
+                associatedCase.status = "REJECTED_TERMINATED";
+                associatedCase.updatedAt = new Date().toISOString();
+                associatedCase.history.push({
+                    time: new Date().toISOString(),
+                    action: "TASK_REJECTED",
+                    details: `Dossier REJETÉ. Motif: ${comments}.`
+                });
+
+                logKafka("workflow.rejected", `Décision REJET publiée sur le bus national pour le dossier ${task.caseId}`, "ERROR");
+                logAudit("TASK_REJECTED", task.caseId, `Dossier refusé par l'officier. Motif: ${comments}`, operator);
+            }
+
+            updateTables();
+            if (associatedCase) {
+                visualizeWorkflow(associatedCase.caseId);
+            }
+        }
+
+        // Delegate human task
+        function delegateTask(taskId, targetAgent, operator) {
+            const task = tasks[taskId];
+            if (!task) return;
+
+            const prevUser = task.assignedUser || "Pool";
+            task.assignedUser = targetAgent;
+            task.status = "DELEGATED";
+
+            logKafka("workflow.task.delegated", `Tâche ${taskId} déléguée de [${prevUser}] à [${targetAgent}]`, "INFO");
+            logAudit("TASK_DELEGATED", task.caseId, `Délégation de tâche vers ${targetAgent}`, operator);
+            
+            updateTables();
+        }
+
+        // Trigger manual SLA Breach
+        function triggerSlaBreach(timerId) {
+            const timer = timers[timerId];
+            if (!timer) return;
+
+            timer.status = "VIOLATION";
+            slaBreachCount++;
+
+            const task = tasks[timer.targetId];
+            if (task && task.status === "PENDING") {
+                task.status = "ESCALATED";
+                
+                logKafka("workflow.sla.breach", `Dépassement du délai de traitement légal détecté pour la tâche ${task.taskId}! Priorité: ${timer.priority}`, "ERROR");
+                logAudit("SLA_BREACHED", timer.caseId, `Violations de délai détectée par le SLA Engine. Escalade en cours.`, "SLA_ENGINE");
+
+                // If critical (P1) trigger emergency alert
+                if (timer.priority === "P1") {
+                    logKafka("system.emergency.triggered", `URGENCE NATIONALE - ALARME ROUGE: Blocage sur dossier critique ${timer.caseId}!`, "ERROR");
+                    logAudit("EMERGENCY_ALARM", timer.caseId, `Déclenchement du protocole d'urgence gouvernemental suite à dépassement de délai critique (SLA P1).`, "SLA_ENGINE_CRITICAL");
+                }
+            }
+
+            updateTables();
+            if (task) {
+                const associatedCase = cases[task.caseId];
+                if (associatedCase) {
+                    associatedCase.status = "ESCALATED";
+                    visualizeWorkflow(associatedCase.caseId);
+                }
+            }
+        }
+
+        // Offline storage and queue simulation
+        function updateOfflineUI() {
+            document.getElementById('offlineCountBadge').innerText = offlineQueue.length;
+            document.getElementById('offlineCountText').innerText = offlineQueue.length;
+            
+            const btn = document.getElementById('syncBtn');
+            if (offlineQueue.length > 0) {
+                btn.removeAttribute('disabled');
+            } else {
+                btn.setAttribute('disabled', 'true');
+            }
+
+            const tableBody = document.getElementById('offlineTableBody');
+            if (offlineQueue.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">Aucune transaction enregistrée hors-ligne.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            offlineQueue.forEach(item => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td><strong>${item.id}</strong></td>
+                        <td><span class="badge badge-secondary">${item.action}</span></td>
+                        <td><em>Nouveau Dossier</em></td>
+                        <td><small>${JSON.stringify(item.payload).substring(0, 50)}...</small></td>
+                        <td>OFFICIER_TERRAIN</td>
+                        <td>${item.timestamp.substring(11, 19)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Run online synchronization and event replay
+        function triggerOnlineSynchronization() {
+            if (offlineQueue.length === 0) return;
+
+            logKafka("SYSTEM_INFO", `Début de la synchronisation de ${offlineQueue.length} transactions hors-ligne...`, "INFO");
+            
+            let synced = 0;
+            offlineQueue.forEach(item => {
+                if (item.action === "LOCAL_CASE_CREATE") {
+                    // Create case retroactively on the server
+                    createCaseInMemory(item.domain, item.type, item.security, item.payload, "OFFICIER_TERRAIN");
+                    synced++;
+                }
+            });
+
+            const count = offlineQueue.length;
+            offlineQueue = [];
+            isOffline = false;
+            
+            // Toggle indicator back
+            toggleOfflineMode(); // Calls toggle which sets to false
+            
+            updateOfflineUI();
+            updateTables();
+            
+            logKafka("SYSTEM_SUCCESS", `Synchronisation réussie! ${synced} événements hors-ligne ont été rejoués avec succès sur le bus Kafka central (Replay réussi).`, "SUCCESS");
+            
+            switchTab('cases');
+        }
+
+        // Render Tables & Update Metrics counters
+        function updateTables() {
+            // Stat counters update
+            document.getElementById('statTotalCases').innerText = totalCasesCount;
+            document.getElementById('statPendingTasks').innerText = pendingTasksCount;
+            document.getElementById('taskCountBadge').innerText = pendingTasksCount;
+            document.getElementById('statSlaBreaches').innerText = slaBreachCount;
+
+            const slaFooter = document.getElementById('slaStatFooter');
+            if (slaBreachCount > 0) {
+                slaFooter.innerHTML = `<span style="color:var(--accent-red);">Incident actif d'escalade</span>`;
+            } else {
+                slaFooter.innerText = "Aucune défaillance";
+            }
+
+            // Case Table Render
+            const casesBody = document.getElementById('casesTableBody');
+            document.getElementById('caseCountBadge').innerText = `${totalCasesCount} Dossier(s)`;
+            
+            if (Object.keys(cases).length === 0) {
+                casesBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">Aucun dossier.</td></tr>`;
+            } else {
+                casesBody.innerHTML = '';
+                Object.values(cases).forEach(c => {
+                    const dateFormatted = c.updatedAt.substring(11, 19);
+                    let badgeClass = "badge-pending";
+                    if (c.status === 'COMPLETED_APPROVED') badgeClass = 'badge-completed';
+                    if (c.status === 'REJECTED_TERMINATED') badgeClass = 'badge-failed';
+                    if (c.status === 'ESCALATED') badgeClass = 'badge-failed';
+
+                    casesBody.innerHTML += `
+                        <tr>
+                            <td><strong>${c.caseId}</strong></td>
+                            <td><span class="badge badge-secondary">${c.type}</span></td>
+                            <td><small>${c.agency}</small></td>
+                            <td><span class="badge badge-secondary" style="font-size:10px;">${c.security}</span></td>
+                            <td><span class="badge ${badgeClass}">${c.status}</span></td>
+                            <td>${dateFormatted}</td>
+                            <td>
+                                <button class="btn btn-secondary" onclick="visualizeWorkflow('${c.caseId}')" style="padding:4px 8px; font-size:11px;">
+                                    Visualiser
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Human Task Table Render
+            const tasksBody = document.getElementById('tasksTableBody');
+            const pendingTasks = Object.values(tasks).filter(t => t.status === 'PENDING' || t.status === 'ASSIGNED' || t.status === 'DELEGATED' || t.status === 'ESCALATED');
+            
+            if (pendingTasks.length === 0) {
+                tasksBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">Aucune tâche de validation humaine en attente.</td></tr>`;
+            } else {
+                tasksBody.innerHTML = '';
+                pendingTasks.forEach(t => {
+                    let badgeClass = "badge-pending";
+                    if (t.status === "ESCALATED") badgeClass = "badge-failed";
+                    if (t.status === "DELEGATED") badgeClass = "badge-escalated";
+
+                    tasksBody.innerHTML += `
+                        <tr>
+                            <td><strong>${t.taskId}</strong></td>
+                            <td><small>${t.roleRequired}</small><br><span style="font-size:11px; color:var(--text-secondary);">${t.taskName}</span></td>
+                            <td><strong>${t.caseId}</strong></td>
+                            <td><small style="color:var(--accent-orange);">${t.deadline.substring(11, 19)}</small></td>
+                            <td><span class="badge ${badgeClass}">${t.status}</span></td>
+                            <td>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn btn-success" onclick="approveTask('${t.taskId}', 'Approuvé de manière conforme', 'OFFICIER_SYS')" style="padding:4px 8px; font-size:11px;">Approuver</button>
+                                    <button class="btn btn-danger" onclick="rejectTask('${t.taskId}', 'Données non conformes ou incomplètes', 'OFFICIER_SYS')" style="padding:4px 8px; font-size:11px;">Rejeter</button>
+                                    <button class="btn btn-secondary" onclick="promptDelegation('${t.taskId}')" style="padding:4px 8px; font-size:11px;">Déléguer</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // SLA Table Render
+            const slaBody = document.getElementById('slaTableBody');
+            const activeSlas = Object.values(timers);
+            document.getElementById('activeSlaCounter').innerText = `${activeSlas.filter(t=>t.status === 'CONFORME').length} Vigilances actives`;
+
+            if (activeSlas.length === 0) {
+                slaBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">Aucun timer de délai en cours.</td></tr>`;
+            } else {
+                slaBody.innerHTML = '';
+                activeSlas.forEach(timer => {
+                    let statusBadge = "badge-completed";
+                    if (timer.status === "VIOLATION") statusBadge = "badge-failed";
+                    if (timer.status === "CONFORME") statusBadge = "badge-pending";
+
+                    slaBody.innerHTML += `
+                        <tr>
+                            <td><strong>${timer.timerId}</strong></td>
+                            <td>Tâche attachée ${timer.targetId}</td>
+                            <td><span class="badge badge-secondary" style="color:${timer.priority === 'P1' ? 'var(--accent-red)' : 'var(--text-secondary)'}">${timer.priority}</span></td>
+                            <td><small>${timer.limitTime.substring(11, 19)}</small></td>
+                            <td><span class="badge ${statusBadge}">${timer.status}</span></td>
+                            <td>
+                                <button class="btn btn-secondary" onclick="triggerSlaBreach('${timer.timerId}')" style="padding:4px 8px; font-size:11px;" ${timer.status !== 'CONFORME' ? 'disabled' : ''}>
+                                    Forcer dépassement
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // Visualizer BPMN nodes logic
+        function visualizeWorkflow(caseId) {
+            const caseObj = cases[caseId];
+            if (!caseObj) return;
+
+            document.getElementById('activeCaseDetailBox').style.display = 'block';
+            document.getElementById('detailCaseId').innerText = caseObj.caseId;
+            document.getElementById('detailCaseType').innerText = caseObj.type;
+            document.getElementById('detailCaseAgency').innerText = caseObj.agency;
+            document.getElementById('detailCaseSec').innerText = caseObj.security;
+            document.getElementById('detailCaseStatus').innerText = caseObj.status;
+            
+            let statusClass = "badge-pending";
+            if (caseObj.status === 'COMPLETED_APPROVED') statusClass = "badge-completed";
+            if (caseObj.status === 'REJECTED_TERMINATED') statusClass = "badge-failed";
+            document.getElementById('detailCaseStatus').className = `badge ${statusClass}`;
+
+            const taskAssoc = Object.values(tasks).find(t => t.caseId === caseId);
+            document.getElementById('detailCaseSla').innerText = taskAssoc ? taskAssoc.deadline.substring(11, 19) : 'Aucune';
+
+            const graphContainer = document.getElementById('bpmnGraphContainer');
+            
+            // Build visual node list depending on workflow status
+            let nodesHtml = '';
+            
+            const step1Class = "completed";
+            let step2Class = "active";
+            let step3Class = "";
+
+            if (caseObj.status === "COMPLETED_APPROVED") {
+                step2Class = "completed";
+                step3Class = "completed";
+            } else if (caseObj.status === "REJECTED_TERMINATED") {
+                step2Class = "completed";
+                step3Class = "failed"; // Rejected
+            } else if (caseObj.status === "ESCALATED") {
+                step2Class = "escalated";
+            }
+
+            nodesHtml = `
+                <!-- Start Event -->
+                <div class="bpmn-node completed">
+                    <div class="bpmn-circle">🟢</div>
+                    <span class="bpmn-text">Lancement Workflow</span>
+                </div>
+                
+                <div class="bpmn-arrow"></div>
+                
+                <!-- Business Logic Validation -->
+                <div class="bpmn-node ${step1Class}">
+                    <div class="bpmn-circle">⚙️</div>
+                    <span class="bpmn-text">Contrôle Schéma</span>
+                </div>
+                
+                <div class="bpmn-arrow"></div>
+
+                <!-- Human validation -->
+                <div class="bpmn-node ${step2Class}">
+                    <div class="bpmn-circle">👥</div>
+                    <span class="bpmn-text">Examen Officier (${caseObj.agency.split('_')[0]})</span>
+                </div>
+                
+                <div class="bpmn-arrow"></div>
+
+                <!-- End event -->
+                <div class="bpmn-node ${step3Class || 'pending'}">
+                    <div class="bpmn-circle" style="border-radius: 50%;">🏁</div>
+                    <span class="bpmn-text">Persistance Registre National</span>
+                </div>
+            `;
+
+            graphContainer.innerHTML = nodesHtml;
+            document.getElementById('visualizerDesc').innerHTML = `Visualisation en temps réel du jeton BPMN pour le dossier <strong>${caseId}</strong>.`;
+            
+            switchTab('dashboard');
+        }
+
+        // Fast simulations
+        function simulateBirthScenario() {
+            const payload = {
+                civil_nom: "ALTIDOR",
+                civil_prenom: "Samuel",
+                civil_date: "2026-05-25",
+                civil_lieu: "Maternité de Pétion-Ville"
+            };
+            const caseId = createCaseInMemory("civil", "SIMPLE", "CONFIDENTIEL", payload, "AGENT_MATERNITE");
+            switchTab('dashboard');
+        }
+
+        function simulateWarrantScenario() {
+            const payload = {
+                just_suspect: "JEAN-BAPTISTE Peterson",
+                just_motif: "Trafic transfrontalier illicite et corruption",
+                just_tribunal: "Tribunal Special de Justice"
+            };
+            const caseId = createCaseInMemory("justice", "WARRANT_ARREST", "SECRET-DEFENSE", payload, "JUGE_CRIMINEL");
+            switchTab('dashboard');
+        }
+
+        function simulateArrestScenario() {
+            const payload = {
+                police_suspect: "MATHIEU Charles",
+                police_badge: "DCPJ-9081",
+                police_motif: "Atteinte à la sûreté intérieure de l'État"
+            };
+            const caseId = createCaseInMemory("police", "ARREST_GAV", "SECRET-DEFENSE", payload, "OFFICIER_DE_GARDE");
+            switchTab('dashboard');
+        }
+
+        function simulateSlaBreachTrigger() {
+            // Find first conforme timer and breach it
+            const timerId = Object.keys(timers).find(k => timers[k].status === "CONFORME");
+            if (timerId) {
+                triggerSlaBreach(timerId);
+            } else {
+                alert("Aucun timer actif à enfreindre. Créez d'abord un dossier !");
+            }
+        }
+
+        function promptDelegation(taskId) {
+            const agent = prompt("Saisir l'identifiant de l'agent de secours (Ex: BACKUP_OFFICIER_02) :");
+            if (agent) {
+                delegateTask(taskId, agent, "CHEF_DE_SERVICE");
+            }
+        }
+    </script>
+</body>
+</html>

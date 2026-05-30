@@ -1,0 +1,25 @@
+{
+  "document": "SNISID Citizen Governance",
+  "version": "1.0.0",
+  "objective": "Créer confiance nationale.",
+  "citizen_rights": [
+    "voir les accès à ses données",
+    "contester un accès ou une décision",
+    "demander correction",
+    "recevoir audit citoyen",
+    "gérer consentements lorsque la loi le permet"
+  ],
+  "functions": [
+    {"function": "Citizen Rights Office", "description": "Recours", "owner": "Legal & Compliance"},
+    {"function": "Consent Governance", "description": "Permissions", "owner": "Citizen Rights Office"},
+    {"function": "Identity Appeals", "description": "Contestations", "owner": "Identity Operations + Legal"},
+    {"function": "Transparency Portal", "description": "Audit citoyen", "owner": "Direction Générale SNISID"},
+    {"function": "Privacy Governance", "description": "Données", "owner": "Legal & Compliance"}
+  ],
+  "minimum_service_levels": {
+    "access_log_visibility_days": 365,
+    "correction_request_acknowledgement_days": 3,
+    "appeal_initial_decision_days": 15,
+    "privacy_complaint_response_days": 30
+  }
+}

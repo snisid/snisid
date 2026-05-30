@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- offline.enrollment.field v1.0.0 — Enrôlement terrain offline-first -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_off_enr" targetNamespace="https://snisid.gouv.ht/bpmn/offline">
+  <bpmn:process id="offline.enrollment.field" name="Enrôlement terrain (offline-first)" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S" name="Capture terrain"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="LocalAudit" name="Audit local (chiffré)"><bpmn:extensionElements><zeebe:taskDefinition type="audit.local.encrypted"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Bio" name="Capture biométrie offline"><bpmn:extensionElements><zeebe:taskDefinition type="biometric.capture.offline"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="LocalSign" name="Signature kit terrain (clé hardware)"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.hardware-kit"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Outbox" name="Stockage outbox local (CRDT)"><bpmn:extensionElements><zeebe:taskDefinition type="outbox.local.store"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:intermediateCatchEvent id="WaitNet" name="Connectivité réseau OK">
+      <bpmn:signalEventDefinition signalRef="Sig_Online"/>
+      <bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:serviceTask id="Sync" name="Sync vers Hub central (chiffré)"><bpmn:extensionElements><zeebe:taskDefinition type="sync.upload"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="VerifyAtServer" name="Vérification serveur + déduplication"><bpmn:extensionElements><zeebe:taskDefinition type="sync.verify"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:callActivity id="EnrollMain" name="Workflow enrôlement standard"><bpmn:extensionElements><zeebe:calledElement processId="identity.enrollment.standard"/></bpmn:extensionElements><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:serviceTask id="K"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f9</bpmn:incoming><bpmn:outgoing>f10</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f10</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="LocalAudit"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="LocalAudit" targetRef="Bio"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Bio" targetRef="LocalSign"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="LocalSign" targetRef="Outbox"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Outbox" targetRef="WaitNet"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="WaitNet" targetRef="Sync"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Sync" targetRef="VerifyAtServer"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="VerifyAtServer" targetRef="EnrollMain"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="EnrollMain" targetRef="K"/>
+    <bpmn:sequenceFlow id="f10" sourceRef="K" targetRef="E"/>
+  </bpmn:process>
+  <bpmn:signal id="Sig_Online" name="network.online"/>
+</bpmn:definitions>

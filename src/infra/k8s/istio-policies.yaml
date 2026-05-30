@@ -1,0 +1,39 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-strict-mtls
+  namespace: snisid-core
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: identity-service-vs
+  namespace: snisid-core
+spec:
+  hosts:
+  - identity-service
+  http:
+  - route:
+    - destination:
+        host: identity-service
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: 5xx,gateway-error,connect-failure,refused-stream
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: identity-service-dr
+  namespace: snisid-core
+spec:
+  host: identity-service
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50

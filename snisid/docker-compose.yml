@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: snisid-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secretpassword123
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - snisid-network
+    restart: always
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: snisid-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - snisid-network
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: snisid-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGO_URI=mongodb://admin:secretpassword123@mongodb:27017/snisid?authSource=admin
+      - REDIS_URI=redis://redis:6379
+      - JWT_SECRET=your-jwt-secret
+      - ENCRYPTION_KEY=32_byte_sovereign_encryption_key_ht
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - snisid-network
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: snisid-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - snisid-network
+    restart: always
+
+networks:
+  snisid-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  redis-data:

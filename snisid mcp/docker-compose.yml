@@ -1,0 +1,44 @@
+﻿services:
+  snisid-mock-gov:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: snisid-mock-gov
+    command: ["npm", "run", "mock:gov"]
+    env_file:
+      - .env
+    ports:
+      - "4000:4000"
+    networks:
+      - snisid-net
+
+  snisid-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: snisid-mcp
+    command: ["npm", "run", "mcp:http"]
+    env_file:
+      - .env
+    environment:
+      API_GATEWAY_BASE_URL: http://snisid-mock-gov:4000
+      ONI_API_BASE_URL: http://snisid-mock-gov:4000/oni
+      DGI_API_BASE_URL: http://snisid-mock-gov:4000/dgi
+      PNH_API_BASE_URL: http://snisid-mock-gov:4000/pnh
+      MJSP_API_BASE_URL: http://snisid-mock-gov:4000/mjsp
+      IMMIGRATION_API_BASE_URL: http://snisid-mock-gov:4000/immigration
+      ANH_API_BASE_URL: http://snisid-mock-gov:4000/anh
+      PASSPORT_API_BASE_URL: http://snisid-mock-gov:4000/passport
+      BIOMETRIC_API_BASE_URL: http://snisid-mock-gov:4000/biometric
+      EDUCATION_API_BASE_URL: http://snisid-mock-gov:4000/education
+      INTELLIGENCE_API_BASE_URL: http://snisid-mock-gov:4000/intelligence
+    ports:
+      - "3001:3001"
+    depends_on:
+      - snisid-mock-gov
+    networks:
+      - snisid-net
+
+networks:
+  snisid-net:
+    driver: bridge

@@ -1,0 +1,37 @@
+{
+  "evaluation_timestamp": "2026-05-24T21:40:00Z",
+  "gates": {
+    "phase_2_core_snisid": {
+      "status": "APPROVED",
+      "checks": {
+        "loi_donnees_biometriques": true,
+        "cadre_legal_nni": true
+      }
+    },
+    "phase_3_integration": {
+      "status": "REJECTED",
+      "checks": {
+        "reglementation_xroad": true,
+        "international_mous": {
+          "mou_estonia": true,
+          "mou_singapore": true,
+          "mou_caricom": true,
+          "mou_interpol": false
+        }
+      }
+    },
+    "phase_4_soc_national": {
+      "status": "REJECTED",
+      "checks": {
+        "loi_cybersecurite": false
+      }
+    },
+    "phase_5_national": {
+      "status": "REJECTED",
+      "checks": {
+        "accord_diaspora": false
+      }
+    }
+  },
+  "next_action": "PROCEED TO PHASE 2 DEVELOPMENT. BLOCKED BEFORE PHASE 3 INTEGRATION (Pending Interpol MoU)."
+}

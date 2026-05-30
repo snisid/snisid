@@ -1,0 +1,39 @@
+# SNISID — OTel Collector — exporters supplémentaires (production)
+# À fusionner avec collector.yaml selon le mode de déploiement.
+
+exporters:
+
+  # --- Long-term metrics via Thanos receive ---
+  prometheusremotewrite/thanos:
+    endpoint: https://thanos-receive.snisid.ht/api/v1/receive
+    tls:
+      ca_file: /etc/snisid/tls/ca.crt
+      cert_file: /etc/snisid/tls/otel.crt
+      key_file: /etc/snisid/tls/otel.key
+    headers:
+      THANOS-TENANT: snisid-prod
+    timeout: 10s
+
+  # --- SIEM (Phase 2) ---
+  kafka/siem:
+    brokers: [kafka-1:9093, kafka-2:9093, kafka-3:9093]
+    topic: security.observability.events
+    auth:
+      tls:
+        ca_file: /etc/snisid/tls/ca.crt
+        cert_file: /etc/snisid/tls/otel.crt
+        key_file: /etc/snisid/tls/otel.key
+
+  # --- Citizen public dashboard (filtré, anonymisé) ---
+  prometheusremotewrite/public:
+    endpoint: https://transparence.snisid.ht/metrics/ingest
+    write_buffer_size: 524288
+    headers:
+      X-SNISID-Tenant: public-readonly
+
+  # --- Cold storage S3 (compliance) ---
+  file/cold-audit:
+    path: /var/snisid/cold-audit
+    rotation:
+      max_megabytes: 1024
+      max_days: 1

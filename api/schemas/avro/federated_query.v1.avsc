@@ -1,0 +1,29 @@
+{
+  "namespace": "snisid.federation.v1",
+  "type": "record",
+  "name": "FederatedQueryEvent",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "queryExpression", "type": "string"},
+    {
+      "name": "sources",
+      "type": {
+        "type": "array",
+        "items": "string"
+      }
+    },
+    {"name": "auditTag", "type": "string"},
+    {"name": "status", "type": "string"}
+  ]
+}

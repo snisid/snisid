@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: snisid-slo-rules
+  namespace: snisid-monitoring
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: snisid-slo-error-budgets
+    rules:
+    # ---------------------------------------------------------
+    # Identity Service SLO: 99.9% Success Rate
+    # Error Budget: 0.1% over 30 days
+    # ---------------------------------------------------------
+    
+    # Fast Burn (Immediate Page): 5% of 30-day error budget burned in 1 hour
+    - alert: IdentityServiceErrorBudgetBurnFast
+      expr: |
+        sum(rate(http_requests_total{service="identity-service", status=~"5.."}[1h])) 
+        / 
+        sum(rate(http_requests_total{service="identity-service"}[1h])) 
+        > (0.001 * 36) # 36 is the burn rate threshold for 5% in 1h
+      for: 5m
+      labels:
+        severity: critical
+        team: snisid-backend
+      annotations:
+        summary: "Identity Service is burning error budget too fast (1h window)"
+        description: "The error rate is significantly higher than the 99.9% objective. Immediate action required."
+
+    # Slow Burn (Ticket): 5% of 30-day error budget burned in 3 days
+    - alert: IdentityServiceErrorBudgetBurnSlow
+      expr: |
+        sum(rate(http_requests_total{service="identity-service", status=~"5.."}[3d])) 
+        / 
+        sum(rate(http_requests_total{service="identity-service"}[3d])) 
+        > (0.001 * 0.5)
+      for: 1h
+      labels:
+        severity: warning
+        team: snisid-backend
+      annotations:
+        summary: "Identity Service error budget slow burn (3d window)"
+        description: "The service is slowly leaking error budget. Needs investigation during business hours."

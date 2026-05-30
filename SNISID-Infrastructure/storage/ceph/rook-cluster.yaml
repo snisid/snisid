@@ -1,0 +1,261 @@
+# SNISID — Rook Ceph : National Sovereign Storage Cluster
+# Classification: RESTREINT DEFENSE
+# Scope: Block (RBD), Filesystem (CephFS), Object (RGW) multi-site
+# Topology: 3 racks Core DC + 3 racks DR DC + edge pools limités
+
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: snisid-national-ceph
+  namespace: rook-ceph
+  labels:
+    snisid.gov.tier: "tier-1"
+    snisid.gov.region: "core"
+    snisid.gov.service: "storage"
+spec:
+  cephVersion:
+    image: registry.interne.snisid.gouv.local/ceph/ceph:v18.2.1
+    allowUnsupported: false
+  dataDirHostPath: /var/lib/rook
+  mon:
+    count: 5  # 3 Core + 2 DR pour quorum tolérant
+    allowMultiplePerNode: false
+    volumeClaimTemplate:
+      spec:
+        storageClassName: ceph-rbd-tier1
+        resources:
+          requests:
+            storage: 50Gi
+  mgr:
+    count: 2
+    modules:
+      - name: pg_autoscaler
+        enabled: true
+      - name: rook
+        enabled: true
+  dashboard:
+    enabled: true
+    ssl: true
+  monitoring:
+    enabled: true
+  network:
+    provider: host
+    connections:
+      requireMsgr2: true
+      compression:
+        enabled: true
+      encryption:
+        enabled: true
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: rook-ceph-osd
+    nodes:
+      # Core DC — Rack A
+      - name: "core-prod-t1-worker-01"
+        devices:
+          - name: "nvme0n1"
+        resources:
+          limits:
+            memory: "8Gi"
+            cpu: "2000m"
+          requests:
+            memory: "4Gi"
+            cpu: "1000m"
+      - name: "core-prod-t1-worker-02"
+        devices:
+          - name: "nvme0n1"
+      - name: "core-prod-t1-worker-03"
+        devices:
+          - name: "nvme0n1"
+      # Core DC — Rack B
+      - name: "core-prod-t1-worker-04"
+        devices:
+          - name: "nvme0n1"
+      - name: "core-prod-t1-worker-05"
+        devices:
+          - name: "nvme0n1"
+      # DR DC — Rack C
+      - name: "dr-prod-t1-worker-01"
+        devices:
+          - name: "nvme0n1"
+      - name: "dr-prod-t1-worker-02"
+        devices:
+          - name: "nvme0n1"
+      - name: "dr-prod-t1-worker-03"
+        devices:
+          - name: "nvme0n1"
+    resources:
+      osd:
+        limits:
+          memory: "8Gi"
+          cpu: "2000m"
+        requests:
+          memory: "4Gi"
+          cpu: "1000m"
+  placement:
+    all:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - rook-ceph-osd
+            topologyKey: topology.kubernetes.io/zone
+    osd:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: snisid.gov/storage-node
+                  operator: In
+                  values:
+                    - "true"
+  disruptionManagement:
+    managePodBudgets: true
+    osdMaintenanceTimeout: 30
+    pgHealthCheckTimeout: 600
+  crashCollector:
+    disable: false
+  logCollector:
+    enabled: true
+    periodicity: daily
+    maxLogSize: 500M
+---
+# Pools — Stockage Tier-0 (IAM, PKI, secrets)
+apiVersion: ceph.rook.io/v1
+kind: CephBlockPool
+metadata:
+  name: snisid-rbd-tier0
+  namespace: rook-ceph
+spec:
+  failureDomain: rack
+  replicated:
+    size: 5      # 3 Core + 2 DR
+    requireSafeReplicaSize: true
+  deviceClass: nvme
+  compressionMode: aggressive
+  application: rbd
+---
+# Pools — Stockage Tier-1/2 (API, Data, BPMN)
+apiVersion: ceph.rook.io/v1
+kind: CephBlockPool
+metadata:
+  name: snisid-rbd-tier1
+  namespace: rook-ceph
+spec:
+  failureDomain: rack
+  replicated:
+    size: 3
+    requireSafeReplicaSize: true
+  deviceClass: nvme
+  compressionMode: aggressive
+  application: rbd
+---
+# Filesystem — Partagé national
+apiVersion: ceph.rook.io/v1
+kind: CephFilesystem
+metadata:
+  name: snisid-cephfs
+  namespace: rook-ceph
+spec:
+  metadataPool:
+    replicated:
+      size: 3
+  dataPools:
+    - name: replicated
+      replicated:
+        size: 3
+      compressionMode: aggressive
+  metadataServer:
+    activeCount: 2
+    activeStandby: true
+    placement:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: rook-ceph-mds
+            topologyKey: topology.kubernetes.io/zone
+---
+# Object Storage — RGW Souverain (S3 compatible)
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStore
+metadata:
+  name: snisid-s3-national
+  namespace: rook-ceph
+spec:
+  metadataPool:
+    failureDomain: rack
+    replicated:
+      size: 3
+  dataPool:
+    failureDomain: rack
+    erasureCoded:
+      dataChunks: 4
+      codingChunks: 2
+  gateway:
+    instances: 2
+    placement:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: rook-ceph-rgw
+            topologyKey: topology.kubernetes.io/zone
+    resources:
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+      requests:
+        memory: "2Gi"
+        cpu: "1000m"
+    sslCertificateRef: snisid-rgw-tls  # cert-manager
+  zone:
+    name: snisid-zone-core
+  # Multisite sync vers DR configuré séparément via RGW realm
+---
+# StorageClasses K8s
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-rbd-tier0
+provisioner: rook-ceph.rbd.csi.ceph.com
+parameters:
+  clusterID: snisid-national-ceph
+  pool: snisid-rbd-tier0
+  imageFormat: "2"
+  imageFeatures: layering,fast-diff,deep-flatten,object-map
+  csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+  csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+  csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+  csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ceph-rbd-tier1
+provisioner: rook-ceph.rbd.csi.ceph.com
+parameters:
+  clusterID: snisid-national-ceph
+  pool: snisid-rbd-tier1
+  imageFormat: "2"
+  imageFeatures: layering
+  csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+  csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+  csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+  csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer

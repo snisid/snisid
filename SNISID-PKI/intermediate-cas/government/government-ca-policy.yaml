@@ -1,0 +1,162 @@
+# SNISID — Government Intermediate CA Policy & Configuration
+# Classification: TOP-SECRET
+# Domain: Institutions, Ministries, Agencies, Embassies, Local Government
+# Issuer: SNISID Root CA (offline ceremony)
+# Path: Vault PKI mount `snisid-pki-gov`
+# HSM: Thales Luna 7 Core DC — Partition SNISID_GOV_CA
+
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: snisid-gov-intermediate-issuer
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: pki-government
+    snisid.gov.data-classification: top-secret
+spec:
+  vault:
+    path: snisid-pki-gov/issue/government-certs
+    server: https://vault.snisid-identity.svc.cluster.local:8200
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: cert-manager-gov-ca
+        secretRef:
+          name: cert-manager-gov-vault-auth
+          key: token
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      <SNISID-INFRA-INTERMEDIATE-CA-CERT>
+      -----END CERTIFICATE-----
+
+---
+# Vault PKI Mount Configuration (applied via Terraform / Vault CLI during provisioning)
+# NOTE: This is a Vault policy and mount configuration document, not a Kubernetes manifest.
+
+# Path: snisid-pki-gov/
+# Type: pki
+# Description: SNISID Government CA — Issues certificates for national institutions
+
+vault_mount_config: |
+  path = "snisid-pki-gov"
+  type = "pki"
+  default_lease_ttl_seconds = 31536000  # 1 year default
+  max_lease_ttl_seconds     = 157788000  # 5 years max (intermediate validity)
+
+vault_policy_gov_ca: |
+  path "snisid-pki-gov/issue/government-certs" {
+    capabilities = ["create", "update"]
+  }
+  path "snisid-pki-gov/sign/government-certs" {
+    capabilities = ["create", "update"]
+  }
+  path "snisid-pki-gov/revoke" {
+    capabilities = ["create", "update"]
+  }
+  path "snisid-pki-gov/roles/government-certs" {
+    capabilities = ["read"]
+  }
+  path "snisid-pki-gov/cert/ca" {
+    capabilities = ["read"]
+  }
+
+vault_pki_role_government_certs: |
+  name = "government-certs"
+  allowed_domains = [
+    "gouv.ht",
+    "ministere.gouv.ht",
+    "tribunal.gouv.ht",
+    "prefecture.gouv.ht",
+    "ambassade.gouv.ht",
+    "collectivite.gouv.ht",
+    "snisid.gouv.local",
+    "interne.snisid.gouv.local"
+  ]
+  allow_subdomains = true
+  allow_bare_domains = true
+  allow_glob_domains = false
+  allow_ip_sans = true
+  allowed_uri_sans = ["spiffe://snisid.gov/*", "urn:snisid:institution:*"]
+  max_ttl = "8760h"       # 1 year max end-entity
+  default_ttl = "8760h"
+  ttl = "8760h"
+  key_type = "ec"
+  key_bits = 384
+  signature_algorithm = "ecdsa-with-SHA384"
+  
+  # Certificate policy OIDs
+  policy_identifiers = [
+    "1.3.6.1.4.1.SNISID.1.1",      # SNISID Government Policy
+    "1.3.6.1.4.1.SNISID.0.1"       # SNISID CP Nationale
+  ]
+  
+  # Key usage
+  key_usage = ["DigitalSignature", "KeyEncipherment"]
+  ext_key_usage = ["ClientAuth", "ServerAuth", "CodeSigning"]
+  
+  # Basic constraints
+  basic_constraints_valid_for_non_ca = true
+  
+  # Subject format enforcement
+  require_cn = true
+  allowed_serial_numbers = ["*"]
+  
+  # Organization
+  organization = ["SNISID Government"]
+  ou = ["{requested}"]
+  country = ["HT"]
+  locality = ["{requested}"]
+  province = ["{requested}"]
+  
+  # CRL / OCSP
+  no_store = false
+  generate_lease = true
+
+vault_pki_intermediate_config: |
+  # Intermediate CA certificate issued by Root CA (offline ceremony)
+  path "snisid-pki-gov/intermediate/set-signed"
+  certificate = <<EOT
+  -----BEGIN CERTIFICATE-----
+  MIIF... (Intermediate CA certificate signed by Root CA)
+  -----END CERTIFICATE-----
+  EOT
+  
+  # CRL configuration
+  crl = true
+  crl_expiry = "72h"
+  crl_disable = false
+  crl_distribution_points = ["http://crl.snisid.gouv.local/gov/ca.crl"]
+  issuing_certificates = ["http://pki.snisid.gouv.local/gov/ca.crt"]
+  ocsp_servers = ["http://ocsp.snisid.gouv.local"]
+  
+  # Auto-tidy
+  tidy = true
+  tidy_cert_store = true
+  tidy_revoked_certs = true
+  tidy_revocation_list = true
+  safety_buffer = "259200s"  # 72h
+
+---
+# HSM Key Reference (Thales Luna 7)
+# The intermediate CA private key is stored in HSM partition SNISID_GOV_CA
+# Key label: snisid-gov-intermediate-ca-key
+# Algorithm: ECDSA P-384
+# Extractable: NO
+# Modifiable: NO (requires HSM admin + 2-of-4 M-of-N)
+
+hsm_key_reference:
+  partition: SNISID_GOV_CA
+  key_label: snisid-gov-intermediate-ca-key
+  algorithm: EC
+  curve: secp384r1
+  extractable: false
+  modifiable: false
+  key_type: PRIVATE_KEY
+  storage: HSM
+
+---
+# Certificate Policy Statement (CPS) Reference
+# Full CPS: policies/SNISID-CPS-Government-v5.0.0.pdf
+# OID: 1.3.6.1.4.1.SNISID.1.1.1
+# Status: APPROVED IGC 2026-05-25

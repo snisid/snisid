@@ -1,0 +1,52 @@
+{
+  "name": "SNISID Suspected Breach Automated Response",
+  "description": "Triggered by Critical SIEM alerts to enrich IPs and contain threats.",
+  "triggers": [
+    {
+      "name": "Elastic_Alert_Webhook",
+      "type": "Webhook",
+      "source": "Elastic SIEM"
+    }
+  ],
+  "actions": [
+    {
+      "name": "Query_MISP",
+      "app": "MISP",
+      "action": "Search IP",
+      "parameters": {
+        "ip": "$exec.Elastic_Alert_Webhook.source_ip"
+      }
+    },
+    {
+      "name": "Create_TheHive_Case",
+      "app": "TheHive",
+      "action": "Create Case",
+      "parameters": {
+        "title": "Automated Breach Alert - $exec.Elastic_Alert_Webhook.rule_name",
+        "severity": 3,
+        "description": "MISP Tags: $exec.Query_MISP.tags"
+      }
+    },
+    {
+      "name": "Page_SOC_Team",
+      "app": "PagerDuty",
+      "action": "Trigger Incident",
+      "parameters": {
+        "routing_key": "soc-critical",
+        "summary": "Critical SIEM Alert: $exec.Elastic_Alert_Webhook.rule_name"
+      }
+    },
+    {
+      "name": "Block_IP_WAF",
+      "app": "Kubernetes",
+      "action": "Patch NetworkPolicy",
+      "conditions": [
+        "$exec.Elastic_Alert_Webhook.severity == 'critical'"
+      ],
+      "parameters": {
+        "namespace": "snisid-ingress",
+        "patch": "{\"spec\":{\"ingress\":[{\"from\":[{\"ipBlock\":{\"cidr\":\"$exec.Elastic_Alert_Webhook.source_ip/32\"}}]}]}}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "index_patterns": ["snisid-audit-*", "snisid-auth-*", "snisid-biometric-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 3,
+      "number_of_replicas": 2,
+      "index.lifecycle.name": "snisid_audit_ilm_policy",
+      "index.lifecycle.rollover_alias": "snisid-audit-logs"
+    },
+    "mappings": {
+      "dynamic_templates": [
+        {
+          "strings_as_keywords": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        }
+      ],
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "event": {
+          "properties": {
+            "category": { "type": "keyword" },
+            "type": { "type": "keyword" },
+            "outcome": { "type": "keyword" }
+          }
+        },
+        "user": {
+          "properties": {
+            "id": { "type": "keyword" },
+            "name": { "type": "keyword" },
+            "roles": { "type": "keyword" }
+          }
+        },
+        "source": {
+          "properties": {
+            "ip": { "type": "ip" }
+          }
+        }
+      }
+    }
+  },
+  "priority": 200,
+  "_meta": {
+    "description": "Template applying the 7-year ILM policy and strict ECS mappings to SNISID operational logs."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "snisid-apps-ecosystem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SNISID Phase 12 - National Application Ecosystem (React Native Monorepo)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "echo \"Run start in individual apps\""
+  }
+}

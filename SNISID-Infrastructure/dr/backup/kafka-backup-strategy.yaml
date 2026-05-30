@@ -1,0 +1,214 @@
+# SNISID — Kafka Backup & Mirror Disaster Recovery Strategy
+# Classification: RESTREINT DEFENSE
+# Role: RPO < 15min Tier-0 topics, async mirror Core↔DR, air-gapped archive
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-kafka-tier0-backup
+  namespace: snisid-data
+  labels:
+    snisid.gov.tier: "tier-1"
+    snisid.gov.service: "kafka-backup"
+spec:
+  schedule: "*/15 * * * *"  # Toutes les 15 min pour Tier-0 topics
+  concurrencyPolicy: Forbid
+  successfulJobHistoryLimit: 24
+  failedJobHistoryLimit: 48
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            snisid.gov/tier: tier-1
+            snisid.gov/service: kafka-backup
+        spec:
+          serviceAccountName: kafka-backup-operator
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: kafka-backup
+              image: registry.interne.snisid.gouv.local/snisid/kafka-backup-agent:v4.0.0
+              imagePullPolicy: Always
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  BOOTSTRAP="kafka-core-01.snisid-data.svc.cluster.local:9093,kafka-core-02.snisid-data.svc.cluster.local:9093,kafka-core-03.snisid-data.svc.cluster.local:9093"
+                  TIER0_TOPICS=("identites.nationales" "enrollments.terrain" "audit.securite")
+                  S3_BUCKET="snisid-backup-gold"
+                  ENCRYPTION_KEY=$(vault read -field=key snisid/data/backup/kafka-encryption)
+
+                  echo "=== SNISID Kafka Tier-0 Backup — ${TIMESTAMP} ==="
+
+                  for topic in "${TIER0_TOPICS[@]}"; do
+                    echo "--- Backup topic: ${topic} ---"
+
+                    # 1. Snapshot partition offsets actuels
+                    kafka-run-class.sh kafka.tools.GetOffsetShell \
+                      --broker-list ${BOOTSTRAP} \
+                      --topic ${topic} \
+                      --time -1 > /tmp/offsets-${topic}-${TIMESTAMP}.txt
+
+                    # 2. Export via kafka-console-consumer → chiffrement AES-256-GCM → S3
+                    kafka-console-consumer.sh \
+                      --bootstrap-server ${BOOTSTRAP} \
+                      --topic ${topic} \
+                      --from-beginning \
+                      --property print.key=true \
+                      --property print.timestamp=true \
+                      --timeout-ms 300000 \
+                      --max-messages 0 | \
+                      openssl enc -aes-256-gcm -pass pass:"${ENCRYPTION_KEY}" | \
+                      s3cmd put --storage-class=STANDARD_IA --acl-private - \
+                        s3://${S3_BUCKET}/kafka/tier0/${topic}/${topic}-${TIMESTAMP}.kafka.enc
+
+                    # 3. Validation taille / comptage
+                    SIZE=$(s3cmd ls s3://${S3_BUCKET}/kafka/tier0/${topic}/${topic}-${TIMESTAMP}.kafka.enc | awk '{print $3}')
+                    echo "${topic}: ${SIZE} bytes uploaded"
+                  done
+
+                  # 4. Backup consumer group offsets (recovery stateful processing)
+                  kafka-consumer-groups.sh \
+                    --bootstrap-server ${BOOTSTRAP} \
+                    --describe \
+                    --all-groups > /tmp/consumer-groups-${TIMESTAMP}.txt
+                  openssl enc -aes-256-gcm -pass pass:"${ENCRYPTION_KEY}" -in /tmp/consumer-groups-${TIMESTAMP}.txt | \
+                    s3cmd put --storage-class=STANDARD_IA --acl-private - \
+                      s3://${S3_BUCKET}/kafka/metadata/consumer-groups-${TIMESTAMP}.enc
+
+                  # 5. Air-gapped LTO trigger
+                  curl -s -X POST --cacert /etc/ssl/certs/snisid-ca.crt \
+                    -H "Authorization: Bearer ${TAPE_ROBOT_TOKEN}" \
+                    -d "{\"bucket\":\"${S3_BUCKET}\",\"prefix\":\"kafka/tier0/\",\"tape_label\":\"SNISID-KFK-${TIMESTAMP}\"}" \
+                    https://tape-robot.interne.snisid.gouv.local/api/v1/stage || true
+
+                  echo "=== Kafka Backup Complete ==="
+              env:
+                - name: KAFKA_HEAP_OPTS
+                  value: "-Xmx1G -Xms512M"
+                - name: TAPE_ROBOT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: tape-robot-credentials
+                      key: token
+              volumeMounts:
+                - name: vault-backup-token
+                  mountPath: /vault/secrets
+                  readOnly: true
+                - name: s3cfg
+                  mountPath: /root/.s3cfg
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+                - name: ca-bundle
+                  mountPath: /etc/ssl/certs/snisid-ca.crt
+                  subPath: ca.crt
+                  readOnly: true
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: vault-backup-token
+              emptyDir:
+                sizeLimit: 1Mi
+            - name: s3cfg
+              secret:
+                secretName: s3cmd-backup-config
+            - name: tmp
+              emptyDir:
+                sizeLimit: 10Gi
+            - name: ca-bundle
+              secret:
+                secretName: snisid-pki-ca
+                items:
+                  - key: tls.crt
+                    path: ca.crt
+          restartPolicy: OnFailure
+
+---
+# MirrorMaker2 — Active-Active Replication Core ↔ DR
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: snisid-national-mirror
+  namespace: snisid-data
+  labels:
+    snisid.gov.tier: "tier-1"
+    snisid.gov.service: "kafka-mirror"
+spec:
+  version: "3.6.0"
+  replicas: 3
+  connectCluster: "dr"
+  clusters:
+    - alias: core
+      bootstrapServers: kafka-core-01.snisid-data.svc.cluster.local:9093,kafka-core-02.snisid-data.svc.cluster.local:9093,kafka-core-03.snisid-data.svc.cluster.local:9093
+      config:
+        security.protocol: SSL
+        ssl.truststore.location: /opt/kafka/certificates/snisid-truststore.jks
+        ssl.truststore.password: ${TRUSTSTORE_PASSWORD}
+        ssl.keystore.location: /opt/kafka/certificates/snisid-keystore.jks
+        ssl.keystore.password: ${KEYSTORE_PASSWORD}
+        ssl.key.password: ${KEY_PASSWORD}
+        config.storage.replication.factor: 3
+        offset.storage.replication.factor: 3
+        status.storage.replication.factor: 3
+    - alias: dr
+      bootstrapServers: kafka-dr-01.snisid-data.svc.cluster.local:9093,kafka-dr-02.snisid-data.svc.cluster.local:9093,kafka-dr-03.snisid-data.svc.cluster.local:9093
+      config:
+        security.protocol: SSL
+        ssl.truststore.location: /opt/kafka/certificates/snisid-truststore.jks
+        ssl.truststore.password: ${TRUSTSTORE_PASSWORD}
+        ssl.keystore.location: /opt/kafka/certificates/snisid-keystore.jks
+        ssl.keystore.password: ${KEYSTORE_PASSWORD}
+        ssl.key.password: ${KEY_PASSWORD}
+  mirrors:
+    - sourceCluster: "core"
+      targetCluster: "dr"
+      sourceConnector:
+        tasksMax: 4
+        config:
+          replication.factor: 3
+          offset-syncs.topic.replication.factor: 3
+          sync.topic.acls.enabled: "false"
+      heartbeatConnector:
+        tasksMax: 1
+        config:
+          heartbeats.topic.replication.factor: 3
+      checkpointConnector:
+        tasksMax: 2
+        config:
+          checkpoints.topic.replication.factor: 3
+          sync.group.offsets.enabled: true
+          sync.group.offsets.interval.seconds: 60
+      topicsPattern: "identites\\.nationales|enrollments\\.terrain|audit\\.securite|sync\\.edge"
+      groupsPattern: ".*"
+      groupId: snisid-mirror-core-to-dr
+    # Reverse mirror (DR → Core) pour failback
+    - sourceCluster: "dr"
+      targetCluster: "core"
+      sourceConnector:
+        tasksMax: 2
+        config:
+          replication.factor: 3
+          offset-syncs.topic.replication.factor: 3
+          sync.topic.acls.enabled: "false"
+      topicsPattern: "identites\\.nationales|enrollments\\.terrain"
+      groupsPattern: ".*"
+      groupId: snisid-mirror-dr-to-core
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 1000m
+    limits:
+      memory: 4Gi
+      cpu: 4000m

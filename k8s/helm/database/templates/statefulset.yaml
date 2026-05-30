@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: snisid-postgres
+  labels:
+    app: snisid-database
+spec:
+  serviceName: "snisid-postgres"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: snisid-database
+  template:
+    metadata:
+      labels:
+        app: snisid-database
+    spec:
+      serviceAccountName: database-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        ports:
+        - containerPort: 5432
+          name: tcp-postgresql
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "encrypted-sc"
+      resources:
+        requests:
+          storage: 100Gi

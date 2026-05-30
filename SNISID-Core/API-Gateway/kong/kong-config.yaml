@@ -1,0 +1,385 @@
+---
+# ============================================================
+# SNISID-Core — API Gateway (Kong)
+# Helm Values + Plugin Configuration
+# Document ID: SNISID-GW-001
+# Version: 1.0.0
+# ============================================================
+
+# kong-values.yaml — Helm Values for Kong Gateway
+
+image:
+  repository: harbor.snisid.gov.ht/kong/kong
+  tag: "3.6-debian"
+  pullPolicy: Always
+
+env:
+  database: "off"        # DB-less mode — declarative config
+  declarative_config: /kong/declarative/kong.yaml
+  log_level: notice
+  proxy_access_log: /dev/stdout
+  proxy_error_log: /dev/stderr
+  admin_access_log: /dev/stdout
+  admin_error_log: /dev/stderr
+  nginx_worker_processes: auto
+  # TLS / mTLS configuration
+  ssl_cert: /etc/ssl/certs/kong-tls.crt
+  ssl_cert_key: /etc/ssl/private/kong-tls.key
+  client_ssl: "on"
+  client_ssl_cert: /etc/ssl/certs/kong-mtls.crt
+  client_ssl_cert_key: /etc/ssl/private/kong-mtls.key
+  # Tracing
+  opentelemetry_tracing: all
+  tracing_sampling_rate: "0.1"
+
+deployment:
+  kong:
+    enabled: true
+
+replicaCount: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "2000m"
+
+# Admin API — internal only (accessed via kubectl port-forward or Vault)
+admin:
+  enabled: true
+  type: ClusterIP
+  http:
+    enabled: false   # HTTP disabled — admin only via TLS
+  tls:
+    enabled: true
+    servicePort: 8444
+    containerPort: 8444
+
+# Proxy — External traffic entry point
+proxy:
+  enabled: true
+  type: LoadBalancer
+  http:
+    enabled: false   # HTTP-to-HTTPS redirect only
+  tls:
+    enabled: true
+    servicePort: 443
+    containerPort: 8443
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-internal: "false"
+
+# Ingress Controller mode
+ingressController:
+  enabled: true
+  installCRDs: false
+
+serviceMonitor:
+  enabled: true
+  namespace: snisid-observability
+
+# Pod security
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: DoNotSchedule
+  labelSelector:
+    matchLabels:
+      app: kong
+
+---
+# ============================================================
+# Kong Declarative Configuration (DB-less)
+# ============================================================
+# File: kong-declarative-config.yaml
+
+_format_version: "3.0"
+_transform: true
+
+# ── Services ──────────────────────────────────────────────
+services:
+  - name: identity-service
+    url: http://identity-service.snisid-identity.svc.cluster.local:8443
+    protocol: https
+    tls_verify: true
+    tls_verify_depth: 3
+    connect_timeout: 5000
+    write_timeout: 60000
+    read_timeout: 60000
+    retries: 3
+    routes:
+      - name: identity-route
+        paths:
+          - /v1/identities
+          - /v1/registry
+        strip_path: false
+        protocols: [https]
+        preserve_host: true
+        plugins:
+          - name: jwt
+          - name: rate-limiting
+          - name: request-transformer
+          - name: response-transformer
+          - name: correlation-id
+          - name: opentelemetry
+
+  - name: biometric-service
+    url: https://biometric-service.snisid-biometrics.svc.cluster.local:8082
+    protocol: https
+    tls_verify: true
+    routes:
+      - name: biometric-verify-route
+        paths:
+          - /v1/biometrics/verify
+          - /v1/biometrics/status
+        strip_path: false
+        protocols: [https]
+        plugins:
+          - name: jwt
+          - name: rate-limiting
+            config:
+              minute: 500          # Vérification biométrique limitée
+
+  - name: civil-registry-service
+    url: https://civil-registry.snisid-civil-registry.svc.cluster.local:8083
+    protocol: https
+    tls_verify: true
+    routes:
+      - name: civil-route
+        paths:
+          - /v1/civil
+        strip_path: false
+        protocols: [https]
+
+  - name: verification-service
+    url: https://verification-service.snisid-identity.svc.cluster.local:8085
+    protocol: https
+    tls_verify: true
+    routes:
+      - name: verify-public-route
+        paths:
+          - /v1/verify
+        strip_path: false
+        protocols: [https]
+
+# ── Global Plugins ────────────────────────────────────────
+plugins:
+  # JWT Authentication (via Keycloak JWKS)
+  - name: jwt
+    config:
+      uri_param_names: []
+      header_names: [Authorization]
+      claims_to_verify: [exp, nbf]
+      key_claim_name: iss
+      secret_is_base64: false
+      run_on_preflight: true
+
+  # Rate Limiting (Redis-backed)
+  - name: rate-limiting
+    config:
+      minute: 2000
+      hour: 100000
+      day: 2000000
+      policy: redis
+      redis_host: redis-master.snisid-databases.svc.cluster.local
+      redis_port: 6379
+      redis_password: vault:secret/data/redis#password
+      redis_ssl: true
+      limit_by: consumer
+      hide_client_headers: false
+      error_code: 429
+      error_message: "Rate limit dépassé — Réessayez dans quelques secondes"
+
+  # CORS
+  - name: cors
+    config:
+      origins:
+        - "https://*.snisid.gov.ht"
+        - "https://*.oni.gov.ht"
+        - "https://*.cep.gov.ht"
+      methods: [GET, POST, PATCH, DELETE, OPTIONS]
+      headers: [Authorization, Content-Type, X-Request-ID, X-Correlation-ID]
+      exposed_headers: [X-Audit-Trail-ID, X-Rate-Limit-Remaining]
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+  # Request ID (Correlation)
+  - name: correlation-id
+    config:
+      header_name: X-Correlation-ID
+      generator: uuid
+      echo_downstream: true
+
+  # OpenTelemetry Tracing
+  - name: opentelemetry
+    config:
+      endpoint: http://tempo.snisid-observability.svc.cluster.local:4318/v1/traces
+      batch_span_count: 200
+      batch_flush_delay: 3
+      resource_attributes:
+        service.name: kong-api-gateway
+        deployment.environment: production
+
+  # WAF — ModSecurity CRS
+  - name: request-validator
+    config:
+      body_schema:
+        required: false
+      version: draft4
+      allowed_content_types:
+        - application/json
+        - application/x-www-form-urlencoded
+      strip_path: false
+
+  # IP Restriction pour admin endpoints
+  - name: ip-restriction
+    service: identity-service
+    config:
+      allow:
+        - 10.0.0.0/8        # SNISID internal
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+      deny: []
+      status: 403
+      message: "Accès refusé — Réseau non autorisé"
+
+  # Bot Detection
+  - name: bot-detection
+    config:
+      allow: []
+      deny:
+        - curl
+        - python-requests
+        - wget
+        - Go-http-client
+      message: "Bot non autorisé"
+
+# ── Consumers (Agences) ───────────────────────────────────
+consumers:
+  - username: oni-service
+    custom_id: ONI-001
+    tags: [government, identity]
+
+  - username: dgi-service
+    custom_id: DGI-001
+    tags: [government, fiscal]
+
+  - username: cep-service
+    custom_id: CEP-001
+    tags: [government, electoral]
+
+  - username: pnh-service
+    custom_id: PNH-001
+    tags: [government, security]
+
+  - username: mspp-service
+    custom_id: MSPP-001
+    tags: [government, health]
+
+  - username: bcn-service
+    custom_id: BCN-001
+    tags: [government, immigration]
+
+---
+# ============================================================
+# cert-manager ClusterIssuer — SNISID Internal PKI
+# ============================================================
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: snisid-internal-ca
+  annotations:
+    snisid.gov.ht/managed-by: cert-manager
+    snisid.gov.ht/pki-tier: issuing-ca
+spec:
+  ca:
+    secretName: snisid-issuing-ca-keypair  # Chargé depuis Vault via External Secrets
+
+---
+# ClusterIssuer pour certificats TLS publics (ACME / Let's Encrypt ou PKI nationale)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: snisid-public-tls
+spec:
+  acme:
+    server: https://acme.snisid.gov.ht/directory  # ACME interne PKI nationale
+    email: pki-admin@snisid.gov.ht
+    privateKeySecretRef:
+      name: snisid-acme-account-key
+    solvers:
+    - http01:
+        ingress:
+          class: kong
+
+---
+# Certificate — API Gateway TLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: api-gateway-tls
+  namespace: snisid-api-gateway
+spec:
+  secretName: api-gateway-tls-secret
+  issuerRef:
+    name: snisid-public-tls
+    kind: ClusterIssuer
+  commonName: api.snisid.gov.ht
+  dnsNames:
+    - api.snisid.gov.ht
+    - api-dr.snisid.gov.ht
+    - "*.api.snisid.gov.ht"
+  duration: 8760h    # 1 an
+  renewBefore: 720h  # Renouveler 30 jours avant expiration
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+
+---
+# Certificate — Wildcard interne (mTLS)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: snisid-internal-wildcard
+  namespace: snisid-api-gateway
+spec:
+  secretName: snisid-internal-wildcard-tls
+  issuerRef:
+    name: snisid-internal-ca
+    kind: ClusterIssuer
+  commonName: "*.snisid-internal.svc.cluster.local"
+  dnsNames:
+    - "*.snisid-internal.svc.cluster.local"
+    - "*.snisid.gov.ht"
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 384

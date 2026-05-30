@@ -1,0 +1,359 @@
+# SNISID — PKI Observability Stack : Monitoring National Trust Infrastructure
+# Classification: SECRET
+# Role: Real-time monitoring of certificates, HSM, OCSP, CRL, signatures, revocations
+# Integration: Prometheus + Grafana + Loki + SIEM (Phase 4 observability cluster)
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: snisid-pki-monitoring-rules
+  namespace: snisid-obs
+  labels:
+    snisid.gov.tier: tier-3
+    snisid.gov.region: core
+    snisid.gov.service: pki-observability
+    prometheus: snisid-core
+    role: alert-rules
+spec:
+  groups:
+    # ───────────────────────────────────────────────
+    # Group 1: Certificate Expiration Monitoring
+    # ───────────────────────────────────────────────
+    - name: snisid-pki-certificate-expiration
+      interval: 60s
+      rules:
+        - alert: SNISID_PKICert_Expiring7Days
+          expr: |
+            (
+              (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400
+            ) < 7 and (
+              (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            snisid_alert_type: pki_certificate_expiration
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — Certificate expires in less than 7 days"
+            description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} expires in {{ $value | humanizeDuration }}. Auto-renewal expected."
+            runbook_url: "https://wiki.interne.snisid.gouv.local/runbooks/pki-cert-renewal"
+            
+        - alert: SNISID_PKICert_Expiring1Day
+          expr: |
+            (
+              (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400
+            ) < 1
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: pki_certificate_expiration
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — Certificate expires in less than 24 hours"
+            description: "CRITICAL: Certificate {{ $labels.name }} in {{ $labels.namespace }} expires in {{ $value | humanizeDuration }}. Force renewal NOW."
+            runbook_url: "https://wiki.interne.snisid.gouv.local/runbooks/pki-cert-emergency-renewal"
+            
+        - alert: SNISID_PKICert_ExpiredActive
+          expr: |
+            certmanager_certificate_ready{condition="False",namespace=~"snisid-.*|istio-system|cert-manager"} == 1
+          for: 0s
+          labels:
+            severity: emergency
+            snisid_alert_type: pki_certificate_expired_active
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — EXPIRED certificate still active"
+            description: "EMERGENCY: Certificate {{ $labels.name }} in {{ $labels.namespace }} is EXPIRED and flagged Not Ready. Service impact imminent."
+            runbook_url: "https://wiki.interne.snisid.gouv.local/runbooks/pki-cert-emergency-renewal"
+            
+        - alert: SNISID_PKIIntermediate_Expiring1Year
+          expr: |
+            (
+              (vault_pki_intermediate_expiration_timestamp_seconds{path=~"snisid-pki-.*"} - time()) / 86400
+            ) < 365
+          for: 1h
+          labels:
+            severity: warning
+            snisid_alert_type: pki_intermediate_expiration
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — Intermediate CA expires in less than 1 year"
+            description: "Intermediate CA {{ $labels.path }} expires in {{ $value | humanizeDuration }}. Plan rotation ceremony."
+            
+    # ───────────────────────────────────────────────
+    # Group 2: Revocation Events
+    # ───────────────────────────────────────────────
+    - name: snisid-pki-revocation-events
+      interval: 30s
+      rules:
+        - alert: SNISID_PKICert_Revoked_EmergencyBatch
+          expr: |
+            increase(vault_pki_revoke_count{path=~"snisid-pki-.*"}[5m]) > 10
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: pki_mass_revocation
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — Mass revocation detected"
+            description: "{{ $value }} certificates revoked from {{ $labels.path }} in last 5 minutes. Possible compromise or emergency incident."
+            
+        - alert: SNISID_PKICert_Revoked_Government
+          expr: |
+            increase(vault_pki_revoke_count{path="snisid-pki-gov"}[1h]) > 0
+          for: 0s
+          labels:
+            severity: warning
+            snisid_alert_type: pki_government_revocation
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — Government certificate revoked"
+            description: "Government certificate revoked from {{ $labels.path }}. Verify with Government CA Manager."
+            
+        - alert: SNISID_PKICert_Revoked_Judicial
+          expr: |
+            increase(vault_pki_revoke_count{path="snisid-pki-judicial"}[1h]) > 0
+          for: 0s
+          labels:
+            severity: critical
+            snisid_alert_type: pki_judicial_revocation
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — Judicial certificate revoked"
+            description: "Judicial certificate revoked. Immediate notification to Judicial Council + IGC required."
+            
+    # ───────────────────────────────────────────────
+    # Group 3: OCSP Health
+    # ───────────────────────────────────────────────
+    - name: snisid-pki-ocsp-health
+      interval: 15s
+      rules:
+        - alert: SNISID_OCSP_LatencyHigh
+          expr: |
+            histogram_quantile(0.99, sum(rate(ocsp_response_duration_seconds_bucket[5m])) by (le, ca)) > 0.2
+          for: 2m
+          labels:
+            severity: warning
+            snisid_alert_type: pki_ocsp_performance
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — OCSP latency p99 > 200ms"
+            description: "OCSP responder for CA {{ $labels.ca }} latency p99 is {{ $value }}s. Cache or scale issue."
+            
+        - alert: SNISID_OCSP_FailureRate
+          expr: |
+            (
+              sum(rate(ocsp_response_total{status=~"error|internal_error|trylater|sig_required|unauthorized"}[5m])) by (ca)
+              /
+              sum(rate(ocsp_response_total[5m])) by (ca)
+            ) > 0.01
+          for: 2m
+          labels:
+            severity: critical
+            snisid_alert_type: pki_ocsp_failure
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — OCSP failure rate > 1%"
+            description: "OCSP responder for CA {{ $labels.ca }} has {{ $value | humanizePercentage }} failure rate. CRL fallback may be needed."
+            
+        - alert: SNISID_OCSP_ResponderDown
+          expr: |
+            up{job="snisid-ocsp-responder"} == 0
+          for: 30s
+          labels:
+            severity: emergency
+            snisid_alert_type: pki_ocsp_down
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — OCSP Responder DOWN"
+            description: "OCSP responder {{ $labels.instance }} is DOWN. National certificate validation impacted."
+            
+    # ───────────────────────────────────────────────
+    # Group 4: CRL Health
+    # ───────────────────────────────────────────────
+    - name: snisid-pki-crl-health
+      interval: 60s
+      rules:
+        - alert: SNISID_CRL_Stale
+          expr: |
+            (
+              time() - crl_last_generation_timestamp_seconds{path=~"snisid-pki-.*"}
+            ) > 7200
+          for: 5m
+          labels:
+            severity: critical
+            snisid_alert_type: pki_crl_stale
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — CRL stale (> 2h since last generation)"
+            description: "CRL for {{ $labels.path }} was last generated {{ $value | humanizeDuration }} ago. Generator job may be failing."
+            
+        - alert: SNISID_CRL_SizeCritical
+          expr: |
+            crl_size_bytes{path=~"snisid-pki-.*"} > 10485760
+          for: 5m
+          labels:
+            severity: warning
+            snisid_alert_type: pki_crl_size
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — CRL size > 10MB"
+            description: "CRL for {{ $labels.path }} is {{ $value | humanize1024 }}B. Consider delta-CRL or partitioning."
+            
+    # ───────────────────────────────────────────────
+    # Group 5: HSM Health
+    # ───────────────────────────────────────────────
+    - name: snisid-pki-hsm-health
+      interval: 15s
+      rules:
+        - alert: SNISID_HSM_TemperatureHigh
+          expr: |
+            hsm_temperature_celsius{hsm=~"HSM-CORE-.*|HSM-DR-.*"} > 40
+          for: 2m
+          labels:
+            severity: warning
+            snisid_alert_type: pki_hsm_environment
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — HSM temperature high"
+            description: "HSM {{ $labels.hsm }} temperature is {{ $value }}°C. Check room HVAC immediately."
+            
+        - alert: SNISID_HSM_OperationError
+          expr: |
+            increase(hsm_operation_errors_total{hsm=~"HSM-CORE-.*|HSM-DR-.*"}[5m]) > 0
+          for: 0s
+          labels:
+            severity: critical
+            snisid_alert_type: pki_hsm_error
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — HSM operation error detected"
+            description: "HSM {{ $labels.hsm }} reported operation errors. Key signing may be impacted."
+            
+        - alert: SNISID_HSM_PartitionOffline
+          expr: |
+            hsm_partition_status{partition=~"SNISID_.*"} == 0
+          for: 30s
+          labels:
+            severity: emergency
+            snisid_alert_type: pki_hsm_partition_down
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — HSM partition OFFLINE"
+            description: "HSM partition {{ $labels.partition }} on {{ $labels.hsm }} is OFFLINE. CA operations for this domain halted."
+            
+        - alert: SNISID_HSM_TamperDetected
+          expr: |
+            hsm_tamper_status{hsm=~"HSM-CORE-.*|HSM-DR-.*"} == 1
+          for: 0s
+          labels:
+            severity: emergency
+            snisid_alert_type: pki_hsm_tamper
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — HSM TAMPER DETECTED"
+            description: "TAMPER detected on HSM {{ $labels.hsm }}. INITIATE EMERGENCY PROCEDURE. ISOLATE. INVESTIGATE."
+            runbook_url: "https://wiki.interne.snisid.gouv.local/runbooks/hsm-tamper-emergency"
+            
+    # ───────────────────────────────────────────────
+    # Group 6: TLS / mTLS Failures
+    # ───────────────────────────────────────────────
+    - name: snisid-pki-tls-failures
+      interval: 30s
+      rules:
+        - alert: SNISID_TLS_CertificateValidationFailure
+          expr: |
+            increase(tls_certificate_validation_failures_total[5m]) > 10
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: pki_tls_validation_failure
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — TLS certificate validation failures spiking"
+            description: "{{ $value }} TLS validation failures in 5 minutes. Possible expired cert, wrong CA, or revocation."
+            
+        - alert: SNISID_TLS_RevokedCertificateUsed
+          expr: |
+            increase(tls_revoked_certificate_presented_total[5m]) > 0
+          for: 0s
+          labels:
+            severity: emergency
+            snisid_alert_type: pki_tls_revoked_used
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — Revoked certificate presented in TLS handshake"
+            description: "A revoked certificate was presented during TLS handshake. Possible replay attack or cache poisoning. Serial: {{ $labels.serial }}"
+            
+        - alert: SNISID_mTLS_MeshCertificateStale
+          expr: |
+            istio_agent_cert_expiry_seconds{namespace=~"snisid-.*"} < 604800
+          for: 1m
+          labels:
+            severity: warning
+            snisid_alert_type: pki_mesh_cert_stale
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — Istio sidecar cert expires in < 7 days"
+            description: "Sidecar in {{ $labels.namespace }}/{{ $labels.pod_name }} cert expires in {{ $value | humanizeDuration }}. SDS should auto-renew."
+            
+    # ───────────────────────────────────────────────
+    # Group 7: Signature Service Health
+    # ───────────────────────────────────────────────
+    - name: snisid-pki-signature-health
+      interval: 60s
+      rules:
+        - alert: SNISID_SignatureService_HighLatency
+          expr: |
+            histogram_quantile(0.95, sum(rate(signature_service_request_duration_seconds_bucket[5m])) by (le, profile)) > 2
+          for: 2m
+          labels:
+            severity: warning
+            snisid_alert_type: pki_signature_latency
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — Signature service latency p95 > 2s"
+            description: "Signature profile {{ $labels.profile }} latency is {{ $value }}s. HSM bottleneck or queue depth."
+            
+        - alert: SNISID_TSA_QueueDepth
+          expr: |
+            tsa_request_queue_depth > 100
+          for: 1m
+          labels:
+            severity: critical
+            snisid_alert_type: pki_tsa_queue
+            snisid_tier: tier-0
+          annotations:
+            summary: "SNISID PKI — TSA queue depth > 100"
+            description: "Timestamp Authority queue depth is {{ $value }}. Scale up TSA replicas or investigate HSM throughput."
+            
+    # ───────────────────────────────────────────────
+    # Group 8: CA Issuance Anomalies
+    # ───────────────────────────────────────────────
+    - name: snisid-pki-issuance-anomalies
+      interval: 60s
+      rules:
+        - alert: SNISID_PKI_HighIssuanceRate
+          expr: |
+            increase(vault_pki_issue_count{path=~"snisid-pki-.*"}[1h]) > 10000
+          for: 5m
+          labels:
+            severity: warning
+            snisid_alert_type: pki_high_issuance
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — Unusually high certificate issuance rate"
+            description: "{{ $value }} certificates issued from {{ $labels.path }} in last hour. Possible provisioning surge or attack."
+            
+        - alert: SNISID_PKI_CitizenIssuanceSpike
+          expr: |
+            increase(vault_pki_issue_count{path="snisid-pki-citizen"}[1h]) > 5000
+          for: 5m
+          labels:
+            severity: warning
+            snisid_alert_type: pki_citizen_issuance_spike
+            snisid_tier: tier-1
+          annotations:
+            summary: "SNISID PKI — Citizen certificate issuance spike"
+            description: "{{ $value }} citizen certificates issued in 1 hour. Verify with enrollment operations."

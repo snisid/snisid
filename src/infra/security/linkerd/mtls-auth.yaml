@@ -1,0 +1,25 @@
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: identity-service-server
+  namespace: snisid-core
+spec:
+  podSelector:
+    matchLabels:
+      app: identity-service
+  port: 50051
+  proxyProtocol: gRPC
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: ServerAuthorization
+metadata:
+  name: default-deny-unencrypted
+  namespace: snisid-core
+spec:
+  server:
+    name: identity-service-server
+  client:
+    meshTLS:
+      identities:
+        - api-gateway.snisid-core.serviceaccount.identity.linkerd.cluster.local
+        - citizen-registry-service.snisid-core.serviceaccount.identity.linkerd.cluster.local

@@ -1,0 +1,34 @@
+{
+  "document": "SNISID National Cybersecurity Governance",
+  "version": "1.0.0",
+  "objective": "Créer la gouvernance sécurité nationale pour SNISID.",
+  "structure": [
+    {"body": "National SOC", "function": "Monitoring", "availability": "24/7"},
+    {"body": "CERT National", "function": "Réponse incidents", "availability": "24/7"},
+    {"body": "DFIR Unit", "function": "Forensics", "availability": "24/7 on-call"},
+    {"body": "Threat Intelligence", "function": "Renseignement", "availability": "continuous"},
+    {"body": "Insider Threat Office", "function": "Contrôle interne", "availability": "continuous monitoring"}
+  ],
+  "incident_severity": [
+    {"severity": "SEV-1", "description": "Compromission nationale, identité/PKI/biométrie critique", "response_time_minutes": 5, "authority": "Conseil Cyber National"},
+    {"severity": "SEV-2", "description": "Impact majeur multi-agences", "response_time_minutes": 15, "authority": "CERT National + Incident Command"},
+    {"severity": "SEV-3", "description": "Incident agence ou service critique isolé", "response_time_minutes": 30, "authority": "SOC Manager"},
+    {"severity": "SEV-4", "description": "Incident mineur ou suspicion", "response_time_minutes": 60, "authority": "SOC Analyst Lead"}
+  ],
+  "authorities": {
+    "cyber_crisis_authority": "Conseil Cyber National",
+    "forensic_authority": "DFIR Unit sous mandat Conseil Cyber + Legal",
+    "shutdown_authority": "Conseil Cyber National; urgence immédiate par Incident Commander avec ratification",
+    "evidence_authority": "Audit Office + DFIR Unit"
+  },
+  "mandatory_controls": [
+    "Zero Trust",
+    "MFA pour accès privilégiés",
+    "PAM pour administrateurs",
+    "SIEM/SOAR national",
+    "EDR/XDR sur actifs critiques",
+    "journalisation immuable",
+    "tests red team réguliers",
+    "revue insider threat"
+  ]
+}

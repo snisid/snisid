@@ -1,0 +1,25 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: identity-service-isolation
+  namespace: snisid-core
+spec:
+  endpointSelector:
+    matchLabels:
+      app: identity-service
+  ingress:
+    - fromEndpoints:
+      - matchLabels:
+          app: api-gateway
+      toPorts:
+      - ports:
+        - port: "50051"
+          protocol: TCP
+  egress:
+    - toEndpoints:
+      - matchLabels:
+          app: citizen-registry-service
+      toPorts:
+      - ports:
+        - port: "50051"
+          protocol: TCP

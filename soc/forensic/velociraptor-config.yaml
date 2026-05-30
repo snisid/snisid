@@ -1,0 +1,19 @@
+Client:
+  server_urls:
+    - "https://velociraptor.snisid-security.svc.cluster.local:8000/"
+  use_self_signed_ssl: true
+  pinned_server_name: "VelociraptorServer"
+
+# Deploy as DaemonSet in Kubernetes to monitor all nodes
+DaemonSet:
+  tolerations:
+    - effect: NoSchedule
+      operator: Exists
+  hostNetwork: true
+  hostPID: true
+  securityContext:
+    privileged: true # Required for deep forensic memory dumps (Volatility) and disk access
+  volumeMounts:
+    - name: rootfs
+      mountPath: /host
+      readOnly: true

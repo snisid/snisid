@@ -1,0 +1,39 @@
+- route:
+    id: dgi-legacy-soap-route
+    from:
+      uri: "platform-http:/dgi/citizen-fiscal-status"
+      steps:
+        # 1. Receive JSON request from SNISID internal
+        - to: "log:info?showBody=true"
+        
+        # 2. Transform JSON to XML
+        - unmarshal:
+            json: {}
+        - setBody:
+            simple: >
+              <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:dgi="http://dgi.gouv/fiscal/">
+                 <soapenv:Header/>
+                 <soapenv:Body>
+                    <dgi:GetFiscalStatusRequest>
+                       <dgi:NationalId>${body[national_id]}</dgi:NationalId>
+                    </dgi:GetFiscalStatusRequest>
+                 </soapenv:Body>
+              </soapenv:Envelope>
+              
+        # 3. Set SOAP Headers
+        - setHeader:
+            name: "Content-Type"
+            constant: "text/xml; charset=utf-8"
+        - setHeader:
+            name: "SOAPAction"
+            constant: "http://dgi.gouv/fiscal/GetStatus"
+            
+        # 4. Route to external legacy DGI SOAP Endpoint (over mTLS)
+        - to: "https://legacy.dgi.gouv.ht/services/FiscalService?bridgeEndpoint=true&sslContextParameters=#agencySslContext"
+        
+        # 5. Transform XML response back to JSON
+        # (Assuming XPath extraction for simplicity in this mock)
+        - setBody:
+            xpath: "//dgi:Status/text()"
+        - marshal:
+            json: {}

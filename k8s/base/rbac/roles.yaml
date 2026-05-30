@@ -1,0 +1,51 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: snisid-core
+  name: config-reader
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend-config-reader
+  namespace: snisid-core
+subjects:
+- kind: ServiceAccount
+  name: backend-sa
+  namespace: snisid-core
+roleRef:
+  kind: Role
+  name: config-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: snisid-security
+  name: vault-auth-delegator
+rules:
+- apiGroups: ["authentication.k8s.io"]
+  resources: ["tokenreviews"]
+  verbs: ["create"]
+- apiGroups: ["authorization.k8s.io"]
+  resources: ["subjectaccessreviews"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-auth-delegator-binding
+  namespace: snisid-security
+subjects:
+- kind: ServiceAccount
+  name: vault-sa
+  namespace: snisid-security
+roleRef:
+  kind: Role
+  name: vault-auth-delegator
+  apiGroup: rbac.authorization.k8s.io

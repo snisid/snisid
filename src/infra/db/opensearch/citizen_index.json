@@ -1,0 +1,64 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 3,
+      "number_of_replicas": 2,
+      "refresh_interval": "1s"
+    },
+    "analysis": {
+      "analyzer": {
+        "custom_fuzzy_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "asciifolding", "ngram_filter"]
+        }
+      },
+      "filter": {
+        "ngram_filter": {
+          "type": "ngram",
+          "min_gram": 3,
+          "max_gram": 4
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "niu": {
+        "type": "keyword"
+      },
+      "first_name": {
+        "type": "text",
+        "analyzer": "custom_fuzzy_analyzer",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
+      },
+      "last_name": {
+        "type": "text",
+        "analyzer": "custom_fuzzy_analyzer",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
+      },
+      "date_of_birth": {
+        "type": "date"
+      },
+      "status": {
+        "type": "keyword"
+      },
+      "biometric_hash": {
+        "type": "keyword",
+        "index": false
+      },
+      "last_updated": {
+        "type": "date"
+      }
+    }
+  }
+}

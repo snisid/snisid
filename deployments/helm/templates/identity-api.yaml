@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "snisid.fullname" . }}-identity-api
+spec:
+  replicas: {{ .Values.services.identityApi.replicaCount }}
+  selector:
+    matchLabels:
+      app: identity-api
+  template:
+    metadata:
+      labels:
+        app: identity-api
+    spec:
+      containers:
+        - name: identity-api
+          image: "{{ .Values.services.identityApi.image.repository }}:{{ .Values.services.identityApi.image.tag }}"
+          ports:
+            - containerPort: 8081
+          env:
+            - name: DATABASE_URL
+              value: "host={{ .Release.Name }}-postgresql user=snisid password=snisid dbname=snisid port=5432 sslmode=disable"
+            - name: KAFKA_BROKER
+              value: "{{ .Release.Name }}-kafka:9092"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "snisid.fullname" . }}-secrets
+                  key: jwt-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "snisid.fullname" . }}-identity-api
+spec:
+  ports:
+    - port: 80
+      targetPort: 8081
+  selector:
+    app: identity-api

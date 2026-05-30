@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: identity-api }
+  template:
+    metadata:
+      labels: { app: identity-api }
+    spec:
+      containers:
+        - name: identity-api
+          image: "{{ .Values.image.repository }}/identity-api:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.services.identityApi.port }}
+          env:
+            - name: PORT
+              value: "{{ .Values.services.identityApi.port }}"
+            - name: JWT_SECRET
+              value: "change-me"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-api
+spec:
+  selector: { app: identity-api }
+  ports:
+    - port: {{ .Values.services.identityApi.port }}
+      targetPort: {{ .Values.services.identityApi.port }}

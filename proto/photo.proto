@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package photo;
+
+option go_package = "github.com/snisid/platform/proto/photo";
+
+service PhotoService {
+  rpc ProcessImage (ImageRequest) returns (ImageResponse);
+}
+
+message ImageRequest {
+  bytes image = 1;
+}
+
+message ImageResponse {
+  string identity_id = 1;
+  float confidence = 2;
+  bool match = 3;
+}

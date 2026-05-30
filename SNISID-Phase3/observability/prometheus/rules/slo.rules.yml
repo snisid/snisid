@@ -1,0 +1,77 @@
+# SNISID — SLO recording rules + Error Budgets
+# Fenêtres : 5m, 1h, 6h, 1d, 7d, 30d (multi-window multi-burn-rate)
+groups:
+
+  - name: snisid.slo.windows.civil_birth_simple
+    interval: 1m
+    rules:
+      # availability = ratio de succès sur fenêtre
+      - record: slo:civil_birth_simple:availability:5m
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="civil-registry.birth.simple",result="SUCCESS"}[5m]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="civil-registry.birth.simple"}[5m])), 0.001)
+      - record: slo:civil_birth_simple:availability:1h
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="civil-registry.birth.simple",result="SUCCESS"}[1h]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="civil-registry.birth.simple"}[1h])), 0.001)
+      - record: slo:civil_birth_simple:availability:6h
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="civil-registry.birth.simple",result="SUCCESS"}[6h]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="civil-registry.birth.simple"}[6h])), 0.001)
+      - record: slo:civil_birth_simple:availability:1d
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="civil-registry.birth.simple",result="SUCCESS"}[1d]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="civil-registry.birth.simple"}[1d])), 0.001)
+      - record: slo:civil_birth_simple:availability:30d
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="civil-registry.birth.simple",result="SUCCESS"}[30d]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="civil-registry.birth.simple"}[30d])), 0.001)
+      # error budget (target 99.9% sur 30j)
+      - record: slo:civil_birth_simple:error_budget_remaining:30d
+        expr: ( slo:civil_birth_simple:availability:30d - 0.999 ) / (1 - 0.999)
+
+  - name: snisid.slo.windows.identity_verification_online
+    interval: 1m
+    rules:
+      - record: slo:identity_verification_online:availability:5m
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="identity.verification.online",result="SUCCESS"}[5m]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="identity.verification.online"}[5m])), 0.001)
+      - record: slo:identity_verification_online:availability:30d
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="identity.verification.online",result="SUCCESS"}[30d]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="identity.verification.online"}[30d])), 0.001)
+      - record: slo:identity_verification_online:latency_p99:5m
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(snisid_workflow_duration_seconds_bucket{workflow_id="identity.verification.online"}[5m])))
+      - record: slo:identity_verification_online:error_budget_remaining:30d
+        expr: ( slo:identity_verification_online:availability:30d - 0.9995 ) / (1 - 0.9995)
+
+  - name: snisid.slo.windows.identity_enrollment
+    interval: 1m
+    rules:
+      - record: slo:identity_enrollment:availability:30d
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="identity.enrollment.standard",result="SUCCESS"}[30d]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="identity.enrollment.standard"}[30d])), 0.001)
+      - record: slo:identity_enrollment:error_budget_remaining:30d
+        expr: ( slo:identity_enrollment:availability:30d - 0.999 ) / (1 - 0.999)
+
+  - name: snisid.slo.windows.kafka_mesh
+    interval: 1m
+    rules:
+      - record: slo:kafka_mesh:availability:30d
+        expr: avg_over_time((1 - clamp_max(kafka_under_replicated_partitions, 1))[30d:1m])
+      - record: slo:kafka_mesh:error_budget_remaining:30d
+        expr: ( slo:kafka_mesh:availability:30d - 0.9995 ) / (1 - 0.9995)
+
+  - name: snisid.slo.windows.judicial_validation
+    interval: 1m
+    rules:
+      - record: slo:judicial_validation:availability:30d
+        expr: |
+          sum(rate(snisid_workflow_completed_total{workflow_id="judicial.validation.act",result="SUCCESS"}[30d]))
+          / clamp_min(sum(rate(snisid_workflow_started_total{workflow_id="judicial.validation.act"}[30d])), 0.001)
+      - record: slo:judicial_validation:error_budget_remaining:30d
+        expr: ( slo:judicial_validation:availability:30d - 0.995 ) / (1 - 0.995)

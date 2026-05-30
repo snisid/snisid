@@ -1,0 +1,100 @@
+# SNISID — Supply Chain Security : Cosign Policy & Key Management
+# Classification: TOP-SECRET
+# Role: Signature obligatoire de toutes les images SNISID nationales
+# Registry: Harbor (registry.interne.snisid.gouv.local)
+# Key: KMS Vault Transit (jamais de clé privée en clair en CI)
+
+apiVersion: policy.sigstore.dev/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: snisid-national-image-policy
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.service: "supply-chain"
+spec:
+  images:
+    - glob: "registry.interne.snisid.gouv.local/snisid/*"
+    - glob: "registry.interne.snisid.gouv.local/library/*"
+    - glob: "registry.interne.snisid.gouv.local/hashicorp/*"
+    - glob: "registry.interne.snisid.gouv.local/ceph/*"
+    - glob: "registry.interne.snisid.gouv.local/cilium/*"
+    - glob: "registry.interne.snisid.gouv.local/coredns/*"
+    - glob: "registry.interne.snisid.gouv.local/prometheus/*"
+    - glob: "registry.interne.snisid.gouv.local/grafana/*"
+  authorities:
+    - name: snisid-national-keyless
+      keyless:
+        identities:
+          - issuer: "https://vault.interne.snisid.gouv.local/v1/identity/oidc"
+            subjectRegExp: "^ci-deploy@snisid\\.gouv\\.local$"
+    - name: snisid-national-kms
+      key:
+        # Clé publique Cosign nationale (Vault Transit ou HSM)
+        hashAlgorithm: sha256
+        data: |
+          -----BEGIN PUBLIC KEY-----
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+          <SNISID_COSIGN_NATIONAL_PUBLIC_KEY_4096>
+          -----END PUBLIC KEY-----
+  policy:
+    # Règles de validation Cosign
+    includeSpec: true
+    type: "https://snisid.gouv.local/cosign/v1/policy"
+    fetchConfigFile: true
+    # Attestations requises
+    attestations:
+      - name: snisid-sbom-attestation
+        predicateType: https://spdx.dev/Document
+        data:
+          type: cue
+          data: |
+            # Package license doit être compatible souverain (pas de GPL-3 contamination)
+            packages: [...]
+      - name: snisid-vulnerability-scan
+        predicateType: https://cosign.sigstore.dev/attestation/vuln/v1
+        data:
+          type: cue
+          data: |
+            // Aucune CVE CRITICAL non corrigée
+            results: [ for r in results if r.severity != "CRITICAL" || r.fixedVersion != "" {r} ]
+      - name: snisid-build-provenance
+        predicateType: https://slsa.dev/provenance/v0.2
+        data:
+          type: cue
+          data: |
+            builder: {
+              id: "https://ci.interne.snisid.gouv.local/gitlab/snisid"
+            }
+            # Build doit provenir du repo national officiel
+            invocation: {
+              configSource: {
+                uri: =~ "^https://git\\.interne\\.snisid\\.gouv\\.local/.*"
+              }
+            }
+  mode: enforce  # REJECT si signature invalide ou attestations manquantes
+  match:
+    - version: "v1.28.0"
+      resource: "*"
+
+---
+# Harbor Replication — Signature sync entre sites
+apiVersion: goharbor.io/v1beta1
+kind: Replication
+metadata:
+  name: snisid-harbor-replication-core-dr
+  namespace: snisid-cyber
+spec:
+  registryRef:
+    name: snisid-harbor-dr
+  destinationNamespace: "snisid"
+  filters:
+    - type: name
+      value: "snisid/*"
+    - type: tag
+      value: "v*"
+    - type: label
+      value: "cosign.signature=true"
+  trigger:
+    type: event_based  # Sync immédiate après signature
+  override: false  # Jamais overwrite une image signée existante
+  replicateSoftDeletedArtifacts: false

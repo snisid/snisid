@@ -1,0 +1,61 @@
+{
+  "name": "snisid-mcp-ecosystem",
+  "version": "1.0.0",
+  "description": "SNISID sovereign MCP ecosystem for Haiti - secure TypeScript enterprise scaffold",
+  "type": "module",
+  "private": true,
+  "main": "dist/mcp/server/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "tsx watch mcp/server/index.ts --http",
+    "mcp:stdio": "tsx mcp/server/index.ts --stdio",
+    "mcp:http": "tsx mcp/server/index.ts --http",
+    "mcp:build": "npm run typecheck && npm run test",
+    "mcp:inspect": "npx @modelcontextprotocol/inspector npm run mcp:stdio",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write .",
+    "security:audit": "npm audit --audit-level=high",
+    "mock:gov": "tsx mock/governmentApiMock.ts",
+    "token:dev": "tsx scripts/create-test-token.ts",
+    "setup:local": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-local-env.ps1"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "latest",
+    "@opentelemetry/api": "latest",
+    "@opentelemetry/auto-instrumentations-node": "latest",
+    "@opentelemetry/sdk-node": "latest",
+    "@qdrant/js-client-rest": "latest",
+    "axios": "latest",
+    "bcrypt": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "5.2.1",
+    "express-rate-limit": "latest",
+    "helmet": "latest",
+    "ioredis": "latest",
+    "jsonwebtoken": "latest",
+    "uuid": "latest",
+    "winston": "latest",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "latest",
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/jsonwebtoken": "latest",
+    "@types/node": "latest",
+    "@types/supertest": "latest",
+    "eslint": "latest",
+    "prettier": "latest",
+    "supertest": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}

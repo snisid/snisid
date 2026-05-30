@@ -1,0 +1,27 @@
+contract_id: snisid.domain.dataset.v1
+name: Standard SNISID Data Contract
+owner: REQUIRED
+steward: REQUIRED
+classification: REQUIRED # PUBLIC|INTERNAL|CONFIDENTIAL|RESTRICTED|NATIONAL_SECRET
+sensitivity:
+  - REQUIRED
+legal_basis: REQUIRED
+allowed_purposes:
+  - REQUIRED
+source_systems:
+  - REQUIRED
+schema:
+  version: 1.0.0
+  fields:
+    - name: example_id
+      type: string
+      required: true
+      description: REQUIRED
+quality_rules:
+  - rule: not_null
+    field: example_id
+    severity: critical
+retention_policy: REQUIRED
+access_policy: REQUIRED
+lineage_required: true
+audit_required: true

@@ -1,0 +1,8 @@
+domain,required_owner,classification_default,retention_default,lineage_required,dq_threshold,access_model
+Citizens,Identity Authority,RESTRICTED,LIFE_PLUS_10,true,99.0,ABAC_PURPOSE_CONSENT
+Identity,Digital Identity Agency,RESTRICTED,LIFE_PLUS_10,true,99.0,ABAC_PURPOSE_CONSENT
+Civil Registry,Civil Registry Authority,RESTRICTED,PERMANENT,true,99.5,ABAC_PURPOSE_LEGAL
+Agencies,Central Administration,CONFIDENTIAL,10_YEARS,true,97.0,RBAC_ABAC
+Devices,SNISID Technical Authority,CONFIDENTIAL,7_YEARS,true,97.0,RBAC_ABAC
+Audit,National Audit Office,CONFIDENTIAL,10_YEARS_WORM,true,99.9,RBAC_ABAC_BREAKGLASS
+Security,SOC,NATIONAL_SECRET,10_YEARS_WORM,true,99.9,ABAC_HIGH_ASSURANCE

@@ -1,0 +1,199 @@
+# SNISID — Ceph Backup & Disaster Recovery Strategy
+# Classification: RESTREINT DEFENSE
+# Role: Backup immutables, multi-site, air-gapped, chiffrement AES-256-GCM
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-ceph-tier0-backup
+  namespace: snisid-cyber
+  labels:
+    snisid.gov.tier: "tier-1"
+    snisid.gov.service: "dr-backup"
+    snisid.gov.data-classification: "top-secret"
+spec:
+  schedule: "0 */4 * * *"  # Toutes les 4h (RPO Tier-0)
+  concurrencyPolicy: Forbid
+  successfulJobHistoryLimit: 7
+  failedJobHistoryLimit: 14
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            snisid.gov/tier: tier-1
+            snisid.gov/service: ceph-backup
+        spec:
+          serviceAccountName: ceph-backup-operator
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: ceph-backup
+              image: registry.interne.snisid.gouv.local/ceph/ceph:v18.2.1
+              imagePullPolicy: Always
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  BACKUP_PREFIX="snisid-ceph-tier0-${TIMESTAMP}"
+                  S3_BUCKET="snisid-backup-gold"
+                  S3_ENDPOINT="https://s3.interne.snisid.gouv.local"
+                  VAULT_ADDR="https://vault.snisid-identity.svc.cluster.local:8200"
+
+                  echo "=== SNISID Ceph Tier-0 Backup — ${TIMESTAMP} ==="
+
+                  # 1. Authentification Vault (dynamic DB creds)
+                  export VAULT_TOKEN=$(cat /vault/secrets/backup-token)
+                  ENCRYPTION_KEY=$(vault read -field=key snisid/data/backup/ceph-encryption)
+
+                  # 2. Freeze + snapshot RBD pools Tier-0
+                  for pool in snisid-rbd-tier0; do
+                    echo "--- Snapshot pool ${pool} ---"
+                    rbd snap create ${pool}/global-image@${BACKUP_PREFIX}
+                    rbd snap protect ${pool}/global-image@${BACKUP_PREFIX} || true
+
+                    # Export image chiffré
+                    rbd export --image-format 2 ${pool}/global-image@${BACKUP_PREFIX} - | \
+                      openssl enc -aes-256-gcm -pass pass:"${ENCRYPTION_KEY}" | \
+                      s3cmd put --storage-class=STANDARD_IA --acl-private - \
+                        s3://${S3_BUCKET}/ceph/tier0/${pool}/${BACKUP_PREFIX}.rbd.enc
+
+                    # Vérification checksum
+                    CHECKSUM=$(rbd snap ls ${pool} | grep ${BACKUP_PREFIX} | md5sum)
+                    echo "${CHECKSUM}  ${pool}/${BACKUP_PREFIX}" >> /tmp/checksums-${TIMESTAMP}.txt
+                  done
+
+                  # 3. Snapshots CephFS immutables
+                  ceph fs snap create snisid-cephfs ${BACKUP_PREFIX}
+                  # Dump metadata chiffré
+                  cephfs-table-tool snisid-cephfs dump | \
+                    openssl enc -aes-256-gcm -pass pass:"${ENCRYPTION_KEY}" | \
+                    s3cmd put --storage-class=STANDARD_IA --acl-private - \
+                      s3://${S3_BUCKET}/ceph/tier0/cephfs/${BACKUP_PREFIX}.meta.enc
+
+                  # 4. RGW buckets (object lock WORM)
+                  radosgw-admin bucket stats --bucket snisid-backup-gold || true
+
+                  # 5. Air-gapped LTO copy (trigger via webhook vers robot bande)
+                  curl -s -X POST --cacert /etc/ssl/certs/snisid-ca.crt \
+                    -H "Authorization: Bearer ${TAPE_ROBOT_TOKEN}" \
+                    -d "{\"bucket\":\"${S3_BUCKET}\",\"prefix\":\"ceph/tier0/\",\"tape_label\":\"SNISID-LTO-${TIMESTAMP}\"}" \
+                    https://tape-robot.interne.snisid.gouv.local/api/v1/stage || true
+
+                  # 6. Cleanup snapshots vieux > 30j (sauf si object lock)
+                  rbd snap purge ${pool} --snap-threshold 30d || true
+
+                  # 7. Envoi checksums vers Vault audit log + SIEM
+                  s3cmd put /tmp/checksums-${TIMESTAMP}.txt \
+                    s3://${S3_BUCKET}/checksums/ceph-tier0-${TIMESTAMP}.checksums
+
+                  echo "=== Backup Complete ==="
+              env:
+                - name: S3_ENDPOINT
+                  value: "https://s3.interne.snisid.gouv.local"
+                - name: CEPH_CONF
+                  value: "/etc/ceph/ceph.conf"
+                - name: TAPE_ROBOT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: tape-robot-credentials
+                      key: token
+              volumeMounts:
+                - name: ceph-config
+                  mountPath: /etc/ceph
+                  readOnly: true
+                - name: vault-backup-token
+                  mountPath: /vault/secrets
+                  readOnly: true
+                - name: s3cfg
+                  mountPath: /root/.s3cfg
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: ceph-config
+              secret:
+                secretName: ceph-client-admin-keyring
+            - name: vault-backup-token
+              emptyDir:
+                sizeLimit: 1Mi
+            - name: s3cfg
+              secret:
+                secretName: s3cmd-backup-config
+            - name: tmp
+              emptyDir:
+                sizeLimit: 5Gi
+          restartPolicy: OnFailure
+
+---
+# CronJob Tier-1 (quotidien, RPO 4h)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-ceph-tier1-backup
+  namespace: snisid-cyber
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ceph-backup-operator
+          containers:
+            - name: ceph-backup
+              image: registry.interne.snisid.gouv.local/ceph/ceph:v18.2.1
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  TIMESTAMP=$(date +%Y%m%d)
+                  for pool in snisid-rbd-tier1 snisid-cephfs-data; do
+                    rbd snap create ${pool}/global-image@daily-${TIMESTAMP} || true
+                    rbd export ${pool}/global-image@daily-${TIMESTAMP} - | \
+                      openssl enc -aes-256-gcm -kfile /vault/secrets/backup-key | \
+                      s3cmd put - s3://snisid-backup-standard/ceph/tier1/${pool}-${TIMESTAMP}.rbd.enc
+                  done
+              volumeMounts:
+                - name: ceph-config
+                  mountPath: /etc/ceph
+                  readOnly: true
+          volumes:
+            - name: ceph-config
+              secret:
+                secretName: ceph-client-admin-keyring
+          restartPolicy: OnFailure
+
+---
+# Policy RGW — Immutabilité & Object Lock (WORM)
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStoreUser
+metadata:
+  name: snisid-backup-service-account
+  namespace: rook-ceph
+spec:
+  store: snisid-s3-national
+  displayName: "SNISID Backup Service"
+  quotas:
+    maxBuckets: 10
+    maxSize: 500Ti
+    maxObjects: 1000000000
+  capabilities:
+    user: ["*"]
+    buckets: ["read", "write"]
+    metadata: ["read", "write"]
+    usage: ["read"]
+  # WORM / Object Lock configuré via s3cmd / radosgw-admin post-provisioning

@@ -1,0 +1,33 @@
+{
+  "program": "SNISID",
+  "phase": "PHASE 1 — Gouvernance Nationale SNISID",
+  "objective": "Transformer SNISID d'un projet technique vers une autorité numérique nationale gouvernable.",
+  "final_state": "SNISID devient une institution numérique officiellement administrable.",
+  "absolute_rule": "Le plus grand danger d'un DPI national n'est pas la technique, mais l'absence de gouvernance.",
+  "required_governance_domains": [
+    "Gouvernance nationale",
+    "Gouvernance juridique",
+    "Gouvernance cyber",
+    "Gouvernance PKI",
+    "Gouvernance workflows",
+    "Gouvernance opérationnelle",
+    "Gouvernance citoyenne",
+    "Gouvernance audit",
+    "Standards nationaux"
+  ],
+  "repository_structure": {
+    "National-Charters": "Chartes, organigrammes, matrices de décision et escalade nationale",
+    "Legal": "Lois, règlements, sanctions, accès judiciaire, consentement et protection citoyenne",
+    "Cybersecurity": "SOC, CERT, DFIR, Threat Intelligence, crise cyber et autorité d'arrêt",
+    "PKI": "Root CA, Intermediate CA, Agency CA, certificats citoyens, HSM et révocation",
+    "Workflow-Governance": "Office national workflows, BPMN, SLA, validation, versioning et audit",
+    "Audit": "Audit permanent, risques, conformité, red team et contrôle interne",
+    "Standards": "Standards nationaux API, Kafka, IAM, BPMN, sécurité, Kubernetes, observabilité",
+    "RACI": "Matrices RACI nationales et ownership maps",
+    "Operations": "NOC, SOC, SRE, Incident Command, Field Ops et Escalation Center",
+    "Compliance": "Contrôles continus, obligations d'audit et conformité transversale",
+    "Inter-Agencies": "Coordination ONI, ANH, DGI, DCPJ, DGIE, CEP, Justice, Santé, Éducation",
+    "Citizen-Governance": "Droits citoyens, consentement, recours, transparence et privacy",
+    "Authority-SNISID": "Structure opératrice officielle SNISID 24/7"
+  }
+}

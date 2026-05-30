@@ -1,0 +1,31 @@
+apiVersion: v2
+name: snisid
+description: Sovereign National Identity and Security Intelligence Database - Unified Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: kafka
+    version: 22.0.0
+    repository: https://charts.bitnami.com/bitnami
+  - name: postgresql
+    version: 13.0.0
+    repository: https://charts.bitnami.com/bitnami
+  - name: neo4j
+    version: 5.0.0
+    repository: https://helm.neo4j.com/neo4j
+  - name: redis
+    version: 18.0.0
+    repository: https://charts.bitnami.com/bitnami
+
+# Values.yaml Preview
+# nexus:
+#   replicaCount: 3
+#   image: nexus-master:latest
+# identity:
+#   replicaCount: 5
+#   image: identity-service:latest
+# risk:
+#   replicaCount: 5
+#   image: risk-engine:latest

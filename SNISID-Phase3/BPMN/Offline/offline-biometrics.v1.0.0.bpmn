@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- offline.biometrics.capture v1.0.0 — Capture biométrique terrain hors-ligne -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_off_bio" targetNamespace="https://snisid.gouv.ht/bpmn/offline">
+  <bpmn:process id="offline.biometrics.capture" name="Capture biométrique hors-ligne"
+                isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="AuditL" name="Audit local chiffré">
+      <bpmn:extensionElements><zeebe:taskDefinition type="audit.local.encrypted"/></bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Capture" name="Capture (10 fingers + face + iris) — ICAO/NIST">
+      <bpmn:extensionElements><zeebe:taskDefinition type="biometric.capture.offline"/></bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Quality" name="Contrôle qualité local (NFIQ2, face, iris)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="biometric.quality.check.offline"/></bpmn:extensionElements>
+      <bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GwQ" name="Qualité OK ?">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>fOk</bpmn:outgoing><bpmn:outgoing>fKo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Encrypt" name="Chiffrement (clé enclave hardware-kit)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="biometric.encrypt.offline"/></bpmn:extensionElements>
+      <bpmn:incoming>fOk</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="SignKit" name="Signature kit terrain">
+      <bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.hardware-kit"/></bpmn:extensionElements>
+      <bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Outbox" name="Stockage outbox local (chiffré)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="outbox.local.store"/></bpmn:extensionElements>
+      <bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="E" name="Biométrie capturée hors-ligne"><bpmn:incoming>f7</bpmn:incoming></bpmn:endEvent>
+    <bpmn:userTask id="ReCapture" name="Re-capture (qualité insuffisante)">
+      <bpmn:extensionElements><zeebe:assignmentDefinition candidateUsers="agent-onsite"/></bpmn:extensionElements>
+      <bpmn:incoming>fKo</bpmn:incoming><bpmn:outgoing>fRetry</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="AuditL"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="AuditL" targetRef="Capture"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Capture" targetRef="Quality"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Quality" targetRef="GwQ"/>
+    <bpmn:sequenceFlow id="fOk" sourceRef="GwQ" targetRef="Encrypt">
+      <bpmn:conditionExpression>= qualityPass = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fKo" sourceRef="GwQ" targetRef="ReCapture">
+      <bpmn:conditionExpression>= qualityPass = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fRetry" sourceRef="ReCapture" targetRef="Capture"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Encrypt" targetRef="SignKit"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="SignKit" targetRef="Outbox"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Outbox" targetRef="E"/>
+  </bpmn:process>
+</bpmn:definitions>

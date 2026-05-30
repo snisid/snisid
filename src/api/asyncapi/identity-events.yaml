@@ -1,0 +1,48 @@
+asyncapi: 3.0.0
+info:
+  title: SNISID Identity Events
+  version: 1.0.0
+  description: Kafka event streams for the Identity CQRS bounded context.
+channels:
+  identity.events:
+    address: snisid.identity.events
+    messages:
+      citizenRegistered:
+        $ref: '#/components/messages/CitizenRegistered'
+operations:
+  consumeCitizenEvents:
+    action: receive
+    channel:
+      $ref: '#/channels/identity.events'
+    summary: Read events from the identity event store.
+components:
+  messages:
+    CitizenRegistered:
+      name: CitizenRegistered
+      title: Citizen Registered Event
+      summary: Emitted when a new citizen is successfully registered.
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - citizenId
+          - timestamp
+          - payload
+        properties:
+          citizenId:
+            type: string
+            format: uuid
+          timestamp:
+            type: string
+            format: date-time
+          payload:
+            type: object
+            properties:
+              firstName:
+                type: string
+              lastName:
+                type: string
+              dateOfBirth:
+                type: string
+              placeOfBirth:
+                type: string

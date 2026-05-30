@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_id_cor" targetNamespace="https://snisid.gouv.ht/bpmn/identity">
+  <bpmn:process id="identity.correction" name="Correction identité (mineure/majeure)" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw" name="Type correction"><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>fMin</bpmn:outgoing><bpmn:outgoing>fMaj</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:userTask id="MinR" name="Revue agent (correction mineure)"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="oni-agents-l1"/></bpmn:extensionElements><bpmn:incoming>fMin</bpmn:incoming><bpmn:outgoing>fM1</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="MajR" name="Revue juridique (correction majeure)"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="legal-officers"/></bpmn:extensionElements><bpmn:incoming>fMaj</bpmn:incoming><bpmn:outgoing>fJ1</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="Sup" name="Validation superviseur"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="oni-supervisors"/></bpmn:extensionElements><bpmn:incoming>fM1</bpmn:incoming><bpmn:incoming>fJ1</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:userTask>
+    <bpmn:callActivity id="Fraud"><bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:serviceTask id="Apply" name="Application correction (versioned event)"><bpmn:extensionElements><zeebe:taskDefinition type="identity.correction.apply"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Sign"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f7</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="Gw"/>
+    <bpmn:sequenceFlow id="fMin" sourceRef="Gw" targetRef="MinR"><bpmn:conditionExpression>= correctionType = "minor"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fMaj" sourceRef="Gw" targetRef="MajR"><bpmn:conditionExpression>= correctionType = "major"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fM1" sourceRef="MinR" targetRef="Sup"/>
+    <bpmn:sequenceFlow id="fJ1" sourceRef="MajR" targetRef="Sup"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Sup" targetRef="Fraud"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Fraud" targetRef="Apply"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Apply" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Sign" targetRef="K"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="K" targetRef="E"/>
+      <bpmn:boundaryEvent id="SlaBE" attachedToRef="Sup" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT30D</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fSlaE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="SlaEsc"><bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fSlaE</bpmn:incoming><bpmn:outgoing>fSlaE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="SlaEnd"><bpmn:incoming>fSlaE2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="fSlaE" sourceRef="SlaBE" targetRef="SlaEsc"/>
+    <bpmn:sequenceFlow id="fSlaE2" sourceRef="SlaEsc" targetRef="SlaEnd"/>
+    <bpmn:serviceTask id="Notify" name="Notification citoyen"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements></bpmn:serviceTask>
+</bpmn:process>
+</bpmn:definitions>

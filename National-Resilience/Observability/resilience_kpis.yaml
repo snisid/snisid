@@ -1,0 +1,17 @@
+kpis:
+  rto_n0:
+    green: "<=2h"
+    orange: "2h-4h"
+    red: ">4h"
+  rpo_n0:
+    green: "<=15m"
+    orange: "15m-60m"
+    red: ">60m"
+  dr_readiness_score:
+    green: ">=90"
+    orange: "75-89"
+    red: "<75"
+  offline_survivability:
+    green: ">=90_percent_priority_regions"
+    orange: "70-89_percent"
+    red: "<70_percent"

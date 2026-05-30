@@ -1,0 +1,69 @@
+# SNISID — Loki configuration (multi-tenant by domain)
+auth_enabled: true
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+  http_tls_config:
+    cert_file: /etc/snisid/tls/loki.crt
+    key_file:  /etc/snisid/tls/loki.key
+    client_ca_file: /etc/snisid/tls/ca.crt
+    client_auth_type: RequireAndVerifyClientCert
+
+common:
+  path_prefix: /var/loki
+  replication_factor: 3
+  ring:
+    kvstore:
+      store: consul
+      consul: { host: consul:8500 }
+  storage:
+    s3:
+      endpoint: minio.snisid.ht
+      bucketnames: snisid-loki
+      access_key_id: ${S3_ACCESS_KEY}
+      secret_access_key: ${S3_SECRET_KEY}
+      s3forcepathstyle: true
+      insecure: false
+
+schema_config:
+  configs:
+    - from: 2026-01-01
+      store: tsdb
+      object_store: s3
+      schema: v13
+      index:
+        prefix: loki_index_
+        period: 24h
+
+limits_config:
+  retention_period: 2160h    # 90 jours default (audit séparé en WORM)
+  ingestion_rate_mb: 50
+  ingestion_burst_size_mb: 100
+  max_query_length: 720h
+  max_streams_per_user: 100000
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+compactor:
+  working_directory: /var/loki/compactor
+  retention_enabled: true
+  delete_request_store: s3
+
+ruler:
+  storage:
+    type: s3
+    s3: { bucketnames: snisid-loki-rules }
+  rule_path: /var/loki/rules
+  alertmanager_url: https://alertmanager:9093
+  enable_alertmanager_v2: true
+  ring:
+    kvstore: { store: consul, consul: { host: consul:8500 } }
+  enable_api: true
+
+# Tenant overrides : per-domain retention (audit 30 ans en WORM, pas ici)
+overrides:
+  audit-tenant:
+    retention_period: 8760h    # 1 an dans Loki, copie WORM ailleurs
+  citizen-tenant:
+    retention_period: 720h     # 30j (PII pseudonymisée)

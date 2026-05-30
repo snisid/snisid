@@ -1,0 +1,110 @@
+# SNISID Network Policies - Default Deny All
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-identity
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-api-gateway
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-event-bus
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-pki
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-offline
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-databases
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-observability
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-applications
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: snisid-gitops
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress

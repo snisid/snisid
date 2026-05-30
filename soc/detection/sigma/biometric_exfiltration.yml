@@ -1,0 +1,24 @@
+title: Exfiltration de Données Biométriques
+id: 9a738c62-8111-4eb2-a9b3-4f9e30a5c4e8
+status: experimental
+description: Detects abnormally large data transfers from the biometric service endpoints, indicating potential exfiltration of raw AFIS data.
+references:
+    - https://attack.mitre.org/techniques/T1048/
+author: SNISID SOC Team
+date: 2026/05/23
+tags:
+    - attack.exfiltration
+    - attack.t1048
+logsource:
+    category: application
+    product: snisid_backend
+detection:
+    selection:
+        request_path|startswith: '/api/v1/biometric/'
+        method: 'GET'
+    filter:
+        response_bytes|gt: 50000000 # > 50MB
+    condition: selection and filter
+falsepositives:
+    - Authorized batch synchronization to disaster recovery site.
+level: critical

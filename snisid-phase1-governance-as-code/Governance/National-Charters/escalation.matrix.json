@@ -1,0 +1,61 @@
+{
+  "document": "SNISID National Escalation Matrix",
+  "version": "1.0.0",
+  "levels": [
+    {
+      "level": "L1-minor",
+      "description": "Incident local sans impact national",
+      "owner": "Service Desk / Operations Lead",
+      "notify_within_minutes": 60,
+      "escalate_to": "NOC Manager"
+    },
+    {
+      "level": "L2-major",
+      "description": "Dégradation significative d'un service ou d'une agence",
+      "owner": "NOC Manager / SOC Manager selon nature",
+      "notify_within_minutes": 30,
+      "escalate_to": "Incident Command"
+    },
+    {
+      "level": "L3-national-critical",
+      "description": "Impact national, identité, biométrie, PKI, élections, justice ou cybersécurité critique",
+      "owner": "Incident Commander",
+      "notify_within_minutes": 15,
+      "escalate_to": "Direction Générale SNISID + Conseils spécialisés"
+    },
+    {
+      "level": "L4-sovereign-emergency",
+      "description": "Crise nationale, compromission massive, risque souverain ou atteinte à la continuité de l'État",
+      "owner": "Conseil National SNISID",
+      "notify_within_minutes": 5,
+      "escalate_to": "Conseil National SNISID + Autorités nationales compétentes"
+    }
+  ],
+  "veto_rules": [
+    {
+      "domain": "PKI",
+      "veto_holder": "Conseil PKI National",
+      "scope": "Root CA, Intermediate CA, révocation massive, cérémonies de clés, HSM"
+    },
+    {
+      "domain": "Cybersecurity",
+      "veto_holder": "Conseil Cyber National",
+      "scope": "Mise en production non sécurisée, exposition critique, réponse incident, shutdown contrôlé"
+    },
+    {
+      "domain": "Legal",
+      "veto_holder": "Conseil Juridique",
+      "scope": "Traitement illégal de données, accès judiciaire non conforme, violation droits citoyens"
+    },
+    {
+      "domain": "Audit",
+      "veto_holder": "Conseil Audit & Risque",
+      "scope": "Absence de journalisation, absence d'audit, risque non accepté"
+    },
+    {
+      "domain": "Interoperability",
+      "veto_holder": "Conseil Interopérabilité",
+      "scope": "API non standard, échange non autorisé, fragmentation technique"
+    }
+  ]
+}

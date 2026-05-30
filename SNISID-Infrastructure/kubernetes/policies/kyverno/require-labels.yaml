@@ -1,0 +1,122 @@
+# SNISID — Kyverno Policy : Standards de labeling nationaux
+# Classification: RESTREINT DEFENSE
+# Application: Cluster-wide (enforcement)
+# Rationale: Tout workload doit être traçable, classifiable, et routable par région/tier.
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: snisid-require-national-labels
+  annotations:
+    snisid.gouv.local/classification: "RESTREINT DEFENSE"
+    policies.kyverno.io/title: "SNISID National Labeling Standards"
+    policies.kyverno.io/severity: "critical"
+    policies.kyverno.io/subject: "Pod, Deployment, StatefulSet, DaemonSet, Job, CronJob"
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: check-mandatory-labels
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "SNISID ERROR: Les labels obligatoires sont manquants. Requis: snisid.gov.tier, snisid.gov.region, snisid.gov.service, snisid.gov.owner, snisid.gov.data-classification, app.kubernetes.io/name, app.kubernetes.io/version"
+        pattern:
+          metadata:
+            labels:
+              snisid.gov.tier: "?*"
+              snisid.gov.region: "?*"
+              snisid.gov.service: "?*"
+              snisid.gov.owner: "?*"
+              snisid.gov.data-classification: "?*"
+              app.kubernetes.io/name: "?*"
+              app.kubernetes.io/version: "?*"
+    - name: check-valid-tier
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "SNISID ERROR: snisid.gov.tier doit être parmi tier-0, tier-1, tier-2, tier-3, tier-4"
+        pattern:
+          metadata:
+            labels:
+              snisid.gov.tier: "tier-0 | tier-1 | tier-2 | tier-3 | tier-4"
+    - name: check-valid-data-classification
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "SNISID ERROR: snisid.gov.data-classification doit être parmi public, internal, restricted, secret, top-secret"
+        pattern:
+          metadata:
+            labels:
+              snisid.gov.data-classification: "public | internal | restricted | secret | top-secret"
+    - name: check-resource-limits
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "SNISID ERROR: Tous les conteneurs doivent définir des limits et requests CPU/mémoire."
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  limits:
+                    memory: "?*"
+                    cpu: "?*"
+                  requests:
+                    memory: "?*"
+                    cpu: "?*"
+    - name: check-no-latest-tag
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "SNISID ERROR: L'usage du tag 'latest' est interdit. Utiliser un tag versionné."
+        pattern:
+          spec:
+            containers:
+              - image: "!*latest"
+    - name: check-read-only-root-fs
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "SNISID ERROR: Le root filesystem doit être en lecture seule (readOnlyRootFilesystem: true)."
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  readOnlyRootFilesystem: true
+    - name: check-non-root
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "SNISID ERROR: Les conteneurs ne doivent pas tourner en root (runAsNonRoot: true)."
+        pattern:
+          spec:
+            securityContext:
+              runAsNonRoot: true
+    - name: check-drop-all-capabilities
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "SNISID ERROR: Toutes les capabilities non nécessaires doivent être drop ALL."
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  capabilities:
+                    drop:
+                      - "ALL"

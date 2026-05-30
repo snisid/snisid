@@ -1,0 +1,239 @@
+apiVersion: snisid.gouv.ht/v1
+kind: NationalKubernetesArchitecture
+metadata:
+  name: snisid-national-cluster
+  namespace: snisid-infrastructure
+  labels:
+    classification: secret-national
+    phase: "2"
+    domain: infrastructure
+    version: "2.0.0"
+  annotations:
+    snisid.gouv.ht/approved-by: "Direction Générale SNISID"
+    snisid.gouv.ht/legal-ref: "Loi-Infrastructure-Numérique-2024"
+    snisid.gouv.ht/audit-required: "true"
+    snisid.gouv.ht/last-reviewed: "2024-01-15"
+
+spec:
+  datacenterTopology:
+    primary:
+      name: "DC-NATIONAL-PRIMARY"
+      location: "Port-au-Prince"
+      classification: "CRITIQUE-NATIONAL"
+      tier: 4
+      availability: "99.99%"
+      coordinates:
+        latitude: "18.5944"
+        longitude: "-72.3074"
+    secondary:
+      name: "DC-NATIONAL-SECONDARY"
+      location: "Cap-Haïtien"
+      classification: "CRITIQUE-NATIONAL"
+      tier: 3
+      availability: "99.9%"
+      role: "Hot Standby"
+    tertiary:
+      name: "DC-NATIONAL-DISASTER-RECOVERY"
+      location: "Les Cayes"
+      classification: "CRITIQUE-NATIONAL"
+      tier: 3
+      availability: "99.5%"
+      role: "Disaster Recovery"
+
+  clusters:
+    - name: "snisid-production-primary"
+      datacenter: "DC-NATIONAL-PRIMARY"
+      version: "1.28.x"
+      type: "production"
+      controlPlane:
+        replicas: 5
+        nodes:
+          - name: "cp-primary-01"
+            role: "etcd-leader"
+            specs:
+              cpu: "32 cores"
+              memory: "128GB ECC"
+              storage: "2TB NVMe"
+              network: "25GbE dual"
+          - name: "cp-primary-02"
+            role: "etcd-follower"
+            specs:
+              cpu: "32 cores"
+              memory: "128GB ECC"
+              storage: "2TB NVMe"
+              network: "25GbE dual"
+          - name: "cp-primary-03"
+            role: "etcd-follower"
+            specs:
+              cpu: "32 cores"
+              memory: "128GB ECC"
+              storage: "2TB NVMe"
+              network: "25GbE dual"
+          - name: "cp-primary-04"
+            role: "api-server"
+            specs:
+              cpu: "32 cores"
+              memory: "128GB ECC"
+              storage: "2TB NVMe"
+              network: "25GbE dual"
+          - name: "cp-primary-05"
+            role: "scheduler-controller"
+            specs:
+              cpu: "32 cores"
+              memory: "128GB ECC"
+              storage: "2TB NVMe"
+              network: "25GbE dual"
+        etcd:
+          encryption: "AES-256-GCM"
+          backupInterval: "5m"
+          snapshotRetention: "720h"
+          defragInterval: "24h"
+          
+      workerPools:
+        - name: "pool-identity-critical"
+          purpose: "Identity & Biometric Processing"
+          classification: "TOP-SECRET"
+          nodes: 20
+          specs:
+            cpu: "64 cores AMD EPYC"
+            memory: "512GB ECC"
+            storage: "10TB NVMe RAID"
+            gpu: "NVIDIA A100 (biometrics)"
+            network: "100GbE"
+          taints:
+            - key: "workload"
+              value: "identity-critical"
+              effect: "NoSchedule"
+          labels:
+            security-zone: "red"
+            workload-class: "identity"
+        - name: "pool-pki-hsm"
+          purpose: "PKI & HSM Operations"
+          classification: "TOP-SECRET"
+          nodes: 8
+          specs:
+            cpu: "32 cores"
+            memory: "256GB ECC"
+            storage: "4TB NVMe"
+            hsm: "Thales Luna 7 HSM"
+            network: "25GbE isolated"
+          taints:
+            - key: "workload"
+              value: "pki-operations"
+              effect: "NoSchedule"
+          labels:
+            security-zone: "hsm-isolated"
+        - name: "pool-workflow-processing"
+          purpose: "BPMN Workflow Engine"
+          classification: "SECRET"
+          nodes: 30
+          specs:
+            cpu: "32 cores"
+            memory: "256GB ECC"
+            storage: "4TB NVMe"
+            network: "25GbE"
+          labels:
+            security-zone: "orange"
+            workload-class: "workflow"
+        - name: "pool-api-gateway"
+          purpose: "National API Gateway"
+          classification: "CONFIDENTIEL"
+          nodes: 15
+          specs:
+            cpu: "16 cores"
+            memory: "128GB"
+            storage: "2TB NVMe"
+            network: "100GbE"
+          labels:
+            security-zone: "yellow"
+            workload-class: "api"
+        - name: "pool-database"
+          purpose: "National Database Cluster"
+          classification: "SECRET"
+          nodes: 12
+          specs:
+            cpu: "64 cores"
+            memory: "1TB ECC"
+            storage: "50TB NVMe RAID-10"
+            network: "25GbE"
+          taints:
+            - key: "workload"
+              value: "database"
+              effect: "NoSchedule"
+          labels:
+            security-zone: "red"
+            workload-class: "database"
+        - name: "pool-soc-monitoring"
+          purpose: "SOC & Security Monitoring"
+          classification: "SECRET"
+          nodes: 10
+          specs:
+            cpu: "32 cores"
+            memory: "256GB ECC"
+            storage: "100TB (logs)"
+            network: "25GbE"
+          labels:
+            security-zone: "orange"
+            workload-class: "security"
+
+  namespaces:
+    - name: snisid-identity-core
+      classification: TOP-SECRET
+      resourceQuota:
+        cpu: "200"
+        memory: "4Ti"
+      networkPolicy: isolated
+    - name: snisid-biometrics
+      classification: TOP-SECRET
+      resourceQuota:
+        cpu: "100"
+        memory: "2Ti"
+      networkPolicy: hsm-only
+    - name: snisid-pki
+      classification: TOP-SECRET
+      resourceQuota:
+        cpu: "32"
+        memory: "256Gi"
+      networkPolicy: hsm-isolated
+    - name: snisid-workflow-engine
+      classification: SECRET
+      resourceQuota:
+        cpu: "500"
+        memory: "10Ti"
+      networkPolicy: restricted
+    - name: snisid-api-gateway
+      classification: CONFIDENTIEL
+      resourceQuota:
+        cpu: "100"
+        memory: "1Ti"
+      networkPolicy: controlled
+    - name: snisid-soc
+      classification: SECRET
+      resourceQuota:
+        cpu: "200"
+        memory: "4Ti"
+      networkPolicy: restricted
+    - name: snisid-kafka
+      classification: SECRET
+      resourceQuota:
+        cpu: "100"
+        memory: "2Ti"
+      networkPolicy: restricted
+    - name: snisid-databases
+      classification: SECRET
+      resourceQuota:
+        cpu: "500"
+        memory: "20Ti"
+      networkPolicy: database-restricted
+    - name: snisid-observability
+      classification: INTERNE
+      resourceQuota:
+        cpu: "50"
+        memory: "500Gi"
+      networkPolicy: read-only
+    - name: snisid-inter-agency
+      classification: SECRET
+      resourceQuota:
+        cpu: "200"
+        memory: "4Ti"
+      networkPolicy: agency-controlled

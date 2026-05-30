@@ -1,0 +1,58 @@
+{
+  "name": "snisid-mcp-ecosystem",
+  "version": "1.0.0",
+  "description": "SNISID sovereign MCP ecosystem for Haiti - secure TypeScript enterprise scaffold",
+  "type": "module",
+  "private": true,
+  "main": "dist/mcp/server/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "tsx watch mcp/server/index.ts --http",
+    "mcp:stdio": "tsx mcp/server/index.ts --stdio",
+    "mcp:http": "tsx mcp/server/index.ts --http",
+    "mcp:build": "npm run typecheck && npm run test",
+    "mcp:inspect": "npx @modelcontextprotocol/inspector npm run mcp:stdio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write .",
+    "security:audit": "npm audit --audit-level=high"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "latest",
+    "axios": "latest",
+    "bcrypt": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "express-rate-limit": "latest",
+    "helmet": "latest",
+    "ioredis": "latest",
+    "jsonwebtoken": "latest",
+    "winston": "latest",
+    "zod": "latest",
+    "@qdrant/js-client-rest": "latest",
+    "@opentelemetry/api": "latest",
+    "@opentelemetry/sdk-node": "latest",
+    "@opentelemetry/auto-instrumentations-node": "latest",
+    "uuid": "latest"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "latest",
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/jsonwebtoken": "latest",
+    "@types/node": "latest",
+    "@types/supertest": "latest",
+    "eslint": "latest",
+    "prettier": "latest",
+    "supertest": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}

@@ -1,0 +1,224 @@
+# SNISID — Jaeger : Distributed Tracing Nationale
+# Classification: SECRET
+# Backend: Elasticsearch via Ceph RBD (hot) + S3 Ceph (cold archive)
+# Integration: OpenTelemetry Collector (receivers agents nationaux)
+
+provisionDataStore:
+  cassandra: false
+  elasticsearch: true
+  kafka: false
+
+storage:
+  type: elasticsearch
+  elasticsearch:
+    scheme: https
+    serverUrls: https://snisid-elastic.snisid-obs.svc.cluster.local:9200
+    tls:
+      enabled: true
+      ca: /etc/ssl/certs/snisid-ca.crt
+    secretName: snisid-jaeger-es-credentials
+    user: snisid-jaeger
+    password: ${JAEGER_ES_PASSWORD}  # Vault injected
+
+  # S3 archive (cold traces > 30j)
+  s3:
+    bucket: snisid-jaeger-archive
+    endpoint: s3.interne.snisid.gouv.local
+    region: national
+    accessKey: ${JAEGER_S3_ACCESS_KEY}
+    secretKey: ${JAEGER_S3_SECRET_KEY}
+    forcePathStyle: true
+    tls:
+      enabled: true
+      ca: /etc/ssl/certs/snisid-ca.crt
+
+agent:
+  enabled: false  # OpenTelemetry Collector remplace l'agent legacy
+
+collector:
+  enabled: true
+  replicas: 3
+  service:
+    zipkin:
+      port: 9411
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 1000m
+    limits:
+      memory: 4Gi
+      cpu: 4000m
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: collector
+          topologyKey: kubernetes.io/hostname
+
+query:
+  enabled: true
+  replicas: 2
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    ingressClassName: cilium
+    hosts:
+      - jaeger.national.snisid.gouv.local
+    tls:
+      - secretName: jaeger-query-tls
+        hosts:
+          - jaeger.national.snisid.gouv.local
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+    limits:
+      memory: 2Gi
+      cpu: 2000m
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+allInOne:
+  enabled: false  # Not for production national
+
+# Sampling configuration nationale (head-based 10% pour performance, tail-based critique)
+sampling:
+  defaultSamplingStrategy: probabilistic
+  probabilistic:
+    samplingRate: 0.1  # 10% head-based sampling national
+  options:
+    snisid.gov/tier: tier-0
+    sampling_rate: 1.0  # 100% pour Tier-0
+    snisid.gov/service: vault
+    sampling_rate: 1.0
+    snisid.gov/service: identity-api
+    sampling_rate: 0.5
+    snisid.gov/service: core-api
+    sampling_rate: 0.1
+
+# OpenTelemetry Collector (national aggregation layer)
+otelCollector:
+  enabled: true
+  mode: deployment
+  replicas: 3
+  presets:
+    kubernetesAttributes:
+      enabled: true
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+            tls:
+              cert_file: /etc/otel/tls.crt
+              key_file: /etc/otel/tls.key
+              ca_file: /etc/ssl/certs/snisid-ca.crt
+          http:
+            endpoint: 0.0.0.0:4318
+            tls:
+              cert_file: /etc/otel/tls.crt
+              key_file: /etc/otel/tls.key
+              ca_file: /etc/ssl/certs/snisid-ca.crt
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+      memory_limiter:
+        limit_mib: 2048
+      resource:
+        attributes:
+          - key: snisid.gov.tenant
+            value: national
+            action: upsert
+          - key: snisid.gov.region
+            from_attribute: k8s.node.name
+            action: insert
+    exporters:
+      jaeger:
+        endpoint: snisid-jaeger-collector.snisid-obs.svc.cluster.local:14250
+        tls:
+          ca_file: /etc/ssl/certs/snisid-ca.crt
+      prometheusremotewrite:
+        endpoint: http://snisid-prometheus.snisid-obs.svc.cluster.local:9090/api/v1/write
+      loki:
+        endpoint: http://loki-gateway.snisid-obs.svc.cluster.local/loki/api/v1/push
+        labels:
+          attributes:
+            snisid.gov.trace_id: trace_id
+            snisid.gov.service: service_name
+            snisid.gov.tier: tier
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resource]
+          exporters: [jaeger]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, resource]
+          exporters: [prometheusremotewrite]
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# Elasticsearch operator provisioning
+esIndexCleaner:
+  enabled: true
+  schedule: "0 0 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  numberOfDays: 30  # Keep hot traces 30 days
+
+# Network policies (CiliumNetworkPolicy via templates)
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              snisid.gov/tier: tier-1
+        - namespaceSelector:
+            matchLabels:
+              snisid.gov/tier: tier-0
+        - namespaceSelector:
+            matchLabels:
+              snisid.gov/tier: tier-3
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+        - protocol: TCP
+          port: 9411
+        - protocol: TCP
+          port: 16686

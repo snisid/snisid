@@ -1,0 +1,49 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: snisid-appliance
+    password: "$6$rounds=4096$SNISIDSalt$1xxyz_hash_replace_with_real_vault_hash" # snisid-admin
+    realname: SNISID Administrator
+    username: sysadmin
+  
+  # Requirement #127: Chiffrement LUKS2 actif
+  storage:
+    layout:
+      name: lvm
+      match:
+        size: largest
+      password: "ReplaceWithStrongLUKS2PassphraseOrTPM"
+  
+  packages:
+    - dropbear-initramfs
+    - iptables-persistent
+    - fail2ban
+    - apparmor-utils
+    
+  # Airgap configuration and Hardening integration
+  late-commands:
+    # Disable Dropbear password auth in initramfs for remote LUKS unlock (Keys only)
+    - sed -i 's/DROPBEAR_OPTIONS=""/DROPBEAR_OPTIONS="-s"/g' /target/etc/dropbear-initramfs/config
+    # Copy pre-loaded SNISID keys (injected during ISO build)
+    - cp -r /cdrom/snisid-keys/authorized_keys /target/etc/dropbear-initramfs/authorized_keys
+    - curtin in-target -- update-initramfs -u
+    
+    # Inject First-Boot initialization script
+    - cp /cdrom/scripts/first-boot-init.sh /target/usr/local/bin/
+    - chmod +x /target/usr/local/bin/first-boot-init.sh
+    - |
+      cat <<EOF > /target/etc/systemd/system/snisid-firstboot.service
+      [Unit]
+      Description=SNISID Airgap & K3s First Boot Initialization
+      After=network.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/first-boot-init.sh
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+      EOF
+    - curtin in-target -- systemctl enable snisid-firstboot.service

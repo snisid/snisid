@@ -1,0 +1,227 @@
+# SNISID — Device Trust & Enrollment Station PKI
+# Classification: RESTREINT DEFENSE
+# Domain: Enrollment stations, edge K3s nodes, mobile units, biometric devices, kiosks
+# Trust model: Attestation-based (TPM 2.0 / Secure Boot / Manufacturer cert) + PKI certificate
+# Issuer: SNISID Device Intermediate CA (Vault PKI snisid-pki-device)
+# Revocation: Automatic on compromise detection, manual on theft/EOL
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-device-trust-specification
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: device-trust
+    snisid.gov.data-classification: secret
+data:
+  device-trust-spec.yaml: |
+    # ───────────────────────────────────────────────
+    # Device Classes & Certificate Profiles
+    # ───────────────────────────────────────────────
+    device_classes:
+      
+      enrollment_station:
+        description: "Fixed biometric enrollment stations (terrain + central)"
+        criticality: tier-0
+        attestation_required: true
+        tpm_required: true
+        secure_boot_required: true
+        manufacturer_cert_required: true
+        certificate_validity: 365 days
+        key_storage: "TPM 2.0 NV RAM (EK + device key — never exportable)"
+        network: "VLAN 20 (Tier-0) or VLAN 30 (Tier-1) — isolated"
+        
+        attestation_flow: |
+          1. Station boots — UEFI Secure Boot verifies bootloader + kernel + initrd signatures
+          2. TPM 2.0 extends PCRs for each boot stage (measured boot)
+          3. Station connects to provisioning VLAN (isolated, no internet)
+          4. Station presents TPM EK certificate (manufacturer-issued, chain verified)
+          5. Station generates Attestation Key (AK) in TPM, signs PCR quote
+          6. Provisioning service verifies:
+             - EK certificate chain (manufacturer CA → national device registry)
+             - PCR quote matches golden template for station model/firmware
+             - Secure Boot enabled and keys match national PKI
+             - No PCR extensions indicating unauthorized modifications
+          7. Provisioning service checks device UUID against national device registry
+             (procurement order, serial number, delivery receipt)
+          8. Provisioning service requests Vault PKI Device CA certificate
+          9. Certificate injected into TPM NV RAM (private key never leaves TPM)
+          10. Station authorized to join production network (802.1X + mTLS)
+          
+        certificate_profile:
+          subject:
+            cn: "ES-{station-uuid}"
+            ou: "enrollment-station"
+            o: "SNISID Device Trust"
+            c: HT
+          san:
+            uri: ["urn:snisid:device:enrollment-station:{station-uuid}"]
+            dns: ["es-{station-uuid}.device.snisid.ht"]
+          key_usage: [digitalSignature, keyEncipherment]
+          ext_key_usage: [serverAuth, clientAuth]
+          policy_oids: ["1.3.6.1.4.1.SNISID.1.5", "1.3.6.1.4.1.SNISID.1.5.1"]
+          
+        revocation_triggers:
+          - firmware_vulnerability_unpatched
+          - physical_tamper_detected
+          - unauthorized_network_access
+          - station_decommission
+          - theft
+          
+      edge_node:
+        description: "K3s edge/regional/mobile/offline nodes"
+        criticality: tier-4
+        attestation_required: true
+        tpm_required: "preferred (mobile: optional if ruggedized HW unavailable)"
+        secure_boot_required: true
+        manufacturer_cert_required: false
+        certificate_validity: 365 days (regional), 180 days (mobile), 90 days (emergency)
+        key_storage: "TPM 2.0 NV RAM or hardware-backed keystore"
+        network: "VLAN 60 (Edge) + WireGuard tunnel"
+        
+        attestation_flow: |
+          1. Node boots — K3s agent / server starts
+          2. Secure Boot + measured boot (if TPM available)
+          3. Node connects via WireGuard / VPN to provisioning bastion
+          4. Node presents device identity (TPM EK or pre-shared identity key)
+          5. Provisioning service verifies node against Terraform inventory
+          6. Vault PKI issues node certificate
+          7. K3s kubelet starts with node certificate (client auth to API server)
+          8. Cilium CNI starts with mesh certificate (from cert-manager / Istio SDS)
+          
+        certificate_profile:
+          subject:
+            cn: "EN-{node-uuid}"
+            ou: "{tier}-{region}-{role}"
+            o: "SNISID Device Trust"
+            c: HT
+          san:
+            uri: ["urn:snisid:device:edge-node:{node-uuid}", "spiffe://snisid.gov/ns/{namespace}/sa/{sa}"]
+            dns: ["{hostname}.edge.snisid.gouv.local"]
+            ip: ["{node-ip}"]
+          key_usage: [digitalSignature, keyEncipherment]
+          ext_key_usage: [serverAuth, clientAuth]
+          policy_oids: ["1.3.6.1.4.1.SNISID.1.5", "1.3.6.1.4.1.SNISID.1.5.2"]
+          
+      biometric_device:
+        description: "Fingerprint scanners, iris cameras, signature pads"
+        criticality: tier-0
+        attestation_required: true
+        tpm_required: true
+        secure_boot_required: true
+        manufacturer_cert_required: true
+        certificate_validity: 365 days
+        key_storage: "TPM 2.0 NV RAM (mandatory — biometric data handling)"
+        network: "Direct USB to enrollment station OR isolated LAN (no internet)"
+        
+        attestation_flow: |
+          1. Device powered via enrollment station (USB + power)
+          2. Device presents manufacturer IDevID certificate via USB
+          3. Enrollment station verifies manufacturer chain against national registry
+          4. Device generates attestation quote (if TPM-equipped biometric module)
+          5. Enrollment station verifies firmware version against approved list
+          6. Vault PKI Device CA issues biometric device certificate
+          7. Device certificate bound to specific enrollment station (coupled authorization)
+          8. Biometric scans signed by device private key (non-repudiation chain)
+          
+        certificate_profile:
+          subject:
+            cn: "BD-{device-uuid}"
+            ou: "biometric-device-{type}"
+            o: "SNISID Device Trust"
+            c: HT
+          san:
+            uri: ["urn:snisid:device:biometric:{device-uuid}"]
+          key_usage: [digitalSignature, nonRepudiation]
+          ext_key_usage: [clientAuth]
+          policy_oids: ["1.3.6.1.4.1.SNISID.1.5", "1.3.6.1.4.1.SNISID.1.5.3"]
+          
+      mobile_unit:
+        description: "Portable enrollment kits / field tablets"
+        criticality: tier-4
+        attestation_required: true
+        tpm_required: "preferred (TEE / TrustZone acceptable)"
+        secure_boot_required: true
+        manufacturer_cert_required: false
+        certificate_validity: 180 days
+        key_storage: "TEE / TrustZone / Secure Enclave"
+        network: "4G/5G national sovereign + SATCOM burst + offline"
+        
+        certificate_profile:
+          subject:
+            cn: "MU-{unit-uuid}"
+            ou: "mobile-unit"
+            o: "SNISID Device Trust"
+            c: HT
+          san:
+            uri: ["urn:snisid:device:mobile-unit:{unit-uuid}"]
+            dns: ["mu-{unit-uuid}.mobile.snisid.gouv.local"]
+          key_usage: [digitalSignature, keyEncipherment]
+          ext_key_usage: [serverAuth, clientAuth]
+          policy_oids: ["1.3.6.1.4.1.SNISID.1.5", "1.3.6.1.4.1.SNISID.1.5.4"]
+          
+    # ───────────────────────────────────────────────
+    # Device Registry (National)
+    # ───────────────────────────────────────────────
+    device_registry:
+      database: "PostgreSQL encrypted (Ceph RBD tier-0) + etcd (K8s native)"
+      classification: secret
+      fields:
+        - device_uuid: "UUID v4 (national registry namespace)"
+        - device_class: "enrollment-station | edge-node | biometric-device | mobile-unit | kiosk"
+        - manufacturer: "Name + CA cert fingerprint"
+        - model: "Model number + firmware version"
+        - serial_number: "Physical serial (verified at delivery)"
+        - procurement_order: "National procurement reference"
+        - deployment_location: "Site code / coordinates (for fixed stations)"
+        - deployment_date: "ISO8601"
+        - certificate_serial: "Current certificate serial number"
+        - certificate_expiry: "ISO8601"
+        - tpm_ek_public_hash: "SHA-256 of TPM EK public key (for TPM devices)"
+        - secure_boot_status: "enabled | disabled | N/A"
+        - measured_boot_template_hash: "Golden PCR template hash"
+        - current_status: "active | suspended | revoked | decommissioned | stolen"
+        - last_attestation: "ISO8601"
+        - last_seen: "ISO8601"
+        - operator_assignment: "Agent ID(s) authorized to use device"
+        
+      access_control:
+        read: "SOC, Device CA Manager, provisioning service, Falco/Wazuh"
+        write: "Provisioning service (automated), Device CA Manager (manual)"
+        admin: "IGC + Device CA Manager"
+        audit: "SIEM national (all queries logged)"
+        
+    # ───────────────────────────────────────────────
+    # Revocation Automation
+    # ───────────────────────────────────────────────
+    auto_revocation_rules:
+      - name: compromise_detection
+        condition: "Falco / Tetragon detects anomalous process / network / file access"
+        action: "Immediate revocation via Vault PKI API + 802.1X port disable + WireGuard peer remove"
+        approval: "SOC auto → post-hoc Device CA Manager review within 4h"
+        timeline: "< 5 minutes"
+        
+      - name: network_anomaly
+        condition: "Cilium drops > 100/min from device OR connection to blacklisted IP"
+        action: "Suspend certificate (soft revoke) → investigation → hard revoke if confirmed"
+        approval: "SOC auto"
+        timeline: "< 1 minute suspension, < 15 minutes hard revoke"
+        
+      - name: firmware_vulnerability
+        condition: "CVE score >= 9.0 affecting device firmware, no patch available > 7 days"
+        action: "Revocation + quarantine network + patch deployment OR decommission"
+        approval: "SOC + Device CA Manager"
+        timeline: "< 1 hour from CVE classification"
+        
+      - name: theft_report
+        condition: "Device declared stolen by operator or guard"
+        action: "Hard revoke + blacklist UUID + alert all stations/nodes"
+        approval: "Device CA Manager + local authority"
+        timeline: "< 4 hours from declaration"
+        
+      - name: end_of_life
+        condition: "Device decommissioned / replaced"
+        action: "Revoke + wipe TPM / secure enclave + physical destruction (if classified)"
+        approval: "Device CA Manager"
+        timeline: "< 24 hours"

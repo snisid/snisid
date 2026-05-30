@@ -1,0 +1,154 @@
+# SNISID — DR Failover Automation : Active-Active Core/DR Basculement
+# Classification: TOP-SECRET
+# Trigger: Prometheus Alertmanager → ArgoCD + External Secrets + DNS
+# RTO cible: < 30 minutes
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-dr-failover-config
+  namespace: snisid-cyber
+data:
+  failover-policy.yaml: |
+    # Policy de basculement national
+    dr_topology:
+      primary_dc: core
+      secondary_dc: dr
+      clusters:
+        - name: snisid-core
+          apiserver: https://api.core.snisid.gouv.local:6443
+          region: core
+          weight: 100
+        - name: snisid-dr
+          apiserver: https://api.dr.snisid.gouv.local:6443
+          region: dr
+          weight: 0  # standby, promotion auto en failover
+    
+    triggers:
+      manual:
+        enabled: true
+        auth: vault-policy-dr-admin
+      automatic:
+        enabled: true
+        conditions:
+          - metric: "up{job='kube-apiserver',cluster='core'}"
+            threshold: "< 1"
+            duration: "3m"
+          - metric: "vault_core_unsealed{cluster='core'}"
+            threshold: "== 0"
+            duration: "1m"
+          - metric: "ceph_health_status{cluster='core'}"
+            threshold: "> 1"  # HEALTH_ERR
+            duration: "5m"
+    
+    actions:
+      dns_failover:
+        provider: coredns-interne
+        record: api.national.snisid.gouv.local
+        type: weighted
+        primary_weight: 100
+        secondary_weight: 100  # promote DR
+        ttl: 30
+      
+      argocd_promotion:
+        app_project: snisid-national
+        promotion_patch:
+          - app: snisid-core-api
+            values_override: values-dr-prod.yaml
+          - app: snisid-identity-vault
+            values_override: values-dr-vault.yaml
+      
+      ceph_failover:
+        mirror_direction: core-to-dr  # devient dr-to-core après basculement
+        promote_dr: true
+      
+      kafka_failover:
+        mirror_maker_pause: true
+        activate_dr_topics: true
+      
+      vault_failover:
+        promote_dr_nodes: true
+        update_endpoints: true
+
+---
+# CronJob de drill mensuel (dernier lundi à 02h00)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-dr-drill
+  namespace: snisid-cyber
+spec:
+  schedule: "0 2 * * 1L"
+  concurrencyPolicy: Forbid
+  successfulJobHistoryLimit: 3
+  failedJobHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            snisid.gov/service: dr-drill
+            snisid.gov.tier: tier-1
+        spec:
+          serviceAccountName: dr-operator
+          containers:
+            - name: dr-drill
+              image: registry.interne.snisid.gouv.local/snisid/dr-operator:v4.0.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "=== SNISID DR DRILL $(date -u) ==="
+                  
+                  # 1. Health check baseline
+                  kubectl --context=core cluster-info || echo "CORE UNREACHABLE"
+                  kubectl --context=dr cluster-info || echo "DR UNREACHABLE"
+                  
+                  # 2. Simuler panne (basculement contrôlé)
+                  # En mode drill, on fait un switchover planifié, non un failover
+                  /opt/snisid/scripts/controlled-switchover.sh --mode=drill --duration=30m
+                  
+                  # 3. Validation services DR
+                  /opt/snisid/scripts/validate-dr-health.sh
+                  
+                  # 4. Re-basculement Core
+                  /opt/snisid/scripts/controlled-switchover.sh --mode=core --duration=10m
+                  
+                  # 5. Rapport
+                  /opt/snisid/scripts/generate-dr-report.sh --output=/dr-reports/
+                  
+                  echo "=== DR DRILL COMPLETE ==="
+              env:
+                - name: VAULT_ADDR
+                  value: "https://vault.snisid-identity.svc.cluster.local:8200"
+                - name: DR_CONFIG_PATH
+                  value: "/etc/snisid/dr/failover-policy.yaml"
+              volumeMounts:
+                - name: dr-config
+                  mountPath: /etc/snisid/dr
+                  readOnly: true
+                - name: dr-reports
+                  mountPath: /dr-reports
+              securityContext:
+                runAsNonRoot: true
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+          volumes:
+            - name: dr-config
+              configMap:
+                name: snisid-dr-failover-config
+            - name: dr-reports
+              persistentVolumeClaim:
+                claimName: snisid-dr-reports-pvc
+          restartPolicy: OnFailure
+---
+# ServiceAccount pour DR operator
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dr-operator
+  namespace: snisid-cyber
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov.service: dr-operator
+automountServiceAccountToken: false

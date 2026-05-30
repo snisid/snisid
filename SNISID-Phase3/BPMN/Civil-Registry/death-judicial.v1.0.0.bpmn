@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- civil-registry.death.judicial v1.0.0 — SLA 30j — Décès constaté par décision judiciaire -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_death_jud" targetNamespace="https://snisid.gouv.ht/bpmn/civil-registry">
+  <bpmn:process id="civil-registry.death.judicial" name="Décès — Judiciaire"
+                isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A" name="Audit"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:userTask id="JudgeRule" name="Décision judiciaire"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="civil-judges"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="ClerkRec" name="Enregistrement greffe"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="court-clerks"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="Oni" name="Transcription ONI"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="oni-supervisors"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="Sign" name="PKI Sign"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Rev" name="Identity revoke"><bpmn:extensionElements><zeebe:taskDefinition type="identity.revoke.on-death"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K" name="Kafka emit"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f8</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="JudgeRule"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="JudgeRule" targetRef="ClerkRec"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="ClerkRec" targetRef="Oni"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Oni" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Sign" targetRef="Rev"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Rev" targetRef="K"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="K" targetRef="E"/>
+      <bpmn:boundaryEvent id="SlaBE" attachedToRef="Oni" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P30D</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fSlaE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="SlaEsc"><bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fSlaE</bpmn:incoming><bpmn:outgoing>fSlaE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="SlaEnd"><bpmn:incoming>fSlaE2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="fSlaE" sourceRef="SlaBE" targetRef="SlaEsc"/>
+    <bpmn:sequenceFlow id="fSlaE2" sourceRef="SlaEsc" targetRef="SlaEnd"/>
+    <bpmn:serviceTask id="Notify" name="Notification citoyen"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements></bpmn:serviceTask>
+</bpmn:process>
+</bpmn:definitions>

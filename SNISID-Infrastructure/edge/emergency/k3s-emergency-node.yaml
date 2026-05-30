@@ -1,0 +1,157 @@
+# SNISID — Emergency Node Manifest : Catastrophe / Blackout National
+# Classification: SECRET
+# Role: Nœud de survie national — 72h offline, batterie + solaire, satellite burst
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-emergency-node-config
+data:
+  config.yaml: |
+    # K3s single-node — pas de multi-master (simplicité extrême)
+    node-name: emergency-node-{UUID}
+    cluster-init: true
+    token: "EMERGENCY_STATIC_TOKEN_HSM_WRAPPED"
+    
+    # Air-gap total — pas de registry distante
+    disable:
+      - traefik
+      - servicelb
+      - metrics-server
+      - coredns
+    
+    # Network : Cilium non applicable (single node, pas de mesh)
+    # Utilisation de flannel en mode host-gw local uniquement
+    flannel-backend: host-gw
+    
+    # Container images pré-chargées uniquement
+    container-runtime-endpoint: "unix:///run/containerd/containerd.sock"
+    
+    # Kubelet durci minimal
+    kubelet-arg:
+      - "protect-kernel-defaults=true"
+      - "read-only-port=0"
+      - "event-qps=0"
+      - "eviction-hard=memory.available<200Mi,nodefs.available<5%"
+    
+    # Node labels
+    node-label:
+      - "snisid.gov/tier=tier-4"
+      - "snisid.gov/role=emergency"
+      - "snisid.gov/offline-capable=true"
+      - "snisid.gov/satellite-link=standby"
+    
+    # Data local SSD NVMe
+    data-dir: /var/lib/rancher/k3s
+    
+    # Snapshots fréquents (toutes les 30 min)
+    etcd-snapshot-schedule-cron: "*/30 * * * *"
+    etcd-snapshot-retention: 144  # 72h à 30min intervals
+    
+    # Pas de backup S3 — tout local
+    etcd-s3: false
+    
+    # Health endpoint local pour monitoring batterie/lien
+    kube-apiserver-arg:
+      - "enable-priority-and-fairness=false"  # Simplification extrême
+
+---
+# Emergency Workloads — Identité offline critique
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snisid-emergency-identity-cache
+  namespace: snisid-edge-emergency
+  labels:
+    snisid.gov.tier: "tier-4"
+    snisid.gov.role: "emergency"
+    snisid.gov.service: "identity-cache"
+spec:
+  replicas: 1  # Single node = single pod
+  selector:
+    matchLabels:
+      app: snisid-emergency-identity-cache
+  template:
+    metadata:
+      labels:
+        app: snisid-emergency-identity-cache
+        snisid.gov.tier: tier-4
+        snisid.gov.role: emergency
+    spec:
+      nodeSelector:
+        snisid.gov/role: emergency
+      containers:
+        - name: cache
+          image: registry.interne.snisid.gouv.local/snisid/emergency-identity-cache:v4.0.0
+          imagePullPolicy: Never  # Image pré-chargée uniquement
+          env:
+            - name: CACHE_SIZE_MAX
+              value: "50000"  # 50k identités locales
+            - name: OFFLINE_MODE
+              value: "true"
+            - name: SYNC_METHOD
+              value: "usb_burst"  # usb, satellite, mesh-radio
+            - name: SATELLATE_BURST_ENDPOINT
+              value: "satellite://burst.snisid.gouv.local:443"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: identity-db
+              mountPath: /data/identities
+            - name: usb-sync
+              mountPath: /mnt/sync
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:8080"]
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:8080"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: identity-db
+          hostPath:
+            path: /var/lib/snisid/emergency/identities
+            type: DirectoryOrCreate
+        - name: usb-sync
+          hostPath:
+            path: /mnt/usb-sync
+            type: DirectoryOrCreate
+      tolerations:
+        - key: snisid.gov/role
+          operator: Equal
+          value: emergency
+          effect: NoSchedule
+
+---
+# Service burst satellite (activable manuellement)
+apiVersion: v1
+kind: Service
+metadata:
+  name: satellite-burst-proxy
+  namespace: snisid-edge-emergency
+  labels:
+    snisid.gov.service: satellite-burst
+spec:
+  selector:
+    app: snisid-emergency-identity-cache
+  ports:
+    - port: 8443
+      targetPort: 8443
+      name: https-burst
+  type: ClusterIP

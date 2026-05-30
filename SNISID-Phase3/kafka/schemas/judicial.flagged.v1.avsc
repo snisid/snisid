@@ -1,0 +1,22 @@
+{
+  "namespace": "ht.gouv.snisid.judicial",
+  "name": "JudicialFlaggedV1",
+  "type": "record",
+  "fields": [
+    {"name": "eventId", "type": "string"},
+    {"name": "eventType", "type": "string", "default": "judicial.flagged.v1"},
+    {"name": "occurredAt", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "subjectNin", "type": "string"},
+    {"name": "flagType", "type": {"type": "enum", "name": "FlagType",
+      "symbols": ["SUSPENSION","INVESTIGATION","BAN_TRAVEL","BAN_VOTE","WANTED","FREEZE_ASSETS"]}},
+    {"name": "caseId", "type": "string"},
+    {"name": "courtId", "type": "string"},
+    {"name": "magistrateId", "type": "string"},
+    {"name": "orderDocumentHash", "type": "string"},
+    {"name": "validityFrom", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "validityUntil", "type": ["null", {"type": "long","logicalType":"timestamp-millis"}], "default": null},
+    {"name": "signature", "type": "string"},
+    {"name": "tsa", "type": "string"},
+    {"name": "schemaVersion","type": "string", "default": "1.0.0"}
+  ]
+}

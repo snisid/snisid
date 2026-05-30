@@ -1,0 +1,78 @@
+{
+  "namespace": "ht.gouv.snisid.civil",
+  "name": "BirthCreatedV1",
+  "type": "record",
+  "doc": "SNISID — Naissance enregistrée nationalement (acte de naissance émis)",
+  "fields": [
+    {"name": "eventId",     "type": "string", "doc": "UUIDv7"},
+    {"name": "eventType",   "type": "string", "default": "civil.birth.created.v1"},
+    {"name": "occurredAt",  "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "producer", "type": {
+      "type": "record", "name": "Producer",
+      "fields": [
+        {"name": "service",   "type": "string"},
+        {"name": "version",   "type": "string"},
+        {"name": "node",      "type": "string"},
+        {"name": "spiffeId",  "type": "string"}
+      ]
+    }},
+    {"name": "correlation", "type": {
+      "type": "record", "name": "Correlation",
+      "fields": [
+        {"name": "workflowId",         "type": "string"},
+        {"name": "workflowInstanceId", "type": "string"},
+        {"name": "traceId",            "type": "string"},
+        {"name": "causationId",        "type": ["null", "string"], "default": null}
+      ]
+    }},
+    {"name": "subject", "type": {
+      "type": "record", "name": "Subject",
+      "fields": [
+        {"name": "nin",        "type": "string", "doc": "Numéro Identité National"},
+        {"name": "birthActId", "type": "string"}
+      ]
+    }},
+    {"name": "payload", "type": {
+      "type": "record", "name": "BirthPayload",
+      "fields": [
+        {"name": "firstName",       "type": "string"},
+        {"name": "lastName",        "type": "string"},
+        {"name": "sex",             "type": {"type": "enum", "name": "Sex", "symbols": ["M","F","X"]}},
+        {"name": "birthDate",       "type": {"type": "int",  "logicalType": "date"}},
+        {"name": "birthTime",       "type": ["null", "string"], "default": null},
+        {"name": "birthCommune",    "type": "string"},
+        {"name": "birthDepartment", "type": "string"},
+        {"name": "father", "type": ["null", {
+          "type": "record", "name": "Parent",
+          "fields": [
+            {"name": "nin",       "type": ["null", "string"], "default": null},
+            {"name": "firstName", "type": "string"},
+            {"name": "lastName",  "type": "string"},
+            {"name": "nationality","type": "string", "default": "HT"}
+          ]
+        }], "default": null},
+        {"name": "mother", "type": ["null", "Parent"], "default": null}
+      ]
+    }},
+    {"name": "context", "type": {
+      "type": "record", "name": "Context",
+      "fields": [
+        {"name": "agentId",   "type": "string"},
+        {"name": "deviceId",  "type": "string"},
+        {"name": "commune",   "type": "string"},
+        {"name": "department","type": "string"},
+        {"name": "channel",   "type": {"type": "enum", "name": "Channel", "symbols": ["ONLINE","KIOSK","FIELD","MOBILE"]}}
+      ]
+    }},
+    {"name": "integrity", "type": {
+      "type": "record", "name": "Integrity",
+      "fields": [
+        {"name": "hash",      "type": "string"},
+        {"name": "prevHash",  "type": ["null","string"], "default": null},
+        {"name": "signature", "type": "string"},
+        {"name": "tsa",       "type": "string"}
+      ]
+    }},
+    {"name": "schemaVersion","type": "string", "default": "1.0.0"}
+  ]
+}

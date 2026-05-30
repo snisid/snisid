@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions id="PassportIssuance">
+  <bpmn:process id="Process_Passport" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" />
+  </bpmn:process>
+</bpmn:definitions>
+

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SNISID - Judicial / Identity Suspension (Blocage)
+  Workflow ID : judicial.suspension.identity
+  Version     : 1.0.0
+  Criticité   : CRITIQUE
+  SLA         : 4h
+  Admissibilité légale : OUI (ordre judiciaire signé + greffier + magistrat)
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_jud_susp_id" targetNamespace="https://snisid.gouv.ht/bpmn/judicial">
+  <bpmn:process id="judicial.suspension.identity" name="Suspension judiciaire identité"
+                isExecutable="true" zeebe:versionTag="1.0.0">
+
+    <bpmn:startEvent id="S" name="Ordre judiciaire reçu">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Msg_OrderReceived"/>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="A1" name="Audit start">
+      <bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Hash" name="Hash + chaîne preuve (chain of custody)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="evidence.chain.create"/></bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Verify" name="Vérification signature greffier/magistrat (PKI)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="pki.verify"/></bpmn:extensionElements>
+      <bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="GwValid" name="Ordre valide ?">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>fOk</bpmn:outgoing><bpmn:outgoing>fKo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="LegalOk" name="Validation juridique (LVB)">
+      <bpmn:extensionElements>
+        <zeebe:assignmentDefinition candidateGroups="legal-officers"/>
+        <zeebe:taskSchedule dueDate="= now() + duration(&#34;PT1H&#34;)"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>fOk</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:callActivity id="Fraud" name="Détection fraude (cohérence)">
+      <bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements>
+      <bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:callActivity>
+
+    <bpmn:serviceTask id="Suspend" name="Suspension immédiate identité (NIN + carte + credentials)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="identity.suspend"/></bpmn:extensionElements>
+      <bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="CRL" name="Publication CRL/OCSP PKI">
+      <bpmn:extensionElements><zeebe:taskDefinition type="pki.crl.publish"/></bpmn:extensionElements>
+      <bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="WORM" name="Archivage WORM (preuve légale)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="storage.worm.write"/></bpmn:extensionElements>
+      <bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Sign" name="Signature PKI acte de suspension">
+      <bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements>
+      <bpmn:incoming>f9</bpmn:incoming><bpmn:outgoing>f10</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="K" name="Kafka judicial.order.suspension.v1">
+      <bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements>
+      <bpmn:incoming>f10</bpmn:incoming><bpmn:outgoing>f11</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Notify" name="Notification citoyen + administrations dépendantes">
+      <bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements>
+      <bpmn:incoming>f11</bpmn:incoming><bpmn:outgoing>f12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndOk" name="Identité suspendue"><bpmn:incoming>f12</bpmn:incoming></bpmn:endEvent>
+
+    <bpmn:endEvent id="EndKo" name="Ordre rejeté (signature invalide)">
+      <bpmn:incoming>fKo</bpmn:incoming>
+      <bpmn:terminateEventDefinition/>
+    </bpmn:endEvent>
+
+    <!-- SLA 4h on legal validation -->
+    <bpmn:boundaryEvent id="Sla4h" attachedToRef="LegalOk" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT4H</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="Esc" name="Escalation SLA">
+      <bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fE</bpmn:incoming><bpmn:outgoing>fE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="EndEsc"><bpmn:incoming>fE2</bpmn:incoming></bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A1"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A1" targetRef="Hash"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Hash" targetRef="Verify"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Verify" targetRef="GwValid"/>
+    <bpmn:sequenceFlow id="fOk" sourceRef="GwValid" targetRef="LegalOk">
+      <bpmn:conditionExpression>= signatureValid = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fKo" sourceRef="GwValid" targetRef="EndKo">
+      <bpmn:conditionExpression>= signatureValid = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f5" sourceRef="LegalOk" targetRef="Fraud"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Fraud" targetRef="Suspend"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Suspend" targetRef="CRL"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="CRL" targetRef="WORM"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="WORM" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f10" sourceRef="Sign" targetRef="K"/>
+    <bpmn:sequenceFlow id="f11" sourceRef="K" targetRef="Notify"/>
+    <bpmn:sequenceFlow id="f12" sourceRef="Notify" targetRef="EndOk"/>
+    <bpmn:sequenceFlow id="fE" sourceRef="Sla4h" targetRef="Esc"/>
+    <bpmn:sequenceFlow id="fE2" sourceRef="Esc" targetRef="EndEsc"/>
+  </bpmn:process>
+
+  <bpmn:message id="Msg_OrderReceived" name="judicial.order.suspension.received.v1"/>
+</bpmn:definitions>

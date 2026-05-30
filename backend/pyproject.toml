@@ -1,0 +1,118 @@
+[project]
+name = "snisid-backend"
+version = "1.0.0"
+description = "SNISID — Système National d'Identification Sécurisée et d'Intelligence Distribuée"
+requires-python = ">=3.12"
+license = { text = "Proprietary — Government of Senegal" }
+
+dependencies = [
+    # --- Core Framework ---
+    "fastapi[standard]>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "gunicorn>=23.0.0",
+
+    # --- Database ---
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    "psycopg[binary]>=3.2.0",
+
+    # --- Auth & Security ---
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.12",
+    "pyotp>=2.9.0",
+    "cryptography>=44.0.0",
+
+    # --- Kafka ---
+    "aiokafka>=0.12.0",
+
+    # --- Redis ---
+    "redis[hiredis]>=5.2.0",
+
+    # --- Celery ---
+    "celery[redis]>=5.4.0",
+
+    # --- GraphQL ---
+    "strawberry-graphql[fastapi]>=0.254.0",
+
+    # --- HTTP Client ---
+    "httpx>=0.28.0",
+
+    # --- Validation & Serialization ---
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "orjson>=3.10.0",
+
+    # --- Logging & Observability ---
+    "structlog>=24.4.0",
+    "prometheus-client>=0.21.0",
+    "opentelemetry-api>=1.29.0",
+    "opentelemetry-sdk>=1.29.0",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+
+    # --- Vault ---
+    "hvac>=2.3.0",
+
+    # --- Utilities ---
+    "tenacity>=9.0.0",
+    "jinja2>=3.1.4",
+    "python-dateutil>=2.9.0",
+    "ulid-py>=1.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "pytest-xdist>=3.5.0",
+    "httpx>=0.28.0",
+    "factory-boy>=3.3.0",
+    "faker>=33.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.0",
+    "aiosqlite>=0.20.0",
+    "fakeredis>=2.26.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "TCH", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["shared", "services"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+plugins = ["pydantic.mypy"]
+
+[tool.coverage.run]
+source = ["shared", "services"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true

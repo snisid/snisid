@@ -1,0 +1,140 @@
+# SNISID — Cilium : National eBPF Networking & Security
+# Classification: SECRET
+# Role: CNI + L3-L7 Firewall + Service Mesh sidecar-less (optionnel) + Observabilité réseau
+# Restriction: Pas de kube-proxy (eBPF replacement)
+
+kubeProxyReplacement: true
+k8sServiceHost: "api.core.snisid.gouv.local"
+k8sServicePort: "6443"
+
+image:
+  repository: registry.interne.snisid.gouv.local/cilium/cilium
+  tag: v1.15.0
+  digest: ""
+  useDigest: false
+
+operator:
+  replicas: 3  # HA
+  image:
+    repository: registry.interne.snisid.gouv.local/cilium/operator
+    tag: v1.15.0
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+
+ipam:
+  mode: "kubernetes"
+
+# Hubble — Observabilité réseau (flow logs, DNS, L7)
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+    replicas: 2
+    resources:
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+  ui:
+    enabled: true
+    ingress:
+      enabled: true
+      className: cilium
+      hosts:
+        - hubble.core.snisid.gouv.local
+      tls:
+        - secretName: hubble-ui-tls
+          hosts:
+            - hubble.core.snisid.gouv.local
+  metrics:
+    enabled:
+      - dns:query
+      - drop
+      - tcp
+      - flow
+      - icmp
+      - http
+    enableOpenMetrics: true
+
+# Prometheus metrics
+prometheus:
+  enabled: true
+  port: 9090
+
+# Bandwidth manager
+bandwidthManager:
+  enabled: true
+
+# Host firewall — netfilter strict
+hostFirewall:
+  enabled: true
+
+# Encryption WireGuard entre nœuds
+encryption:
+  enabled: true
+  type: wireguard
+  nodeEncryption: true
+
+# NAT — masquerade vers external networks uniquement
+bpf:
+  masquerade: true
+
+# NodePort range
+nodePort:
+  enabled: true
+
+# LoadBalancer
+loadBalancer:
+  algorithm: maglev
+  mode: dsr
+
+# L7 proxy (Envoy intégré) pour HTTP inspection
+l7Proxy: true
+
+# Egress Gateway — routage contrôlé sortant
+egressGateway:
+  enabled: true
+
+# Tetragon runtime security (process + network)
+tetragon:
+  enabled: true
+  tetragon:
+    resources:
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+
+# Policies par défaut : audit puis deny
+policyAuditMode: false
+devices: "eth+"
+
+# MTU
+mtu: 9000  # Jumbo frames backbone national
+
+# Native routing backbone
+ipv4NativeRoutingCIDR: "10.244.0.0/16"
+tunnelProtocol: ""
+routingMode: native
+autoDirectNodeRoutes: true
+
+# Cluster mesh (Core + DR + Edge régionaux)
+cluster:
+  name: snisid-core
+  id: 1
+
+# Security identity strict (pas de shared IDs)
+securityContext:
+  privileged: false
+  capabilities:
+    ciliumAgent: ["CHOWN","KILL","NET_ADMIN","NET_RAW","IPC_LOCK","SYS_ADMIN","SYS_RESOURCE","DAC_OVERRIDE","FOWNER","SETGID","SETUID"]
+    cleanCiliumState: ["NET_ADMIN","SYS_ADMIN","SYS_RESOURCE"]

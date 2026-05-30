@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "snisid.fullname" . }}-db-backup
+spec:
+  schedule: "0 2 * * *" # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: postgres-backup
+              image: bitnami/postgresql:16
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  pg_dump -h {{ .Release.Name }}-postgresql -U snisid snisid > /backup/snisid-$(date +%Y%m%d).sql
+                  # In production, we'd pipe this to S3
+              env:
+                - name: PGPASSWORD
+                  value: snisid
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: {{ include "snisid.fullname" . }}-backup-pvc

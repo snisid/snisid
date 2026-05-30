@@ -1,0 +1,23 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: biometric-l7-authorization
+  namespace: snisid-core
+spec:
+  selector:
+    matchLabels:
+      app: biometric-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        # Require the calling service to have a specific SPIFFE identity (mTLS principal)
+        principals: ["cluster.local/ns/snisid-ingress/sa/kong-service-account"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/api/v1/biometric/verify"]
+    when:
+    # L7 Zero Trust: Require the JWT token embedded in the request to possess the 'biometric:verify' scope
+    - key: request.auth.claims[scope]
+      values: ["biometric:verify"]

@@ -1,0 +1,303 @@
+# SNISID — K3s Mobile Node : Terrain Mobile Deployment
+# Classification: RESTREINT DEFENSE
+# Role: Unités mobiles d'enrôlement biométrique et délivrance documents
+# Connectivity: 4G/5G national souverain, SATCOM backup, WiFi ad-hoc
+# Autonomie: 24h batteries, sync batch avec Core/Regional
+# K3s: single-node (SQLite), Cilium sans kube-proxy, Vault Agent cache
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-mobile-node-config
+  labels:
+    snisid.gov.tier: tier-4
+    snisid.gov.role: mobile
+    snisid.gov.region: mobile-fleet
+data:
+  k3s-config.yaml: |
+    write-kubeconfig-mode: "0644"
+    token: "MOBILE_HSM_WRAPPED_TOKEN_ROTATED_DAILY"
+    node-name: "mobile-node-{{UUID_SHORT}}"
+    cluster-init: true
+    
+    # Air-gap registry — images pré-chargées, pas de pull externe
+    disable:
+      - traefik
+      - servicelb
+      - metrics-server
+      - coredns
+    
+    # Flannel local uniquement (Cilium agent mode remplace CNI complexe)
+    flannel-backend: host-gw
+    
+    # Containerd
+    container-runtime-endpoint: "unix:///run/containerd/containerd.sock"
+    
+    # Kubelet durci minimal
+    kubelet-arg:
+      - "protect-kernel-defaults=true"
+      - "read-only-port=0"
+      - "event-qps=0"
+      - "eviction-hard=memory.available<300Mi,nodefs.available<5%"
+    
+    # Node labels mobile
+    node-label:
+      - "snisid.gov/tier=tier-4"
+      - "snisid.gov/role=mobile"
+      - "snisid.gov/offline-capable=true"
+      - "snisid.gov/storage-node=true"
+      - "snisid.gov/biometric-reader=attached"
+      - "snisid.gov/printer=attached"
+      - "snisid.gov/satellite-link=standby"
+    
+    node-taint:
+      - "snisid.gov/role=mobile:NoSchedule"
+    
+    # Data local SSD NVMe rugged
+    data-dir: /var/lib/rancher/k3s
+    
+    # Snapshots fréquents (30 min) — terrain risque vol / dommage
+    etcd-snapshot-schedule-cron: "*/30 * * * *"
+    etcd-snapshot-retention: 48  # 48 snapshots = 24h
+    
+    # Sync methods
+    etcd-s3: false  # Pas de S3 en continu — burst sync manuel/automatisé
+    
+    # Kube API simplifié (pas de aggregation layer, pas de metrics-server)
+    kube-apiserver-arg:
+      - "enable-aggregator-routing=false"
+      - "request-timeout=120s"
+      - "audit-log-path=/var/log/k3s/audit.log"
+      - "audit-log-maxage=7"
+    
+    # SPDF: Simplicité = Robustesse
+    protect-kernel-defaults: true
+
+---
+# Workloads Mobile — Enrollment Agent
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snisid-mobile-enrollment-agent
+  namespace: snisid-edge-mobile
+  labels:
+    snisid.gov.tier: tier-4
+    snisid.gov.role: mobile
+    snisid.gov.service: enrollment-agent
+    snisid.gov.owner: equipe-terrain
+spec:
+  replicas: 1  # Single node = single pod principal
+  selector:
+    matchLabels:
+      app: snisid-mobile-enrollment-agent
+  template:
+    metadata:
+      labels:
+        app: snisid-mobile-enrollment-agent
+        snisid.gov.tier: tier-4
+        snisid.gov.role: mobile
+        snisid.gov.service: enrollment-agent
+        snisid.gov.data-classification: secret
+    spec:
+      nodeSelector:
+        snisid.gov/role: mobile
+        snisid.gov/biometric-reader: attached
+      hostNetwork: false  # Isolation réseau container
+      containers:
+        - name: enrollment
+          image: registry.interne.snisid.gouv.local/snisid/mobile-enrollment-agent:v4.0.0
+          imagePullPolicy: Never  # Pré-chargée
+          env:
+            - name: MODE
+              value: "mobile-offline"
+            - name: SYNC_STRATEGY
+              value: "batch-queue"  # Buffer jusqu'à prochaine connectivité
+            - name: MAX_OFFLINE_IDENTITIES
+              value: "10000"  # Cache local citoyens
+            - name: BIOMETRIC_SDK_MODE
+              value: "offline-match"
+            - name: VAULT_AGENT_ADDR
+              value: "http://127.0.0.1:8100"  # Vault Agent sidecar
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ""  # Disabled offline — buffer local
+          ports:
+            - containerPort: 8080
+              name: http-api
+            - containerPort: 8443
+              name: https-burst  # Burst sync satellite/4G
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 500m
+            limits:
+              memory: 2Gi
+              cpu: 2000m
+          volumeMounts:
+            - name: identity-db
+              mountPath: /data/identities
+            - name: sync-outbox
+              mountPath: /data/sync/outbox
+            - name: biometric-templates
+              mountPath: /data/biometrics
+            - name: tmp
+              mountPath: /tmp
+            - name: vault-agent-token
+              mountPath: /vault/secrets
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+
+        - name: vault-agent
+          image: registry.interne.snisid.gouv.local/hashicorp/vault:1.15.4
+          imagePullPolicy: Never
+          args:
+            - "agent"
+            - "-config=/vault/config/agent-mobile.hcl"
+          env:
+            - name: VAULT_ADDR
+              value: "https://vault.snisid-identity.svc.cluster.local:8200"  # Résolu via regional/4G tunnel
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+              readOnly: true
+            - name: vault-agent-token
+              mountPath: /vault/secrets
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 256Mi
+              cpu: 200m
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: identity-db
+          hostPath:
+            path: /var/lib/snisid/mobile/identities
+            type: DirectoryOrCreate
+        - name: sync-outbox
+          hostPath:
+            path: /var/lib/snisid/mobile/sync
+            type: DirectoryOrCreate
+        - name: biometric-templates
+          hostPath:
+            path: /var/lib/snisid/mobile/biometrics
+            type: DirectoryOrCreate
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: vault-config
+          configMap:
+            name: snisid-mobile-vault-config
+        - name: vault-agent-token
+          emptyDir:
+            sizeLimit: 10Mi
+
+      tolerations:
+        - key: snisid.gov/role
+          operator: Equal
+          value: mobile
+          effect: NoSchedule
+      restartPolicy: Always
+
+---
+# ConfigMap — Vault Agent Mobile Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-mobile-vault-config
+  labels:
+    snisid.gov.tier: tier-4
+    snisid.gov.role: mobile
+data:
+  agent-mobile.hcl: |
+    pid_file = "/tmp/vault-agent.pid"
+
+    auto_auth {
+      method "kubernetes" {
+        mount_path = "auth/kubernetes-mobile"
+        config = {
+          role = "mobile-enrollment-agent"
+          token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        }
+      }
+      sink "file" {
+        config = {
+          path = "/vault/secrets/token"
+        }
+      }
+    }
+
+    cache {
+      use_auto_auth_token = true
+    }
+
+    listener "tcp" {
+      address = "127.0.0.1:8100"
+      tls_disable = true  # Localhost only — acceptable en mobile
+    }
+
+    template {
+      destination = "/vault/secrets/db-credentials"
+      contents = <<EOT
+    {{ with secret "snisid/data/mobile/db" }}
+    DB_HOST={{ .Data.host }}
+    DB_USER={{ .Data.user }}
+    DB_PASS={{ .Data.pass }}
+    {{ end }}
+    EOT
+    }
+
+    # Cache local secrets (24h TTL, pas de renewal en offline)
+    template {
+      destination = "/vault/secrets/api-key"
+      contents = <<EOT
+    {{ with secret "snisid/data/mobile/api-key" }}
+    API_KEY={{ .Data.key }}
+    {{ end }}
+    EOT
+    }
+
+---
+# Service burst satellite (bouton manuel opérateur)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mobile-burst-sync
+  namespace: snisid-edge-mobile
+  labels:
+    snisid.gov.service: mobile-burst-sync
+spec:
+  selector:
+    app: snisid-mobile-enrollment-agent
+  ports:
+    - port: 8443
+      targetPort: 8443
+      name: https-burst
+  type: ClusterIP

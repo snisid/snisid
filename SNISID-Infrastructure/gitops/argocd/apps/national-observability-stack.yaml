@@ -1,0 +1,41 @@
+# SNISID — ArgoCD : Observability Cluster Stack
+# Classification: SECRET
+# Role: Déploiement Prometheus, Grafana, Loki, Jaeger sur cluster Observabilité
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-observability-stack
+  namespace: argocd
+  labels:
+    snisid.gov.tier: "tier-3"
+    snisid.gov.region: "core"
+    snisid.gov.service: "observability"
+    snisid.gov.owner: "equipe-observabilite"
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    snisid.gov.data-classification: "secret"
+spec:
+  project: snisid-national
+  source:
+    repoURL: "https://git.interne.snisid.gouv.local/infrastructure/national.git"
+    targetRevision: "main"
+    path: "observability/"
+    directory:
+      recurse: true
+      jsonnet: {}
+  destination:
+    server: "https://obs.snisid.gouv.local:6443"  # Cluster observabilité distant
+    namespace: snisid-obs
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+  ignoreDifferences:
+    - group: monitoring.coreos.com
+      kind: ServiceMonitor
+      jsonPointers:
+        - /metadata/annotations

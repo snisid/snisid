@@ -1,0 +1,369 @@
+# SNISID — PKI Business Process Workflows (BPMN)
+# Classification: RESTREINT DEFENSE
+# Role: Industrialisation des opérations PKI via workflows BPMN auditable
+# Platform: Camunda / Zeebe (cluster BPMN Phase 4)
+# Règle: Toute opération PKI manuelle hors workflow = incident de conformité
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-pki-bpm-workflows-definition
+  namespace: snisid-bpmn
+  labels:
+    snisid.gov.tier: tier-1
+    snisid.gov.service: pki-workflows
+    snisid.gov.data-classification: secret
+data:
+  workflows.yaml: |
+    # ───────────────────────────────────────────────
+    # WF-001: Government Certificate Issuance
+    # ───────────────────────────────────────────────
+    workflow_gov_issuance:
+      id: "WF-GOV-001"
+      name: "SNISID Government Certificate Issuance"
+      classification: "RESTREINT DEFENSE"
+      
+      trigger:
+        type: manual
+        initiator: "HR Manager / Institution IT Admin"
+        form: "GOV-CERT-REQUEST-v5.0.0"
+        required_fields:
+          - institution_code
+          - employee_matricule
+          - employee_name
+          - employee_role
+          - manager_approval_required: true
+          - certificate_type: ["emailSigning", "serverAuth", "clientAuth", "codeSigning"]
+          - validity_requested: "1 year max (3 years with IGC justification)"
+          - justification: "free text (mandatory if > 1 year)"
+          
+      steps:
+        - id: "STEP-01"
+          name: "Request Submission"
+          type: user_task
+          assignee: "requester"
+          validation:
+            - institution_code exists in national registry
+            - employee_matricule exists in HR system
+            - manager_approval_required == true
+            
+        - id: "STEP-02"
+          name: "Manager Approval"
+          type: user_task
+          assignee: "manager_from_HR_system"
+          timeout: "48 hours"
+          escalation:
+            - if timeout: "Escalate to institution director"
+            - if 2nd timeout: "Escalate to Government CA Manager"
+          validation:
+            - manager confirms employee identity
+            - manager confirms certificate need
+            - manager biometric auth (smartcard + PIN)
+            
+        - id: "STEP-03"
+          name: "IGC Background Check"
+          type: service_task
+          implementation: "JavaDelegate / Zeebe job worker"
+          service: "snisid-pki-validation-service"
+          validation:
+            - no security flags on employee (SOC check)
+            - no existing revoked certificate for same matricule (unless justified)
+            - institution in good standing (not under investigation)
+          auto_approval: "if all checks green"
+          manual_review: "if any check yellow or red"
+          
+        - id: "STEP-04"
+          name: "Government CA Manager Approval"
+          type: user_task
+          assignee: "Government CA Manager"
+          condition: "if STEP-03 manual_review OR certificate_type == codeSigning OR validity > 1 year"
+          timeout: "72 hours"
+          escalation: "IGC Director if timeout"
+          validation:
+            - CA Manager biometric auth (smartcard + PIN + HSM partition auth if needed)
+            - CA Manager reviews justification
+            
+        - id: "STEP-05"
+          name: "Certificate Generation"
+          type: service_task
+          implementation: "Vault PKI API call"
+          service: "snisid-pki-issuance-service"
+          inputs:
+            - certificate_type
+            - subject: "CN={employee_name} — {matricule}, O={institution}, OU={service}, C=HT"
+            - san_dns: "[]"
+            - san_ip: "[]"
+            - san_uri: ["urn:snisid:gov:{institution_code}:{employee_matricule}"]
+            - validity: "from request (bounded by role policy)"
+            - key_type: "ec"
+            - key_bits: 384
+            - signature_algorithm: "ecdsa-with-SHA384"
+          security:
+            - Vault API call authenticated via mTLS + service account token
+            - HSM signing key accessed via PKCS#11 proxy (partition SNISID_GOV_CA)
+            - Private key NEVER leaves HSM
+            
+        - id: "STEP-06"
+          name: "Certificate Delivery"
+          type: service_task
+          service: "snisid-certificate-delivery-service"
+          delivery_methods:
+            - email_signing: "PKCS#12 encrypted email to institutional address (password via SMS)"
+            - client_auth: "Smartcard personalization (enrollment station appointment)"
+            - server_auth: "Secret injection to Vault KV (service account) + ArgoCD sync"
+            - codeSigning: "Smartcard personalization + HSM-backed signing key (if required)"
+          
+        - id: "STEP-07"
+          name: "Audit & Notification"
+          type: service_task
+          service: "snisid-pki-audit-service"
+          actions:
+            - log to SIEM: "certificate issued, serial, requester, approvers, timestamp, workstation"
+            - notify employee: "email + SMS (certificate ready, validity, renewal date)"
+            - notify manager: "certificate issued confirmation"
+            - update national certificate registry: "serial + status + metadata"
+            
+      audit_trail:
+        retention: "10 years"
+        fields: ["workflow_instance_id", "requester_id", "all_approver_ids", "timestamps_per_step", "biometric_auth_logs", "certificate_serial", "hsm_operation_log_id", "vault_audit_log_id"]
+        immutability: "append-only Ceph RGW WORM bucket"
+        
+    # ───────────────────────────────────────────────
+    # WF-002: Judicial Certificate Issuance
+    # ───────────────────────────────────────────────
+    workflow_judicial_issuance:
+      id: "WF-JUD-001"
+      name: "SNISID Judicial Certificate Issuance"
+      classification: "TOP-SECRET"
+      
+      trigger:
+        type: manual
+        initiator: "Judicial Council Secretary / Court IT Admin"
+        form: "JUD-CERT-REQUEST-v5.0.0"
+        required_fields:
+          - magistrate_matricule
+          - magistrate_name
+          - court_jurisdiction
+          - judicial_function: ["Judge", "Prosecutor", "Notary", "Bailiff", "CourtOfficer"]
+          - nomination_reference: "Official appointment decree reference"
+          - certificate_type: ["judicialQualified", "officialSignature"]
+          
+      steps:
+        - id: "STEP-01"
+          name: "Request Submission"
+          type: user_task
+          assignee: "court_admin"
+          
+        - id: "STEP-02"
+          name: "Judicial Council Validation"
+          type: user_task
+          assignee: "Judicial Council Member (rotating)"
+          timeout: "7 days"
+          validation:
+            - nomination_reference valid in national judicial registry
+            - no disciplinary sanctions active
+            - biometric auth (judicial smartcard + PIN)
+            
+        - id: "STEP-03"
+          name: "IGC Security Check"
+          type: service_task
+          service: "snisid-pki-validation-service"
+          validation:
+            - magistrate not flagged in national security database
+            - no revoked certificates for same matricule (unless renewal)
+            
+        - id: "STEP-04"
+          name: "Judicial CA Manager Approval"
+          type: user_task
+          assignee: "Judicial CA Manager"
+          timeout: "72 hours"
+          validation:
+            - dual auth: Judicial CA Manager smartcard + IGC representative smartcard (2-person control)
+            
+        - id: "STEP-05"
+          name: "Certificate Generation (HSM 2-person control)"
+          type: service_task
+          service: "snisid-pki-issuance-service"
+          hsm_requirement: "2-of-4 M-of-N for Judicial partition SNISID_JUDICIAL_CA"
+          inputs:
+            - subject: "CN={Matricule} — {Function}, O={Court}, OU=Judicial, L={Jurisdiction}, C=HT"
+            - policy_oid: "1.3.6.1.4.1.SNISID.1.4"
+            - key_type: "ec"
+            - key_bits: 384
+            - non_repudiation: true
+            
+        - id: "STEP-06"
+          name: "Smartcard Personalization"
+          type: service_task
+          service: "snisid-smartcard-personalization-service"
+          security:
+            - smartcard personalization at judicial IT center (salle sécurisée)
+            - 2-person control: IT tech + Judicial Council observer
+            - Biometric auth of magistrate at collection
+            - Smartcard PIN set by magistrate (never logged)
+            - Recovery PIN sealed envelope to Judicial Council vault
+            
+        - id: "STEP-07"
+          name: "Audit & Legal Registration"
+          type: service_task
+          service: "snisid-pki-audit-service"
+          actions:
+            - log to SIEM + judicial audit system (dual logging)
+            - register in national judicial signatures registry
+            - notify magistrate: collection appointment
+            - notify Judicial Council: certificate active
+            
+      audit_trail:
+        retention: "25 years"
+        fields: ["all above + judicial_council_member_id + personalization_center_id + smartcard_serial + delivery_receipt_signature"]
+        
+    # ───────────────────────────────────────────────
+    # WF-003: Emergency Revocation (All Types)
+    # ───────────────────────────────────────────────
+    workflow_emergency_revocation:
+      id: "WF-REV-EMRG-001"
+      name: "SNISID Emergency Certificate Revocation"
+      classification: "TOP-SECRET"
+      
+      trigger:
+        type: message / signal
+        initiator: "SOC analyst / Falco / Tetragon / Wazuh / manual alert"
+        
+      steps:
+        - id: "STEP-01"
+          name: "Alert Reception & Classification"
+          type: service_task
+          service: "snisid-soc-automation"
+          auto_classification:
+            - if Falco/Tetragon critical: "REV-E1 (Infrastructure auto)"
+            - if Wazuh device anomaly: "REV-E6 (Device urgent)"
+            - if SOC manual alert: "manual classification required"
+          
+        - id: "STEP-02"
+          name: "SOC Analyst Validation"
+          type: user_task
+          assignee: "SOC_L3_analyst_oncall"
+          timeout: "15 minutes for REV-E1, 1 hour for REV-E3/4/5, immediate for mass revocation"
+          conditions:
+            - if REV-E1 validated: "auto-approve → STEP-03 auto"
+            - if REV-E1 rejected: "incident closed, false positive log"
+            - if REV-E3/4/5/6/7: "escalate to CA Manager + IGC"
+            
+        - id: "STEP-03"
+          name: "Revocation Execution"
+          type: service_task
+          service: "snisid-pki-revocation-service"
+          implementation: "Vault PKI revoke API + cert-manager annotation"
+          parallel_actions:
+            - revoke certificate in Vault PKI (reason code, comment, timestamp)
+            - update CRL (out-of-cycle generation triggered)
+            - update OCSP responder (cache invalidation)
+            - Kafka broadcast: topic pki.revocation.emergency
+            - Cilium policy update: deny traffic from revoked identity (if applicable)
+            - Vault identity / entity disable (if identity-based)
+            
+        - id: "STEP-04"
+          name: "Post-Revocation Verification"
+          type: service_task
+          service: "snisid-pki-verification-service"
+          checks:
+            - certificate serial appears in latest CRL
+            - OCSP returns "REVOKED" for serial
+            - no active TLS session using revoked certificate (Istio access log check)
+            - affected services restarted / reloaded if necessary
+            
+        - id: "STEP-05"
+          name: "Notification & Audit"
+          type: service_task
+          service: "snisid-pki-audit-service"
+          notifications:
+            - SIEM: full audit log
+            - IGC: revocation report (daily digest for batch, immediate for urgent)
+            - CA Manager: confirmation + context
+            - affected_entity: "if applicable and safe (citizen = SMS, gov = manager, judicial = council)"
+            - edge_sync: "trigger USB/SD/satellite burst if edge CRL stale"
+            
+      audit_trail:
+        retention: "25 years"
+        fields: ["alert_source", "soc_analyst_id", "classification", "revocation_reason", "serial_numbers", "verification_results", "notification_receipts"]
+        
+    # ───────────────────────────────────────────────
+    # WF-004: Root CA / Intermediate CA Rotation Ceremony
+    # ───────────────────────────────────────────────
+    workflow_ca_rotation_ceremony:
+      id: "WF-CA-ROT-001"
+      name: "SNISID Intermediate CA Rotation Ceremony"
+      classification: "TOP-SECRET"
+      
+      trigger:
+        type: timer
+        schedule: "12 months before intermediate CA expiration"
+        manual_override: "CA Manager + IGC can trigger early (compromission suspicion, algorithm upgrade)"
+        
+      steps:
+        - id: "STEP-01"
+          name: "Planning & Custodian Assembly"
+          type: user_task
+          assignee: "IGC Ceremony Coordinator"
+          duration: "4 weeks before ceremony"
+          tasks:
+            - verify all custodian availability
+            - book salle blanche
+            - order replacement HSM (if hardware refresh needed)
+            - prepare ceremony laptops (air-gap, OS hardening, firmware verification)
+            - prepare Shamir materials
+            - prepare audit team (video, photos, notary if judicial ceremony)
+            
+        - id: "STEP-02"
+          name: "Pre-Ceremony Validation"
+          type: service_task
+          service: "snisid-pki-ceremony-prep"
+          checks:
+            - HSM firmware attestation
+            - salle blanche security check
+            - custodian biometric registry verification
+            - backup HSM DR sync verification
+            
+        - id: "STEP-03"
+          name: "Ceremony Execution"
+          type: user_task
+          assignee: "All custodians + IGC + technical operators"
+          duration: "4-8 hours"
+          sub-steps:
+            - custodian entry + biometric verification
+            - HSM tamper-evident verification
+            - key generation in HSM (P-384, non-extractable)
+            - CSR generation + signing by Root CA (if Intermediate rotation)
+            - certificate generation + cross-verification
+            - Shamir secret sharing (if new key)
+            - distribution to escrows
+            - physical sealing + video archiving
+            
+        - id: "STEP-04"
+          name: "Post-Ceremony Integration"
+          type: service_task
+          service: "snisid-pki-integration-service"
+          tasks:
+            - update Vault PKI mount with new intermediate certificate
+            - update cert-manager ClusterIssuers
+            - update all trust stores (edge nodes, citizen wallets, enrollment stations)
+            - test issuance with new CA
+            - verify CRL/OCSP chain validation
+            - broadcast Kafka: topic pki.ca.rotated
+            
+        - id: "STEP-05"
+          name: "Legacy CA Deprecation"
+          type: service_task
+          service: "snisid-pki-deprecation-service"
+          timeline: "30 days after new CA active"
+          tasks:
+            - stop issuance from legacy CA
+            - set legacy CA to "read-only / revoke-only"
+            - monitor legacy certificates approaching expiry
+            - force-renew all certificates still issued by legacy CA
+            - revoke legacy CA certificate (signed by Root CA)
+            - archive legacy CA keys (HSM partition locked, not destroyed unless policy)
+            
+      audit_trail:
+        retention: "25 years"
+        fields: ["ceremony_date", "custodian_ids", "hsm_serials", "new_certificate_fingerprint", "shamir_distribution_receipts", "video_archive_locations", "integration_test_results"]

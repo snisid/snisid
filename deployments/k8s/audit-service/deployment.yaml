@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-service
+  namespace: snisid-core
+  labels:
+    app: audit-service
+spec:
+  replicas: 1 # MUST be 1 to guarantee sequential hash-chaining in this simple design. 
+  selector:
+    matchLabels:
+      app: audit-service
+  template:
+    metadata:
+      labels:
+        app: audit-service
+    spec:
+      containers:
+      - name: audit-service
+        image: snisid/audit-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8085
+        env:
+        - name: PORT
+          value: "8085"
+        - name: ENV
+          value: "prod"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: snisid-secrets
+              key: jwt-secret
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: postgres-url
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8085
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8085
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

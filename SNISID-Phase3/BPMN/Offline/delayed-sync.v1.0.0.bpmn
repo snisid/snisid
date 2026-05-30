@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_off_sync" targetNamespace="https://snisid.gouv.ht/bpmn/offline">
+  <bpmn:process id="offline.sync.delayed" name="Sync différée nationale" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Batch" name="Récupération batch outbox edge"><bpmn:extensionElements><zeebe:taskDefinition type="outbox.fetch"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="VerifySig" name="Vérification signatures hardware-kit"><bpmn:extensionElements><zeebe:taskDefinition type="pki.verify"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Conflict" name="Résolution conflits CRDT/LWW"><bpmn:extensionElements><zeebe:taskDefinition type="crdt.resolve"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Apply" name="Application + émission events"><bpmn:extensionElements><zeebe:taskDefinition type="events.replay"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Ack" name="Ack vers edge"><bpmn:extensionElements><zeebe:taskDefinition type="sync.ack"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f7</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="Batch"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Batch" targetRef="VerifySig"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="VerifySig" targetRef="Conflict"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Conflict" targetRef="Apply"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Apply" targetRef="Ack"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Ack" targetRef="E"/>
+  </bpmn:process>
+</bpmn:definitions>

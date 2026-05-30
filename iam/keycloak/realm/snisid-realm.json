@@ -1,0 +1,94 @@
+{
+  "id": "snisid",
+  "realm": "snisid",
+  "displayName": "Système National d'Identification Sécurisé",
+  "enabled": true,
+  "sslRequired": "all",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "maxFailureWaitSeconds": 900,
+  "waitIncrementSeconds": 60,
+  
+  "roles": {
+    "realm": [
+      {"name": "AGENT_ENROLEMENT", "description": "Opérateur d'enrôlement régional"},
+      {"name": "SUPERVISEUR_REGION", "description": "Superviseur régional (Validation)"},
+      {"name": "ADMIN_SYSTEME", "description": "Administrateur système (Infrastructure)"},
+      {"name": "AUDITEUR_NATIONAL", "description": "Auditeur de la cour des comptes / CNIL"},
+      {"name": "LECTEUR_STATS", "description": "Lecteur des statistiques nationales"},
+      {"name": "ADMIN_PKI", "description": "Gestionnaire des clés et certificats"},
+      {"name": "ADMIN_SOC", "description": "Analyste sécurité (SIEM/SOAR)"}
+    ]
+  },
+  
+  "clients": [
+    {
+      "clientId": "snisid-frontend",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "redirectUris": ["https://snisid.gov/*", "https://staging.snisid.gov/*"],
+      "webOrigins": ["+"]
+    },
+    {
+      "clientId": "snisid-backend",
+      "enabled": true,
+      "bearerOnly": true
+    },
+    {
+      "clientId": "teleport-pam",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "redirectUris": ["https://teleport.snisid.gov/*"]
+    }
+  ],
+
+  "browserFlow": "browser-strict-mfa",
+  "authenticationFlows": [
+    {
+      "alias": "browser-strict-mfa",
+      "description": "Custom flow enforcing WebAuthn or TOTP with ZERO exceptions.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE"
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "requirement": "ALTERNATIVE"
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED"
+        },
+        {
+          "authenticator": "auth-webauthn-authenticator",
+          "requirement": "ALTERNATIVE"
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "ALTERNATIVE"
+        }
+      ]
+    }
+  ],
+  
+  "identityProviders": [
+    {
+      "alias": "agency-federation",
+      "providerId": "saml",
+      "enabled": true,
+      "config": {
+        "singleSignOnServiceUrl": "https://idp.agences.gouv/saml",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+        "wantAssertionsSigned": "true"
+      }
+    }
+  ]
+}

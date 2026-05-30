@@ -1,0 +1,21 @@
+scenarios:
+  - id: SCN-001
+    name: Primary National DC destruction
+    alert_level: L4
+    runbooks: [Runbook_Datacenter_Recovery]
+    success: [P0_RTO_met, P0_RPO_met, IAM_validated]
+  - id: SCN-002
+    name: National blackout 72h
+    alert_level: L3
+    runbooks: [Runbook_National_Outage]
+    success: [power_autonomy_met, P0_available]
+  - id: SCN-003
+    name: National Internet collapse
+    alert_level: L4
+    runbooks: [Runbook_Emergency_Offline_Activation]
+    success: [offline_identity_verification_active]
+  - id: SCN-004
+    name: Massive ransomware cyberattack
+    alert_level: L4
+    runbooks: [Runbook_Cyberattack_Containment]
+    success: [clean_restore_completed, no_active_ioc]

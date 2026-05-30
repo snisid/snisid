@@ -1,0 +1,346 @@
+# SNISID — GitLab CI : Pipeline Nationale Souveraine
+# Classification: RESTREINT DEFENSE
+# Role: CI/CD air-gapped pour déploiements infrastructure SNISID
+# Runner: GitLab Runner On-Premise (shell/Kubernetes executor dans cluster Cyber)
+# Registry: Harbor nationale (registry.interne.snisid.gouv.local)
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  HARBOR_REGISTRY: "registry.interne.snisid.gouv.local"
+  KUBECONFIG: "/etc/deploy/kubeconfig"
+  TF_IN_AUTOMATION: "true"
+  TF_CLI_ARGS: "-no-color"
+  SNISID_CI_ENV: "staging"
+
+stages:
+  - validate
+  - scan
+  - build
+  - test
+  - plan
+  - deploy
+  - verify
+  - report
+
+# ───────────────────────────────────────────────
+# TEMPLATES (Job communs nationaux)
+# ───────────────────────────────────────────────
+.job_default:
+  tags:
+    - snisid-national-runner
+    - airgapped
+  before_script:
+    - set -eo pipefail
+    - export CI_SHORT_SHA=$(echo $CI_COMMIT_SHA | cut -c1-8)
+    - export SNISID_IMAGE_TAG="v$(date +%Y.%m.%d)-${CI_SHORT_SHA}"
+    - echo "SNISID CI Build — Tier National — Commit ${CI_SHORT_SHA}"
+
+# ───────────────────────────────────────────────
+# 1. VALIDATE — Lint, Standards, Secrets Detection
+# ───────────────────────────────────────────────
+validate_helm:
+  extends: .job_default
+  stage: validate
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - helm version
+    - helm lint helm/charts/snisid-core/
+    - helm lint helm/charts/snisid-identity/
+    - helm lint helm/charts/snisid-bpmn/
+    - helm template snisid-core helm/charts/snisid-core/ -f helm/charts/snisid-core/values.yaml > /dev/null
+    - ct lint --charts helm/charts/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - helm/charts/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - helm/charts/**/*
+
+validate_terraform:
+  extends: .job_default
+  stage: validate
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - terraform -version
+    - |
+      for env in core dr edge-regional; do
+        echo "=== Validate terraform/environments/${env} ==="
+        cd terraform/environments/${env}
+        terraform init -backend=false
+        terraform validate
+        terraform fmt -check -recursive
+        cd -
+      done
+    - |
+      for mod in terraform/modules/*; do
+        echo "=== Validate module ${mod} ==="
+        cd ${mod}
+        terraform init -backend=false
+        terraform validate
+        terraform fmt -check
+        cd -
+      done
+    - tflint --recursive --format compact
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - terraform/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - terraform/**/*
+
+validate_kubernetes:
+  extends: .job_default
+  stage: validate
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - kubeconform -version
+    - |
+      find kubernetes/ -name "*.yaml" -o -name "*.yml" | \
+        xargs kubeconform -strict -summary -schema-location default -schema-location "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master"
+    - kustomize build kubernetes/clusters/core/overlay/prod > /dev/null || true
+    - kyverno test kubernetes/policies/kyverno/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - kubernetes/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - kubernetes/**/*
+
+detect_secrets:
+  extends: .job_default
+  stage: validate
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - gitleaks detect --source . --verbose --redact --no-git
+    - trufflehog filesystem . --json --only-verified || true
+  allow_failure: false  # Jamais de secrets dans le repo
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ───────────────────────────────────────────────
+# 2. SCAN — Sécurité conteneurs, dépendances, SBOM
+# ───────────────────────────────────────────────
+scan_containers:
+  extends: .job_default
+  stage: scan
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - |
+      for dockerfile in $(find . -name "Dockerfile" -o -name "Containerfile"); do
+        img="${HARBOR_REGISTRY}/snisid/build-cache:$(basename $(dirname ${dockerfile}))-${CI_SHORT_SHA}"
+        echo "=== Build & Scan ${img} ==="
+        docker build -f ${dockerfile} -t ${img} $(dirname ${dockerfile})
+        # Trivy scan
+        trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress ${img}
+        # SBOM
+        syft ${img} -o spdx-json=/tmp/sbom-$(basename $(dirname ${dockerfile})).json
+        cosign sign --key env://COSIGN_PRIVATE_KEY ${img}
+        cosign attach sbom --sbom /tmp/sbom-$(basename $(dirname ${dockerfile})).json ${img}
+      done
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "**/Dockerfile"
+        - "**/Containerfile"
+        - "**/go.mod"
+        - "**/package.json"
+        - "**/requirements.txt"
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - "**/Dockerfile"
+        - "**/Containerfile"
+
+scan_iac:
+  extends: .job_default
+  stage: scan
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - checkov -d terraform/ --framework terraform --soft-fail || true
+    - checkov -d kubernetes/ --framework kubernetes --soft-fail || true
+    - tfsec --config-file .tfsec.yml --format json --out tfsec-report.json terraform/ || true
+  artifacts:
+    reports:
+      sast: tfsec-report.json
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - terraform/**/*
+        - kubernetes/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - terraform/**/*
+        - kubernetes/**/*
+
+# ───────────────────────────────────────────────
+# 3. BUILD — Images nationales + Push Harbor
+# ───────────────────────────────────────────────
+build_snisid_core:
+  extends: .job_default
+  stage: build
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  services:
+    - ${HARBOR_REGISTRY}/library/docker-dind:v24.0.7
+  script:
+    - echo "=== Build SNISID Core API ==="
+    - docker build -t ${HARBOR_REGISTRY}/snisid/core-api:${SNISID_IMAGE_TAG} -f apps/core-api/Dockerfile apps/core-api/
+    - docker tag ${HARBOR_REGISTRY}/snisid/core-api:${SNISID_IMAGE_TAG} ${HARBOR_REGISTRY}/snisid/core-api:latest
+    - docker push ${HARBOR_REGISTRY}/snisid/core-api:${SNISID_IMAGE_TAG}
+    - docker push ${HARBOR_REGISTRY}/snisid/core-api:latest
+    # Notary/Cosign signature
+    - cosign sign --key env://COSIGN_PRIVATE_KEY ${HARBOR_REGISTRY}/snisid/core-api:${SNISID_IMAGE_TAG}
+    - echo "SNISID_IMAGE_TAG=${SNISID_IMAGE_TAG}" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - apps/core-api/**/*
+        - helm/charts/snisid-core/**/*
+
+# ───────────────────────────────────────────────
+# 4. TEST — Intégration nationale simulée
+# ───────────────────────────────────────────────
+test_integration:
+  extends: .job_default
+  stage: test
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - echo "=== Integration Tests — National API Suite ==="
+    - kubectl config use-context snisid-staging
+    - helm upgrade --install snisid-core-test helm/charts/snisid-core/ \
+        -f helm/charts/snisid-core/values-staging.yaml \
+        --namespace snisid-staging --create-namespace --wait --timeout 10m
+    - sleep 30
+    - pytest tests/integration/national-api-suite.py -v --tb=short
+    - helm uninstall snisid-core-test -n snisid-staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - apps/core-api/**/*
+        - helm/charts/snisid-core/**/*
+        - tests/integration/**/*
+
+# ───────────────────────────────────────────────
+# 5. PLAN — Terraform (Staging uniquement en auto)
+# ───────────────────────────────────────────────
+plan_core:
+  extends: .job_default
+  stage: plan
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - cd terraform/environments/core
+    - terraform init
+    - terraform plan -out=tfplan-core -detailed-exitcode || true
+    - terraform show -json tfplan-core > tfplan-core.json
+  artifacts:
+    paths:
+      - terraform/environments/core/tfplan-core
+      - terraform/environments/core/tfplan-core.json
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - terraform/environments/core/**/*
+        - terraform/modules/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - terraform/environments/core/**/*
+        - terraform/modules/**/*
+
+# ───────────────────────────────────────────────
+# 6. DEPLOY — ArgoCD Sync (GitOps — pas de kubectl apply manuel)
+# ───────────────────────────────────────────────
+deploy_argocd_sync:
+  extends: .job_default
+  stage: deploy
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - echo "=== ArgoCD Sync — National Apps ==="
+    - argocd login argocd.interne.snisid.gouv.local --grpc-web --username ci-deploy --password ${ARGOCD_CI_TOKEN}
+    - argocd app set snisid-core-api --helm-set image.tag=${SNISID_IMAGE_TAG}
+    - argocd app sync snisid-core-api --prune --timeout 600
+    - argocd app sync snisid-observability-stack --prune --timeout 600
+    - argocd app wait snisid-core-api --health --timeout 300
+    - echo "Sync OK — Commit ${CI_SHORT_SHA} deployed"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual  # Deploy production manuel après review CI
+  environment:
+    name: production/core
+    url: https://argocd.interne.snisid.gouv.local
+
+deploy_terraform_core:
+  extends: .job_default
+  stage: deploy
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - cd terraform/environments/core
+    - terraform init
+    - terraform apply -auto-approve tfplan-core
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+  environment:
+    name: production/core-infra
+
+# ───────────────────────────────────────────────
+# 7. VERIFY — Post-deploy national health check
+# ───────────────────────────────────────────────
+verify_national_health:
+  extends: .job_default
+  stage: verify
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - kubectl config use-context snisid-core-prod
+    - echo "=== National Health Verification ==="
+    - kubectl get nodes -o wide
+    - kubectl top nodes || true
+    - ./scripts/validate-national-health.sh --tier=all --timeout=300
+    - echo "=== Falco Runtime Events (last 5m) ==="
+    - falco-sidekick-cli query --last=5m --priority>=notice || true
+    - echo "=== Cilium Connectivity Test ==="
+    - cilium connectivity test --namespace snisid-ci-test --cleanup
+    - echo "=== Vault Seal Status ==="
+    - curl -s --cacert /etc/ssl/certs/snisid-ca.crt https://vault.snisid-identity.svc:8200/v1/sys/seal-status | jq '.sealed'
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_success
+
+# ───────────────────────────────────────────────
+# 8. REPORT — SOC + SIEM forwarding
+# ───────────────────────────────────────────────
+report_deployment:
+  extends: .job_default
+  stage: report
+  image: ${HARBOR_REGISTRY}/snisid/ci-tools:v4.0.0
+  script:
+    - |
+      cat << EOF > /tmp/deploy-report.json
+      {
+        "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+        "pipeline_id": "${CI_PIPELINE_ID}",
+        "commit": "${CI_COMMIT_SHA}",
+        "author": "${GITLAB_USER_EMAIL}",
+        "environment": "production",
+        "tier": "national",
+        "services_deployed": ["snisid-core-api"],
+        "image_tag": "${SNISID_IMAGE_TAG}",
+        "tests_status": "${CI_JOB_STATUS}",
+        "classification": "RESTREINT DEFENSE"
+      }
+      EOF
+    - curl -s -X POST --cacert /etc/ssl/certs/snisid-ca.crt \
+        -H "Authorization: Bearer ${SIEM_WEBHOOK_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d @/tmp/deploy-report.json \
+        https://siem.interne.snisid.gouv.local/api/v1/deployments || true
+    - echo "Report forwarded to SOC National"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always

@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: snisid
+      POSTGRES_PASSWORD: snisid
+      POSTGRES_DB: executive_ops
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  executive-api:
+    build: 
+      context: ./api
+    ports:
+      - "8080:8080"
+    environment:
+      - ENV=production
+      - DB_DSN=host=db user=snisid password=snisid dbname=executive_ops port=5432 sslmode=disable
+    depends_on:
+      - db
+
+  executive-frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - executive-api
+
+volumes:
+  db-data:

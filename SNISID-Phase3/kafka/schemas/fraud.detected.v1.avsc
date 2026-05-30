@@ -1,0 +1,21 @@
+{
+  "namespace": "ht.gouv.snisid.fraud",
+  "name": "FraudDetectedV1",
+  "type": "record",
+  "fields": [
+    {"name": "eventId", "type": "string"},
+    {"name": "eventType", "type": "string", "default": "fraud.detected.v1"},
+    {"name": "occurredAt", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "sourceWorkflowId", "type": "string"},
+    {"name": "sourceWorkflowInstanceId", "type": "string"},
+    {"name": "subjectNin", "type": ["null","string"], "default": null},
+    {"name": "fraudScore", "type": "double", "doc": "0.0 .. 1.0"},
+    {"name": "rulesTriggered", "type": {"type": "array", "items": "string"}},
+    {"name": "mlModelVersion", "type": "string"},
+    {"name": "graphAnomalies", "type": {"type": "array", "items": "string"}},
+    {"name": "recommendedAction", "type": {"type": "enum","name": "Action",
+      "symbols": ["ALLOW","REVIEW","SUSPEND","REJECT","INVESTIGATE"]}},
+    {"name": "signature", "type": "string"},
+    {"name": "schemaVersion","type": "string", "default": "1.0.0"}
+  ]
+}

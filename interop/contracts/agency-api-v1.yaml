@@ -1,0 +1,90 @@
+openapi: 3.1.0
+info:
+  title: SNISID Agency Interoperability API
+  description: Sovereign gateway for data exchange between the National Identity System and authorized government agencies.
+  version: 1.0.0
+servers:
+  - url: https://interop.snisid.gov/api/v1
+security:
+  - BearerAuth: []
+    mTLS: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    mTLS:
+      type: mutualTLS
+
+  headers:
+    X-JWS-Signature:
+      description: Detached JSON Web Signature ensuring non-repudiation of the payload.
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    VerifyIdentityRequest:
+      type: object
+      required:
+        - national_id
+      properties:
+        national_id:
+          type: string
+          pattern: '^[0-9A-Z-]{10,20}$'
+          
+    CitizenInfoResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, DECEASED, SUSPENDED]
+        first_name:
+          type: string
+        last_name:
+          type: string
+        # Masked or omitted based on agency ABAC policies
+        date_of_birth:
+          type: string
+          format: date
+
+paths:
+  /verify-identity:
+    post:
+      summary: Real-time identity verification.
+      operationId: verifyIdentity
+      parameters:
+        - $ref: '#/components/headers/X-JWS-Signature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyIdentityRequest'
+      responses:
+        '200':
+          description: Identity verified successfully.
+        '400':
+          description: Invalid JWS Signature or Schema.
+        '403':
+          description: Agency lacks required scope/authorization.
+
+  /citizen-info:
+    get:
+      summary: Retrieve demographic information (Data minimised per agency).
+      operationId: getCitizenInfo
+      parameters:
+        - name: national_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Citizen data retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitizenInfoResponse'

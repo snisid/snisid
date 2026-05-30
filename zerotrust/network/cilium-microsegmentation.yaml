@@ -1,0 +1,41 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: biometric-service-microsegmentation
+  namespace: snisid-core
+spec:
+  # Target the Biometric Microservice
+  endpointSelector:
+    matchLabels:
+      app: biometric-service
+      
+  ingress:
+  # 1. Allow traffic ONLY from the API Gateway (Kong)
+  - fromEndpoints:
+    - matchLabels:
+        app: kong-gateway
+        namespace: snisid-ingress
+    toPorts:
+    - ports:
+      - port: "8000"
+        protocol: TCP
+
+  egress:
+  # 2. Allow egress ONLY to the Database (Port 5432)
+  - toEndpoints:
+    - matchLabels:
+        app: patroni-postgres
+    toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+        
+  # 3. Allow egress to Vault for cryptographic operations
+  - toEndpoints:
+    - matchLabels:
+        app: vault
+        namespace: snisid-security
+    toPorts:
+    - ports:
+      - port: "8200"
+        protocol: TCP

@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cert-manager-rotation-alerts
+  namespace: monitoring
+spec:
+  groups:
+  - name: cert-manager-rotation.rules
+    rules:
+    - alert: CertManagerRotationSuccessRateLow
+      expr: |
+        sum(rate(certmanager_certificate_ready_status{status="True"}[24h])) 
+        / 
+        (sum(rate(certmanager_certificate_ready_status{status="True"}[24h])) + sum(rate(certmanager_certificate_ready_status{status="False"}[24h])) + 1e-9)
+        * 100 < 99
+      for: 5m
+      labels:
+        severity: critical
+        tier: infra
+      annotations:
+        summary: "SLA Rotation PKI critique (< 99% sur 24h)"
+        description: "Le taux de renouvellement automatique des certificats microservices sur 24h est de {{ printf \"%.2f\" $value }}%, ce qui est inférieur au seuil de 99%."

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_tax_reg" targetNamespace="https://snisid.gouv.ht/bpmn/tax">
+  <bpmn:process id="tax.taxpayer.registration" name="Enregistrement contribuable (NIF)" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="VerifId" name="Vérif identité NIN actif"><bpmn:extensionElements><zeebe:taskDefinition type="identity.lookup"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:callActivity id="Fraud"><bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:userTask id="DGI" name="Validation DGI"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="dgi-officers"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="GenNIF" name="Génération NIF (Numéro Identification Fiscale)"><bpmn:extensionElements><zeebe:taskDefinition type="tax.nif.generate"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Sign"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="N"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f9</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="VerifId"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="VerifId" targetRef="Fraud"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Fraud" targetRef="DGI"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="DGI" targetRef="GenNIF"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="GenNIF" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Sign" targetRef="K"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="K" targetRef="N"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="N" targetRef="E"/>
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,39 @@
+openapi: 3.0.0
+info:
+  title: SNISID National Identity & Intelligence API
+  version: 1.0.0
+  description: Secure national identity management, biometric verification, and fraud detection.
+
+paths:
+  /auth/token:
+    post:
+      summary: Generate access token
+      responses:
+        '200':
+          description: JWT Token
+
+  /identities:
+    post:
+      summary: Create new identity
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: {type: string}
+                lastName: {type: string}
+                dob: {type: string}
+                agency: {type: string}
+      responses:
+        '201':
+          description: Identity created
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

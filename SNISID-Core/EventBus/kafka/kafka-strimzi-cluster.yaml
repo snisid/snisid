@@ -1,0 +1,443 @@
+---
+# ============================================================
+# SNISID-Core — Apache Kafka / Strimzi Configuration
+# National Event Bus — 12 Partitions | INFINITE Log Compaction
+# Document ID: SNISID-EVT-001
+# Version: 1.0.0
+# ============================================================
+
+# ── Kafka Cluster (Strimzi) ───────────────────────────────
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: snisid-kafka
+  namespace: snisid-event-bus
+  labels:
+    snisid.gov.ht/component: event-bus
+    snisid.gov.ht/tier: critical
+spec:
+  kafka:
+    version: 3.7.0
+    replicas: 3
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false   # Internal plaintext (Istio mTLS covers this)
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: tls
+      - name: external
+        port: 9094
+        type: ClusterIP
+        tls: true
+        authentication:
+          type: tls
+    authorization:
+      type: simple
+      superUsers:
+        - CN=kafka-admin
+        - User:snisid-admin
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      inter.broker.protocol.version: "3.7"
+      log.retention.hours: -1          # Infinite retention (log compaction)
+      log.cleanup.policy: compact
+      log.segment.bytes: 1073741824    # 1GB segments
+      log.roll.ms: 86400000            # Roll daily
+      num.partitions: 12               # Default 12 partitions
+      num.recovery.threads.per.data.dir: 4
+      num.replica.fetchers: 3
+      auto.create.topics.enable: false  # Explicit topic creation only
+      delete.topic.enable: true
+      # Performance
+      num.io.threads: 8
+      num.network.threads: 5
+      socket.send.buffer.bytes: 102400
+      socket.receive.buffer.bytes: 102400
+      socket.request.max.bytes: 104857600
+    resources:
+      requests:
+        memory: 8Gi
+        cpu: "2"
+      limits:
+        memory: 16Gi
+        cpu: "4"
+    jvmOptions:
+      -Xms: 4096m
+      -Xmx: 8192m
+      gcLoggingEnabled: false
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        type: persistent-claim
+        size: 500Gi
+        class: ceph-rbd-xfs
+        deleteClaim: false
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: kafka-jmx-config
+          key: kafka-metrics-config.yml
+    template:
+      pod:
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+        topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              strimzi.io/cluster: snisid-kafka
+              strimzi.io/kind: Kafka
+      podDisruptionBudget:
+        maxUnavailable: 1
+
+  zookeeper:
+    replicas: 3
+    config:
+      autopurge.snapRetainCount: 10
+      autopurge.purgeInterval: 1
+    storage:
+      type: persistent-claim
+      size: 50Gi
+      class: ceph-rbd-xfs
+      deleteClaim: false
+    resources:
+      requests:
+        memory: 2Gi
+        cpu: "500m"
+      limits:
+        memory: 4Gi
+        cpu: "1"
+
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+
+---
+# ── Kafka Topics ──────────────────────────────────────────
+
+# Identity Events (Log Compacted — INFINITE)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-identity-events
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    cleanup.policy: compact
+    retention.ms: "-1"           # INFINITE — event source of truth
+    min.insync.replicas: "2"
+    compression.type: lz4
+    max.message.bytes: "10485760"  # 10MB max per event
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-identity-activated
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "7776000000"   # 90 jours
+    min.insync.replicas: "2"
+    compression.type: lz4
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-identity-deceased
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "7776000000"   # 90 jours
+    min.insync.replicas: "2"
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-civil-births
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "7776000000"   # 90 jours
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-civil-deaths
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "7776000000"
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-civil-marriages
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "7776000000"
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-fraud-alerts
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "31536000000"  # 365 jours
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-audit-system
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "220752000000"  # 7 ans (conformité légale)
+    min.insync.replicas: "3"      # Tous les replicas pour audit WORM
+    compression.type: lz4
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: snisid-enrollment-completed
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "2592000000"   # 30 jours
+
+---
+# ── Kafka Users (Service Accounts) ───────────────────────
+
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: identity-service
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: snisid-identity-
+        patternType: prefix
+      operations: [Read, Write, Create, Describe]
+    - resource:
+        type: group
+        name: identity-service
+        patternType: literal
+      operations: [Read]
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: civil-registry-service
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: snisid-civil-
+        patternType: prefix
+      operations: [Read, Write, Create, Describe]
+    - resource:
+        type: topic
+        name: snisid-identity-deceased
+        patternType: literal
+      operations: [Read]   # Consommer les décès pour cascade
+    - resource:
+        type: group
+        name: civil-registry-service
+      operations: [Read]
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: fraud-engine
+  namespace: snisid-event-bus
+  labels:
+    strimzi.io/cluster: snisid-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: snisid-
+        patternType: prefix
+      operations: [Read, Describe]   # Lire tout pour analyse fraude
+    - resource:
+        type: topic
+        name: snisid-fraud-alerts
+        patternType: literal
+      operations: [Write]
+    - resource:
+        type: group
+        name: fraud-engine
+      operations: [Read]
+
+---
+# ── Schema Registry (Confluent / Apicurio) ────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schema-registry
+  namespace: snisid-event-bus
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: schema-registry
+  template:
+    metadata:
+      labels:
+        app: schema-registry
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: schema-registry
+        image: harbor.snisid.gov.ht/apicurio/apicurio-registry-kafkasql:2.5.0
+        env:
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "snisid-kafka-kafka-bootstrap.snisid-event-bus:9093"
+        - name: REGISTRY_KAFKASQL_TOPIC
+          value: "snisid-schema-registry"
+        - name: QUARKUS_HTTP_PORT
+          value: "8080"
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: 500m
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schema-registry
+  namespace: snisid-event-bus
+spec:
+  selector:
+    app: schema-registry
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: schema-registry-pdb
+  namespace: snisid-event-bus
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: schema-registry

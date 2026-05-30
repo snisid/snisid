@@ -1,0 +1,40 @@
+#include <tunables/global>
+
+profile snisid-profile flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+
+  # Allow read access to standard paths
+  /etc/ n,
+  /etc/** r,
+  /usr/ r,
+  /usr/** r,
+  /app/** r,
+  
+  # Allow execution of python/node inside /usr or /app
+  /usr/bin/python* ix,
+  /usr/local/bin/python* ix,
+  /opt/venv/bin/python* ix,
+  /usr/sbin/nginx ix,
+  
+  # Deny writes to critical system paths
+  deny /etc/** w,
+  deny /usr/** w,
+  deny /bin/** w,
+  deny /sbin/** w,
+  
+  # Allow write to tmp
+  /tmp/** rw,
+  
+  # Deny access to sensitive proc/sys files
+  deny /proc/sys/** w,
+  deny /sys/** w,
+  
+  # Network capability
+  network inet tcp,
+  network inet udp,
+  
+  # Allow logging to stdout/stderr
+  /dev/stdout rw,
+  /dev/stderr rw,
+}

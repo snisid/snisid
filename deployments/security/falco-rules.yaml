@@ -1,0 +1,31 @@
+customRules:
+  # Detect interactive shells inside containers
+  - rule: Terminal shell in container
+    desc: A shell was spawned inside a container. This could be an attacker gaining access.
+    condition: >
+      spawned_process and container and 
+      proc.name in (bash, zsh, sh, ash) and 
+      not proc.pname in (runc, containerd, docker)
+    output: "Shell spawned in a container (user=%user.name pod=%pod.name container=%container.name command=%proc.cmdline)"
+    priority: CRITICAL
+    tags: [container, shell, mitre_execution]
+
+  # Detect writes to directories that should be read-only in production
+  - rule: Write to read-only directory
+    desc: An attempt was made to write to a read-only directory (e.g. /etc, /bin, /usr)
+    condition: >
+      open_write and container and
+      (fd.name startswith /etc/ or fd.name startswith /bin/ or fd.name startswith /usr/)
+    output: "Unexpected write to read-only directory (user=%user.name pod=%pod.name file=%fd.name)"
+    priority: ERROR
+    tags: [container, filesystem, mitre_persistence]
+
+  # Detect unexpected outbound network connections from the backend (only DB and Vault allowed)
+  - rule: Unexpected outbound connection
+    desc: The backend container made an outbound connection to an unknown IP.
+    condition: >
+      outbound and container and k8s.ns.name = "snisid-core" and
+      not (fd.sip = "10.96.0.10" or fd.sport = 5432 or fd.sport = 8200)
+    output: "Unexpected outbound connection (pod=%pod.name dest_ip=%fd.sip dest_port=%fd.sport)"
+    priority: WARNING
+    tags: [network, mitre_exfiltration]

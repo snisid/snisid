@@ -1,0 +1,40 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: snisid-platform-alerts
+  namespace: snisid-core
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+  - name: SNISID.Microservices.Alerts
+    rules:
+    - alert: HighAPILatency
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="snisid-core"}[5m])) by (le, service)) > 0.5
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "High API Latency on {{ $labels.service }}"
+        description: "The 95th percentile of request latency for {{ $labels.service }} is greater than 500ms for 5 minutes."
+  - name: SNISID.Kafka.Alerts
+    rules:
+    - alert: KafkaConsumerLag
+      expr: sum by (topic, consumergroup) (kafka_consumergroup_lag) > 1000
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High Consumer Lag on topic {{ $labels.topic }}"
+        description: "The consumer group {{ $labels.consumergroup }} on topic {{ $labels.topic }} is lagging by more than 1000 messages."
+  - name: SNISID.Database.Alerts
+    rules:
+    - alert: CockroachDBNodeDown
+      expr: up{job="cockroachdb"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "CockroachDB Node is Down"
+        description: "Node {{ $labels.instance }} has been unreachable for 1 minute."

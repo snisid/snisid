@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "BirthRegistered",
+  "namespace": "ht.gouv.snisid.events",
+  "fields": [
+    {"name": "citizenId", "type": "string"}
+  ]
+}
+

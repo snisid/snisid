@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_id_rec" targetNamespace="https://snisid.gouv.ht/bpmn/identity">
+  <bpmn:process id="identity.recovery.standard" name="Récupération identité (perte/vol)" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Block" name="Blocage immédiat ancienne carte"><bpmn:extensionElements><zeebe:taskDefinition type="identity.card.block"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Bio" name="Re-capture biométrique"><bpmn:extensionElements><zeebe:taskDefinition type="biometric.capture"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="M11" name="Matching 1:1 NIN existant"><bpmn:extensionElements><zeebe:taskDefinition type="biometric.match.1to1"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:callActivity id="Fraud"><bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:userTask id="Sup" name="Validation superviseur"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="oni-supervisors"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="Sign" name="Signature PKI nouvelle carte"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f7b</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Re" name="Émission nouvelle carte"><bpmn:extensionElements><zeebe:taskDefinition type="identity.card.issue"/></bpmn:extensionElements><bpmn:incoming>f7b</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="N" name="Notification citoyen"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements><bpmn:incoming>f9</bpmn:incoming><bpmn:outgoing>f10</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f10</bpmn:incoming></bpmn:endEvent>
+    <bpmn:boundaryEvent id="Sla72h" attachedToRef="Sup" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT72H</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="Esc"><bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements><bpmn:incoming>fE</bpmn:incoming><bpmn:outgoing>fE2</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:endEvent id="EE"><bpmn:incoming>fE2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="Block"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Block" targetRef="Bio"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Bio" targetRef="M11"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="M11" targetRef="Fraud"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Fraud" targetRef="Sup"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Sup" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f7b" sourceRef="Sign" targetRef="Re"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="Re" targetRef="K"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="K" targetRef="N"/>
+    <bpmn:sequenceFlow id="f10" sourceRef="N" targetRef="E"/>
+    <bpmn:sequenceFlow id="fE" sourceRef="Sla72h" targetRef="Esc"/>
+    <bpmn:sequenceFlow id="fE2" sourceRef="Esc" targetRef="EE"/>
+  </bpmn:process>
+</bpmn:definitions>

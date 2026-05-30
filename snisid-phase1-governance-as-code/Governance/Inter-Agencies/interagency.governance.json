@@ -1,0 +1,115 @@
+{
+  "document": "SNISID Inter-Agency Governance",
+  "version": "1.0.0",
+  "principle": "Aucune agence ne doit dominer totalement le système.",
+  "agencies": [
+    {
+      "agency": "ONI",
+      "role": "Identité",
+      "ownership": "Données d'identité civile opérationnelle selon mandat légal",
+      "responsibilities": ["Validation identité", "Gestion identifiants", "Synchronisation avec SNISID"],
+      "apis": ["identity.lookup", "identity.validate", "identity.status"],
+      "workflows": ["enrollment", "identity_update", "identity_correction"],
+      "authorized_data": ["identité minimale", "statut identité", "références documents"],
+      "permissions": ["read_identity", "validate_identity", "request_correction"],
+      "sla": {"availability": "99.9%", "critical_response_minutes": 30},
+      "audit_obligations": ["journalisation accès", "justification consultation", "revue mensuelle"]
+    },
+    {
+      "agency": "ANH",
+      "role": "État civil",
+      "ownership": "Naissance, mariage, décès et actes d'état civil",
+      "responsibilities": ["Vérification actes", "Source d'autorité état civil"],
+      "apis": ["civil.birth.verify", "civil.death.verify", "civil.record.validate"],
+      "workflows": ["birth_registration", "death_notification", "civil_record_correction"],
+      "authorized_data": ["actes état civil", "statut vital"],
+      "permissions": ["read_civil", "validate_civil"],
+      "sla": {"availability": "99.5%", "critical_response_minutes": 60},
+      "audit_obligations": ["trace consultation acte", "contrôle modification"]
+    },
+    {
+      "agency": "DGI",
+      "role": "Fiscalité",
+      "ownership": "Identifiants fiscaux et statut fiscal autorisé",
+      "responsibilities": ["Validation fiscalité", "Conformité échanges fiscaux"],
+      "apis": ["taxpayer.validate", "tax.status"],
+      "workflows": ["tax_identity_link", "tax_status_verification"],
+      "authorized_data": ["identifiant fiscal", "statut fiscal autorisé"],
+      "permissions": ["read_tax_status", "validate_taxpayer"],
+      "sla": {"availability": "99.5%", "critical_response_minutes": 120},
+      "audit_obligations": ["audit accès fiscal", "base légale obligatoire"]
+    },
+    {
+      "agency": "DCPJ",
+      "role": "Sécurité",
+      "ownership": "Données de sécurité selon mandat judiciaire et légal",
+      "responsibilities": ["Demandes sécurité", "Accès encadré", "Chaîne de preuve"],
+      "apis": ["security.request", "security.case.link"],
+      "workflows": ["judicial_access_request", "security_verification"],
+      "authorized_data": ["données sous autorisation", "références dossier"],
+      "permissions": ["request_restricted_access"],
+      "sla": {"availability": "99.9%", "critical_response_minutes": 15},
+      "audit_obligations": ["mandat requis", "double approbation", "audit renforcé"]
+    },
+    {
+      "agency": "DGIE",
+      "role": "Immigration",
+      "ownership": "Entrées/sorties, titres immigration, statut migration",
+      "responsibilities": ["Validation immigration", "Contrôle documents voyage"],
+      "apis": ["immigration.status", "border.event"],
+      "workflows": ["passport_validation", "border_status_check"],
+      "authorized_data": ["statut immigration", "événements frontière autorisés"],
+      "permissions": ["read_immigration_status"],
+      "sla": {"availability": "99.9%", "critical_response_minutes": 30},
+      "audit_obligations": ["audit accès frontière", "rétention limitée"]
+    },
+    {
+      "agency": "CEP",
+      "role": "Élections",
+      "ownership": "Listes électorales et éligibilité électorale selon loi",
+      "responsibilities": ["Validation électeur", "Synchronisation registre électoral"],
+      "apis": ["voter.eligibility", "voter.registry.sync"],
+      "workflows": ["voter_registration", "voter_dispute"],
+      "authorized_data": ["éligibilité électorale", "circonscription"],
+      "permissions": ["read_voter_status", "validate_voter"],
+      "sla": {"availability": "99.9% during election period", "critical_response_minutes": 15},
+      "audit_obligations": ["audit renforcé période électorale", "transparence litiges"]
+    },
+    {
+      "agency": "Justice",
+      "role": "Juridique",
+      "ownership": "Mandats, décisions judiciaires, accès légal",
+      "responsibilities": ["Contrôle base légale", "Autorisation accès judiciaire"],
+      "apis": ["court.order.verify", "legal.access.request"],
+      "workflows": ["judicial_access", "legal_hold", "appeal_review"],
+      "authorized_data": ["ordonnances", "mandats", "références judiciaires"],
+      "permissions": ["approve_legal_access", "audit_legal_basis"],
+      "sla": {"availability": "99.5%", "critical_response_minutes": 60},
+      "audit_obligations": ["preuve autorisation", "journalisation complète"]
+    },
+    {
+      "agency": "Santé",
+      "role": "Registres",
+      "ownership": "Registres de santé autorisés et strictement minimisés",
+      "responsibilities": ["Validation registre santé", "Protection données sensibles"],
+      "apis": ["health.registry.validate"],
+      "workflows": ["health_registry_link", "health_identity_verification"],
+      "authorized_data": ["identité patient minimale", "référence registre"],
+      "permissions": ["read_minimal_health_identity"],
+      "sla": {"availability": "99.5%", "critical_response_minutes": 120},
+      "audit_obligations": ["privacy by design", "accès minimisé", "audit données sensibles"]
+    },
+    {
+      "agency": "Éducation",
+      "role": "Validation",
+      "ownership": "Registres éducatifs et validation statut apprenant/diplôme",
+      "responsibilities": ["Validation scolaire", "Certifications éducatives"],
+      "apis": ["education.status", "credential.verify"],
+      "workflows": ["student_identity_validation", "credential_verification"],
+      "authorized_data": ["statut étudiant", "références diplôme"],
+      "permissions": ["read_education_status", "validate_credential"],
+      "sla": {"availability": "99.0%", "critical_response_minutes": 240},
+      "audit_obligations": ["journalisation validation", "protection mineurs"]
+    }
+  ]
+}

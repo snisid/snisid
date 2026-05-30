@@ -1,0 +1,65 @@
+global:
+  domain: snisid.gov.ht
+  jwtSecret: "change-me-in-production"
+
+postgresql:
+  enabled: true
+  auth:
+    username: snisid
+    password: snisid
+    database: snisid
+
+kafka:
+  enabled: true
+  listeners:
+    client:
+      protocol: PLAINTEXT
+
+neo4j:
+  enabled: true
+  neo4j:
+    password: "neo4jpass"
+
+services:
+  identityApi:
+    replicaCount: 3
+    hpa:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 20
+    image:
+      repository: snisid/identity-api
+      tag: latest
+    service:
+      port: 8081
+  
+monitoring:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+  loki:
+    enabled: true
+  
+  fraudEngine:
+    replicaCount: 2
+    image:
+      repository: snisid/fraud-engine
+      tag: latest
+  
+  alertFeed:
+    replicaCount: 2
+    image:
+      repository: snisid/alert-feed
+      tag: latest
+    service:
+      port: 8082
+  
+  faceService:
+    replicaCount: 2
+    image:
+      repository: snisid/ai-face
+      tag: latest
+    resources:
+      limits:
+        nvidia.com/gpu: 1

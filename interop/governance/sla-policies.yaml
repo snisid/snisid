@@ -1,0 +1,22 @@
+groups:
+- name: SNISID_Interoperability_SLA
+  rules:
+  - alert: AgencyGatewayAvailabilityDrop
+    expr: sum(rate(kong_http_requests_total{service="interop-gateway", status=~"5.."}[5m])) / sum(rate(kong_http_requests_total{service="interop-gateway"}[5m])) > 0.001
+    for: 2m
+    labels:
+      severity: critical
+      team: snisid-platform
+    annotations:
+      summary: "Inter-agency API Availability dropped below 99.9%"
+      description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes. Breaching SLA."
+
+  - alert: AgencyGatewayLatencyBreach
+    expr: histogram_quantile(0.95, sum(rate(kong_latency_bucket{service="interop-gateway"}[5m])) by (le)) > 2000
+    for: 5m
+    labels:
+      severity: warning
+      team: snisid-platform
+    annotations:
+      summary: "Inter-agency API P95 Latency > 2 seconds"
+      description: "API responses to agencies are taking too long, violating the synchronous exchange contract."

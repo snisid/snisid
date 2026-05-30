@@ -1,0 +1,34 @@
+{{- if .Values.istio.virtualService.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "snisid-core.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "snisid-core.labels" . | nindent 4 }}
+spec:
+  hosts:
+    {{- toYaml .Values.istio.virtualService.hosts | nindent 4 }}
+  gateways:
+    {{- toYaml .Values.istio.virtualService.gateways | nindent 4 }}
+  http:
+    - match:
+        {{- toYaml .Values.istio.virtualService.http.match | nindent 8 }}
+      route:
+        - destination:
+            host: {{ include "snisid-core.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}
+          weight: 100
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+        retryOn: "5xx,connect-failure,refused-stream"
+      timeout: 30s
+      cors:
+        allowOrigins:
+          - exact: "https://snisid.gouv.local"
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        allowHeaders: ["authorization", "content-type", "x-request-id", "x-trace-id"]
+        allowCredentials: true
+{{- end }}

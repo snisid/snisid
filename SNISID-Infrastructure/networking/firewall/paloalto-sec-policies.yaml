@@ -1,0 +1,295 @@
+# SNISID — Palo Alto Networks : Zone-Based Security Policies (Représentation YAML)
+# Classification: SECRET
+# Role: Perimeter & East-West segmentation via NGFW physique (Palo Alto / Fortinet / pfSense HA)
+# Note: Ce fichier est la source-of-truth importée via Ansible/REST API vers les appliances nationales.
+
+security_policies:
+  # ───────────────────────────────────────────────
+  # RÈGLE PAR DÉFAUT : DENY ALL
+  # ───────────────────────────────────────────────
+  - name: default-deny-all
+    action: deny
+    log_start: false
+    log_end: true
+    log_setting: snisid-soc-forwarding
+    description: "Deny all traffic not explicitly allowed — Zero Trust National"
+
+  # ───────────────────────────────────────────────
+  # NORTH-SOUTH : Internet → DMZ (strictement contrôlé)
+  # ───────────────────────────────────────────────
+  - name: allow-internet-to-dmz-https
+    source_zones: [untrust]
+    source_addresses: [any]
+    destination_zones: [dmz]
+    destination_addresses: [snisid-public-vip]
+    applications: [ssl, web-browsing]
+    services: [application-default]
+    action: allow
+    log_end: true
+    profile_group: snisid-strict-profiles
+    description: "Citoyen / Partenaire accès API publique SNISID via WAF/Reverse Proxy"
+    security_profiles:
+      antivirus: snisid-av-profile
+      anti_spyware: snisid-as-profile
+      vulnerability: snisid-vuln-profile
+      url_filtering: snisid-url-allowlist
+      file_blocking: snisid-file-block-executables
+      wildfire_analysis: snisid-wildfire
+
+  - name: deny-internet-to-internal
+    source_zones: [untrust]
+    destination_zones: [core-tier0, core-tier1, core-tier2, management, obs]
+    action: deny
+    log_end: true
+    description: "Aucun accès direct Internet vers les zones internes nationales"
+
+  # ───────────────────────────────────────────────
+  # DMZ → INTERNAL (API Gateway uniquement)
+  # ───────────────────────────────────────────────
+  - name: allow-dmz-to-core-api
+    source_zones: [dmz]
+    source_addresses: [dmz-reverse-proxies]
+    destination_zones: [core-tier1]
+    destination_addresses: [core-api-vip]
+    applications: [ssl]
+    services: [tcp-443]
+    action: allow
+    log_end: true
+    profile_group: snisid-strict-profiles
+    description: "Reverse proxy DMZ vers Core API (mTLS vérifié par Istio Ingress)"
+
+  - name: deny-dmz-to-tier0
+    source_zones: [dmz]
+    destination_zones: [core-tier0]
+    action: deny
+    log_end: true
+    description: "Aucun accès DMZ vers Tier-0 (IAM/Vault/HSM)"
+
+  # ───────────────────────────────────────────────
+  # MANAGEMENT → TOUT (Bastions jump)
+  # ───────────────────────────────────────────────
+  - name: allow-mgmt-to-bastion-ssh
+    source_zones: [management]
+    source_addresses: [admin-workstations]
+    destination_zones: [management]
+    destination_addresses: [snisid-bastions]
+    applications: [ssh]
+    services: [tcp-22]
+    action: allow
+    log_end: true
+    profile_group: snisid-strict-profiles
+    description: "Administrateurs nationaux vers bastions (smartcard + MFA)"
+
+  - name: allow-bastion-to-tier0-ssh
+    source_zones: [management]
+    source_addresses: [snisid-bastions]
+    destination_zones: [core-tier0, core-tier1, core-tier2, obs]
+    applications: [ssh]
+    services: [tcp-22]
+    action: allow
+    log_end: true
+    description: "Bastions vers workloads (ssh certificate-based, audité)"
+
+  - name: deny-mgmt-direct-to-workloads
+    source_zones: [management]
+    source_addresses: [admin-workstations]
+    destination_zones: [core-tier0, core-tier1, core-tier2]
+    applications: [any]
+    action: deny
+    log_end: true
+    description: "Admins ne peuvent pas accéder directement aux workloads — jump via bastion"
+
+  # ───────────────────────────────────────────────
+  # EAST-WEST INTRA-DATACENTER (Core DC)
+  # ───────────────────────────────────────────────
+  - name: allow-tier2-to-tier1-api
+    source_zones: [core-tier2]
+    destination_zones: [core-tier1]
+    destination_addresses: [core-api-svc, bpmn-api-svc]
+    applications: [ssl]
+    services: [tcp-443]
+    action: allow
+    log_end: true
+    description: "Apps tier-2 vers APIs tier-1 (via Istio mTLS, policy secondaire)"
+
+  - name: allow-tier1-to-tier0-vault
+    source_zones: [core-tier1]
+    source_addresses: [core-pods-cidr, bpmn-pods-cidr, data-pods-cidr]
+    destination_zones: [core-tier0]
+    destination_addresses: [vault-vip]
+    applications: [ssl]
+    services: [tcp-8200]
+    action: allow
+    log_end: true
+    description: "Workloads vers Vault (mTLS strict, token scope limité)"
+
+  - name: deny-tier1-to-tier0-direct
+    source_zones: [core-tier1]
+    destination_zones: [core-tier0]
+    applications: [any]
+    action: deny
+    log_end: true
+    description: "Refus tout trafic tier-1 vers tier-0 sauf Vault explicit"
+
+  - name: deny-tier2-to-tier0
+    source_zones: [core-tier2]
+    destination_zones: [core-tier0]
+    action: deny
+    log_end: true
+    description: "Tier-2 n'a JAMAIS accès à Tier-0"
+
+  # ───────────────────────────────────────────────
+  # OBSERVABILITY (Read-only, metrics/logs)
+  # ───────────────────────────────────────────────
+  - name: allow-obs-scrape-tier0
+    source_zones: [obs]
+    source_addresses: [prometheus-nodes, grafana-nodes]
+    destination_zones: [core-tier0, core-tier1, core-tier2, dmz]
+    applications: [ssl]
+    services: [tcp-9090, tcp-9100, tcp-10250]
+    action: allow
+    log_end: true
+    description: "Prometheus scrape métriques (read-only)"
+
+  - name: deny-obs-to-mgmt
+    source_zones: [obs]
+    destination_zones: [management]
+    action: deny
+    log_end: true
+    description: "Observabilité n'a pas accès à la zone management"
+
+  # ───────────────────────────────────────────────
+  # EDGE / REGIONAL
+  # ───────────────────────────────────────────────
+  - name: allow-edge-to-core-kafka
+    source_zones: [edge-regional, edge-mobile]
+    source_addresses: [edge-node-cidrs]
+    destination_zones: [core-tier1]
+    destination_addresses: [kafka-vip]
+    applications: [kafka]
+    services: [tcp-9093]
+    action: allow
+    log_end: true
+    description: "Edge nodes sync vers Kafka Core (TLS + SASL/SCRAM)"
+
+  - name: allow-edge-to-core-api-sync
+    source_zones: [edge-regional, edge-mobile]
+    destination_zones: [core-tier1]
+    destination_addresses: [sync-api-vip]
+    applications: [ssl]
+    services: [tcp-443]
+    action: allow
+    log_end: true
+    description: "Edge sync REST batch vers Core (VPN/MPLS ou WireGuard)"
+
+  - name: deny-edge-to-tier0
+    source_zones: [edge-regional, edge-mobile, edge-offline]
+    destination_zones: [core-tier0]
+    action: deny
+    log_end: true
+    description: "Edge n'a JAMAIS accès à Tier-0 (Vault/Identity direct)"
+
+  # ───────────────────────────────────────────────
+  # CORE DC ↔ DR DC (Réplication synchronisée)
+  # ───────────────────────────────────────────────
+  - name: allow-core-to-dr-replication
+    source_zones: [core-tier0, core-tier1, core-tier2, obs]
+    destination_zones: [dr-tier0, dr-tier1, dr-tier2, dr-obs]
+    applications: [ceph-replication, kafka, postgresql, ssl, ssh]
+    services: [application-default]
+    action: allow
+    log_end: true
+    description: "Réplication multi-site Core ↔ DR (liens dédiés DWDM/MPLS)"
+
+zones:
+  - name: untrust
+    interfaces: [ethernet1/1]
+    log_setting: snisid-soc-forwarding
+    enable_user_identification: false
+  - name: dmz
+    interfaces: [ethernet1/2]
+    log_setting: snisid-soc-forwarding
+  - name: management
+    interfaces: [ethernet1/3]
+    log_setting: snisid-soc-forwarding
+  - name: core-tier0
+    interfaces: [ethernet1/4.20]
+    log_setting: snisid-soc-forwarding
+  - name: core-tier1
+    interfaces: [ethernet1/4.30]
+    log_setting: snisid-soc-forwarding
+  - name: core-tier2
+    interfaces: [ethernet1/4.40]
+    log_setting: snisid-soc-forwarding
+  - name: obs
+    interfaces: [ethernet1/4.50]
+    log_setting: snisid-soc-forwarding
+  - name: edge-regional
+    interfaces: [ethernet1/5]
+    log_setting: snisid-soc-forwarding
+  - name: edge-mobile
+    interfaces: [ethernet1/6]
+    log_setting: snisid-soc-forwarding
+  - name: edge-offline
+    interfaces: [ethernet1/7]
+    log_setting: snisid-soc-forwarding
+  - name: dr-tier0
+    interfaces: [ethernet2/1.20]
+    log_setting: snisid-soc-forwarding
+  - name: dr-tier1
+    interfaces: [ethernet2/1.30]
+    log_setting: snisid-soc-forwarding
+  - name: dr-tier2
+    interfaces: [ethernet2/1.40]
+    log_setting: snisid-soc-forwarding
+  - name: dr-obs
+    interfaces: [ethernet2/1.50]
+    log_setting: snisid-soc-forwarding
+
+# Application-based objects (Palo Alto App-ID)
+applications:
+  - name: ceph-replication
+    category: networking
+    subcategory: database
+    risk: 4
+    description: "Custom Ceph replication protocol (mon/osd/rgw)"
+
+# Security profiles nationaux
+profiles:
+  antivirus:
+    name: snisid-av-profile
+    action: reset-both
+    wildfire_action: reset-both
+  anti_spyware:
+    name: snisid-as-profile
+    default_action: reset-both
+    rules:
+      - name: critical-communications
+        threat_name: any
+        category: any
+        action: reset-both
+        packet_capture: single-packet
+  vulnerability:
+    name: snisid-vuln-profile
+    rules:
+      - name: high-critical
+        host: any
+        threat_name: any
+        cve: any
+        vendor: any
+        action: reset-both
+  url_filtering:
+    name: snisid-url-allowlist
+    block_list: any
+    allow_list:
+      - snisid.gouv.local
+      - interne.snisid.gouv.local
+      - *.gouv.local
+  file_blocking:
+    name: snisid-file-block-executables
+    rules:
+      - name: block-executables
+        application: any
+        file_type: [exe, dll, bat, sh, python, elf, mach-o, apk, jar]
+        direction: both
+        action: block

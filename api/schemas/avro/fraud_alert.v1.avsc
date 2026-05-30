@@ -1,0 +1,32 @@
+{
+  "namespace": "snisid.fraud.v1",
+  "type": "record",
+  "name": "FraudAlert",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+          {"name": "actor", "type": "string"},
+          {"name": "source", "type": "string"}
+        ]
+      }
+    },
+    {"name": "identityId", "type": "string"},
+    {"name": "fraudScore", "type": "int"},
+    {"name": "riskCategory", "type": "string"},
+    {"name": "reason", "type": "string"},
+    {
+      "name": "evidence",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ]
+}

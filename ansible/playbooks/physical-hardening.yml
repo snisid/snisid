@@ -1,0 +1,109 @@
+---
+- name: SNISID - Hardening Physique Serveurs Souverains
+  hosts: k8s_nodes
+  become: true
+  vars:
+    luks_cipher: aes-xts-plain64
+    luks_key_size: 512
+    luks_hash: sha512
+ 
+  tasks:
+    # 1. Verification Secure Boot
+    - name: Verifier Secure Boot actif
+      command: mokutil --sb-state
+      register: sb_state
+      changed_when: false
+ 
+    - name: Echouer si Secure Boot inactif
+      fail:
+        msg: >
+          SECURE BOOT INACTIF sur {{ inventory_hostname }}.
+          Activer dans UEFI BIOS avant de continuer.
+          Reference: SNISID-AUDIT-2025 R-003
+      when: "'SecureBoot enabled' not in sb_state.stdout"
+ 
+    # 2. TPM 2.0
+    - name: Installer tpm2-tools
+      apt:
+        name: [tpm2-tools, tpm2-abrmd, clevis-tpm2]
+        state: present
+        update_cache: yes
+ 
+    - name: Lire les PCR de boot de reference
+      command: tpm2_pcrread sha256:0,1,2,3,4,5,7
+      register: pcr_values
+      when: ansible_facts['ansible_local'] is defined
+ 
+    - name: Sauvegarder PCR dans Vault
+      uri:
+        url: "{{ vault_addr }}/v1/secret/snisid/tpm/{{ inventory_hostname }}/pcr"
+        method: POST
+        headers:
+          X-Vault-Token: "{{ vault_token }}"
+        body_format: json
+        body:
+          data:
+            pcr_values: "{{ pcr_values.stdout }}"
+            hostname: "{{ inventory_hostname }}"
+ 
+    # 3. LUKS2 Full Disk Encryption
+    - name: Verifier si LUKS deja actif
+      command: lsblk -o NAME,FSTYPE /dev/sdb
+      register: disk_info
+      changed_when: false
+ 
+    - name: Initialiser LUKS2 sur disque de donnees
+      command: >
+        cryptsetup luksFormat
+        --type luks2
+        --cipher {{ luks_cipher }}
+        --hash {{ luks_hash }}
+        --key-size {{ luks_key_size }}
+        --iter-time 2000
+        --batch-mode /dev/sdb
+      when: "'crypto_LUKS' not in disk_info.stdout"
+      no_log: true
+ 
+    - name: Lier cle LUKS au TPM (deverrouillage auto au boot)
+      shell: |
+        clevis luks bind -d /dev/sdb tpm2 '{"pcr_bank":"sha256","pcr_ids":"0,1,7"}'
+      args:
+        creates: /etc/clevis-tpm2-bound
+ 
+    # 4. IOMMU (Protection DMA PCIe)
+    - name: Detecter CPU Intel ou AMD
+      command: grep -m1 'vendor_id' /proc/cpuinfo
+      register: cpu_vendor
+      changed_when: false
+ 
+    - name: Activer IOMMU Intel VT-d dans GRUB
+      lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX='
+        line: 'GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt lockdown=confidentiality"'
+        backup: yes
+      when: "'GenuineIntel' in cpu_vendor.stdout"
+      notify: update-grub
+ 
+    - name: Activer IOMMU AMD-Vi dans GRUB
+      lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX='
+        line: 'GRUB_CMDLINE_LINUX="amd_iommu=on iommu=pt lockdown=confidentiality"'
+        backup: yes
+      when: "'AuthenticAMD' in cpu_vendor.stdout"
+      notify: update-grub
+ 
+    # 5. Hardening kernel supplementaire
+    - name: Activer ASLR complet
+      sysctl: { name: kernel.randomize_va_space, value: '2', sysctl_set: yes }
+ 
+    - name: Desactiver SysRq
+      sysctl: { name: kernel.sysrq, value: '0', sysctl_set: yes }
+ 
+    - name: Proteger ptrace
+      sysctl: { name: kernel.yama.ptrace_scope, value: '2', sysctl_set: yes }
+ 
+  handlers:
+    - name: update-grub
+      command: update-grub

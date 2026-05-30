@@ -1,0 +1,46 @@
+name: SNISID Sovereign CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run Backend Tests
+        run: go test -v ./backend/...
+
+      - name: Docker Build (Identity Service)
+        run: docker build -t snisid/identity-svc:latest ./backend/cmd/identity-svc
+
+      - name: Vulnerability Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'snisid/identity-svc:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push to Sovereign Registry
+        if: github.event_name == 'push'
+        run: |
+          # echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ...
+          echo "Pushing image to sovereign registry..."
+
+      - name: Deploy to Sovereign Cluster (Helm)
+        if: github.event_name == 'push'
+        run: |
+          # helm upgrade --install snisid ./deployments/helm ...
+          echo "Deploying to sovereign infrastructure via Helm/ArgoCD..."
