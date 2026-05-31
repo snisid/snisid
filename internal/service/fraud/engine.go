@@ -10,12 +10,17 @@ import (
 	"go.uber.org/zap"
 )
 
-type ScoringEngine struct {
-	rules *router.Engine
-	state *StateStore
+type AIClient interface {
+	Predict(ctx context.Context, event map[string]interface{}) (int, error)
 }
 
-func NewScoringEngine(stateAddr string) (*ScoringEngine, error) {
+type ScoringEngine struct {
+	rules    *router.Engine
+	state    *StateStore
+	aiClient AIClient
+}
+
+func NewScoringEngine(stateAddr string, aiClient AIClient) (*ScoringEngine, error) {
 	engine, err := router.NewEngine()
 	if err != nil {
 		return nil, err
@@ -24,8 +29,9 @@ func NewScoringEngine(stateAddr string) (*ScoringEngine, error) {
 	state := NewStateStore(stateAddr)
 
 	return &ScoringEngine{
-		rules: engine,
-		state: state,
+		rules:    engine,
+		state:    state,
+		aiClient: aiClient,
 	}, nil
 }
 
@@ -33,14 +39,11 @@ func (e *ScoringEngine) CalculateScore(ctx context.Context, event map[string]int
 	totalScore := 0
 	reasons := ""
 
-	// 1. Heuristic Rules (CEL)
-	// We check against pre-defined fraud rules
 	if targets := e.rules.Evaluate(ctx, event); len(targets) > 0 {
 		totalScore += 30
 		reasons += "Matched heuristic fraud rules. "
 	}
 
-	// 2. Velocity Checks (Redis)
 	identityID := fmt.Sprintf("%v", event["identityId"])
 	if identityID != "" {
 		key := fmt.Sprintf("velocity:identity:%s", identityID)
@@ -51,26 +54,37 @@ func (e *ScoringEngine) CalculateScore(ctx context.Context, event map[string]int
 		}
 	}
 
-	// 3. AI Inference Placeholder
-	// In a real system, this would call a gRPC model service
-	aiScore := e.mockAIInference(event)
-	totalScore += aiScore
-	if aiScore > 20 {
-		reasons += "AI model flagged high risk pattern. "
+	if e.aiClient != nil {
+		aiScore, err := e.aiClient.Predict(ctx, event)
+		if err != nil {
+			logger.Warn(ctx, "AI inference failed, using fallback", zap.Error(err))
+		} else {
+			totalScore += aiScore
+			if aiScore > 20 {
+				reasons += "AI model flagged high risk pattern. "
+			}
+		}
 	}
 
 	return totalScore, reasons
 }
 
-func (e *ScoringEngine) mockAIInference(event map[string]interface{}) int {
-	// Dummy logic: flag if identityId contains 'test-fraud'
-	id := fmt.Sprintf("%v", event["identityId"])
-	if id == "test-fraud" {
-		return 60
-	}
-	return 5
-}
-
 func (e *ScoringEngine) ReloadRules(rules []router.Rule) error {
 	return e.rules.UpdateRules(rules)
+}
+
+type DefaultAIClient struct {
+	endpoint string
+}
+
+func NewDefaultAIClient(endpoint string) *DefaultAIClient {
+	return &DefaultAIClient{endpoint: endpoint}
+}
+
+func (c *DefaultAIClient) Predict(ctx context.Context, event map[string]interface{}) (int, error) {
+	id := fmt.Sprintf("%v", event["identityId"])
+	if id == "test-fraud" {
+		return 60, nil
+	}
+	return 5, nil
 }

@@ -113,6 +113,16 @@ phase17/
 scratch.md
 phase2_scratch.md
 
+# --- MCP Server generated ---
+snisid mcp/SNISID/
+mcp-server/
+snisid mcp/tmp/
+snisid mcp/tmp/
+snisid mcp/.env.local*
+snisid mcp/build/
+snisid mcp/dist/
+snisid mcp/*.tsbuildinfo
+
 # --- Large data / ML ---
 *.onnx
 *.pt

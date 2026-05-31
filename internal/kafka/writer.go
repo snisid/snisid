@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/segmentio/kafka-go"
 	"github.com/snisid/platform/backend/internal/platform/logger"
 )
@@ -27,10 +28,14 @@ func (p *Producer) Publish(ctx context.Context, key string, data interface{}) er
 		return err
 	}
 
-	logger.Info("KAFKA: Publishing message to topic " + p.Writer.Topic)
-	
+	logger.Info(ctx, "KAFKA: Publishing message to topic "+p.Writer.Topic)
+
 	return p.Writer.WriteMessages(ctx, kafka.Message{
 		Key:   []byte(key),
 		Value: msg,
 	})
+}
+
+func (p *Producer) Close() error {
+	return p.Writer.Close()
 }

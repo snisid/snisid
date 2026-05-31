@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/snisid/platform/backend/internal/config"
 )
 
 type Claims struct {
@@ -13,7 +14,21 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func SignToken(secret, subject, role, agency string, ttl time.Duration) (string, error) {
+type JWTService struct {
+	secret     string
+	ttl        time.Duration
+	refreshTTL time.Duration
+}
+
+func NewJWTService(cfg config.JWTConfig) *JWTService {
+	return &JWTService{
+		secret:     cfg.Secret,
+		ttl:        cfg.TTL,
+		refreshTTL: cfg.RefreshTTL,
+	}
+}
+
+func (s *JWTService) SignToken(subject, role, agency string) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		Role:   role,
@@ -21,15 +36,15 @@ func SignToken(secret, subject, role, agency string, ttl time.Duration) (string,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   subject,
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
 		},
 	}
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(s.secret))
 }
 
-func ParseToken(secret, tokenStr string) (*Claims, error) {
+func (s *JWTService) ParseToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
+		return []byte(s.secret), nil
 	})
 	if err != nil {
 		return nil, err

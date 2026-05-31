@@ -1,4 +1,4 @@
-module github.com/snisid/platform
+module github.com/snisid/platform/backend
 
 go 1.26.0
 

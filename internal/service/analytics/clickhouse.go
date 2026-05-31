@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/snisid/platform/backend/internal/config"
 	"github.com/snisid/platform/backend/internal/platform/logger"
 	"go.uber.org/zap"
 )
@@ -19,13 +20,14 @@ type ClickHouseBridge struct {
 	flushInt  time.Duration
 }
 
-func NewClickHouseBridge(addr string) (*ClickHouseBridge, error) {
+func NewClickHouseBridge(cfg config.ClickHouseConfig) (*ClickHouseBridge, error) {
+	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	conn, err := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{addr},
 		Auth: clickhouse.Auth{
-			Database: "snisid",
-			Username: "default",
-			Password: "",
+			Database: cfg.Database,
+			Username: cfg.User,
+			Password: cfg.Password,
 		},
 	})
 	if err != nil {

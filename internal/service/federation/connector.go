@@ -2,17 +2,17 @@ package federation
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
-
-	"github.com/snisid/platform/backend/internal/platform/logger"
-	"go.uber.org/zap"
 )
 
 type AgencyResult struct {
-	Source string
-	Data   map[string]interface{}
-	Error  error
+	Source string                 `json:"source"`
+	Data   map[string]interface{} `json:"data"`
+	Error  error                  `json:"-"`
 }
 
 type AgencyConnector interface {
@@ -20,22 +20,59 @@ type AgencyConnector interface {
 	Fetch(ctx context.Context, query string) (AgencyResult, error)
 }
 
-type MockConnector struct {
+type HTTPConnector struct {
 	AgencyName string
-	Delay      time.Duration
+	BaseURL    string
+	APIKey     string
+	Client     *http.Client
 }
 
-func (c *MockConnector) Name() string { return c.AgencyName }
-
-func (c *MockConnector) Fetch(ctx context.Context, query string) (AgencyResult, error) {
-	// Simulation of external API call with context awareness
-	select {
-	case <-time.After(c.Delay):
-		return AgencyResult{
-			Source: c.AgencyName,
-			Data:   map[string]interface{}{"status": "active", "record_id": "MOCK-123"},
-		}, nil
-	case <-ctx.Done():
-		return AgencyResult{Source: c.AgencyName}, ctx.Err()
+func NewHTTPConnector(name, baseURL, apiKey string, timeout time.Duration) *HTTPConnector {
+	return &HTTPConnector{
+		AgencyName: name,
+		BaseURL:    baseURL,
+		APIKey:     apiKey,
+		Client: &http.Client{
+			Timeout: timeout,
+		},
 	}
+}
+
+func (c *HTTPConnector) Name() string { return c.AgencyName }
+
+func (c *HTTPConnector) Fetch(ctx context.Context, query string) (AgencyResult, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		fmt.Sprintf("%s/api/v1/search?q=%s", c.BaseURL, query), nil)
+	if err != nil {
+		return AgencyResult{Source: c.AgencyName}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return AgencyResult{Source: c.AgencyName}, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return AgencyResult{Source: c.AgencyName}, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return AgencyResult{Source: c.AgencyName},
+			fmt.Errorf("agency %s returned status %d: %s", c.AgencyName, resp.StatusCode, string(body))
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return AgencyResult{Source: c.AgencyName}, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return AgencyResult{
+		Source: c.AgencyName,
+		Data:   data,
+	}, nil
 }

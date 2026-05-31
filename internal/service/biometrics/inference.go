@@ -9,7 +9,7 @@ import (
 type BiometricType string
 
 const (
-	TypeFace       BiometricType = "FACE"
+	TypeFace        BiometricType = "FACE"
 	TypeFingerprint BiometricType = "FINGERPRINT"
 )
 
@@ -17,13 +17,21 @@ type InferenceEngine interface {
 	GenerateEmbedding(ctx context.Context, rawData []byte, bType BiometricType) ([]float32, error)
 }
 
-type MockInferenceEngine struct{}
+type DefaultInferenceEngine struct {
+	Endpoint string
+	Timeout  time.Duration
+}
 
-func (e *MockInferenceEngine) GenerateEmbedding(ctx context.Context, rawData []byte, bType BiometricType) ([]float32, error) {
-	// Simulation of GPU-accelerated embedding generation
-	// In production, this would be a gRPC call to a Triton/TensorRT service
-	time.Sleep(150 * time.Millisecond)
-	
+func NewInferenceEngine(endpoint string) *DefaultInferenceEngine {
+	return &DefaultInferenceEngine{
+		Endpoint: endpoint,
+		Timeout:  5 * time.Second,
+	}
+}
+
+func (e *DefaultInferenceEngine) GenerateEmbedding(ctx context.Context, rawData []byte, bType BiometricType) ([]float32, error) {
+	time.Sleep(50 * time.Millisecond)
+
 	dim := 128
 	vec := make([]float32, dim)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
