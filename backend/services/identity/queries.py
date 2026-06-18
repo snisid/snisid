@@ -80,7 +80,7 @@ class IdentityResponse(BaseModel):
     has_biometrics: bool = False
     created_at: str
     updated_at: str
-    _links: dict[str, Any] = Field(default_factory=dict)
+    links: dict[str, Any] = Field(default_factory=dict)
 
 
 class IdentityDetailResponse(IdentityResponse):
@@ -105,7 +105,7 @@ class PaginatedResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
-    _links: dict[str, Any] = Field(default_factory=dict)
+    links: dict[str, Any] = Field(default_factory=dict)
 
 
 class IdentityHistoryEntry(BaseModel):
@@ -213,12 +213,12 @@ class IdentityQueryHandler:
         total_pages = (total + query.page_size - 1) // query.page_size
 
         return PaginatedResponse(
-            items=[self._read_model_to_response(item) for item in items],
+            items=[self._to_detail_response_from_readmodel(item) for item in items],
             total=total,
             page=query.page,
             page_size=query.page_size,
             total_pages=total_pages,
-            _links=self._build_pagination_links(query, total_pages),
+            links=self._build_pagination_links(query, total_pages),
         )
 
     async def get_history(
@@ -245,7 +245,7 @@ class IdentityQueryHandler:
 
     async def get_stats(self, query: GetIdentityStatsQuery) -> IdentityStatsResponse:
         """Get aggregate statistics."""
-        base_stmt = select(CitizenReadModel)
+        base_stmt = select(CitizenReadModel).where(CitizenReadModel.is_deleted == False)  # noqa: E712
         if query.agency_id:
             base_stmt = base_stmt.where(CitizenReadModel.agency_id == query.agency_id)
 
@@ -258,21 +258,31 @@ class IdentityQueryHandler:
         # By status
         status_result = await self._session.execute(
             select(CitizenReadModel.status, func.count())
+            .where(CitizenReadModel.is_deleted == False)  # noqa: E712
             .group_by(CitizenReadModel.status)
         )
         by_status = {row[0]: row[1] for row in status_result.all()}
+
+        # By nationality
+        nationality_result = await self._session.execute(
+            select(CitizenReadModel.nationality, func.count())
+            .where(CitizenReadModel.is_deleted == False)  # noqa: E712
+            .group_by(CitizenReadModel.nationality)
+        )
+        by_nationality = {row[0]: row[1] for row in nationality_result.all()}
 
         # Verified count
         verified_result = await self._session.execute(
             select(func.count())
             .select_from(CitizenReadModel)
-            .where(CitizenReadModel.verified == True)  # noqa: E712
+            .where(CitizenReadModel.is_deleted == False, CitizenReadModel.verified == True)  # noqa: E712
         )
         verified_count = verified_result.scalar_one()
 
         return IdentityStatsResponse(
             total=total,
             by_status=by_status,
+            by_nationality=by_nationality,
             verified_count=verified_count,
         )
 
@@ -332,29 +342,7 @@ class IdentityQueryHandler:
             version=citizen.version,
             created_at=citizen.created_at.isoformat(),
             updated_at=citizen.updated_at.isoformat(),
-            _links=self._build_identity_links(citizen.id),
-        )
-
-    def _read_model_to_response(self, item: CitizenReadModel) -> IdentityResponse:
-        """Convert a read model to a response."""
-        return IdentityResponse(
-            id=item.id,
-            national_id=item.national_id,
-            first_name=item.first_name,
-            last_name=item.last_name,
-            full_name=item.full_name,
-            date_of_birth=item.date_of_birth.isoformat(),
-            gender=item.gender,
-            nationality=item.nationality,
-            status=item.status,
-            agency_id=item.agency_id,
-            verified=item.verified,
-            photo_url=item.photo_url,
-            document_count=item.document_count,
-            has_biometrics=item.has_biometrics,
-            created_at=item.created_at.isoformat(),
-            updated_at=item.updated_at.isoformat(),
-            _links=self._build_identity_links(item.id),
+            links=self._build_identity_links(citizen.id),
         )
 
     @staticmethod
@@ -376,23 +364,52 @@ class IdentityQueryHandler:
     def _build_pagination_links(
         query: SearchIdentitiesQuery, total_pages: int
     ) -> dict[str, Any]:
-        """Build HATEOAS pagination links."""
+        """Build HATEOAS pagination links preserving filter parameters."""
+        def _href(page: int) -> str:
+            params = [f"page={page}", f"page_size={query.page_size}"]
+            if query.search_term:
+                params.append(f"search_term={query.search_term}")
+            if query.status:
+                params.append(f"status={query.status}")
+            if query.agency_id:
+                params.append(f"agency_id={query.agency_id}")
+            if query.nationality:
+                params.append(f"nationality={query.nationality}")
+            return "/v1/identities?" + "&".join(params)
+
         links: dict[str, Any] = {
-            "self": {"href": f"/v1/identities?page={query.page}&page_size={query.page_size}"},
+            "self": {"href": _href(query.page)},
         }
         if query.page > 1:
-            links["prev"] = {
-                "href": f"/v1/identities?page={query.page - 1}&page_size={query.page_size}"
-            }
+            links["prev"] = {"href": _href(query.page - 1)}
         if query.page < total_pages:
-            links["next"] = {
-                "href": f"/v1/identities?page={query.page + 1}&page_size={query.page_size}"
-            }
-        links["first"] = {"href": f"/v1/identities?page=1&page_size={query.page_size}"}
-        links["last"] = {
-            "href": f"/v1/identities?page={total_pages}&page_size={query.page_size}"
-        }
+            links["next"] = {"href": _href(query.page + 1)}
+        links["first"] = {"href": _href(1)}
+        links["last"] = {"href": _href(total_pages)}
         return links
+
+    @staticmethod
+    def _to_detail_response_from_readmodel(record: CitizenReadModel) -> IdentityDetailResponse:
+        """Convert a CitizenReadModel to a detail response using available fields."""
+        return IdentityDetailResponse(
+            id=record.id,
+            national_id=record.national_id,
+            first_name=record.first_name,
+            last_name=record.last_name,
+            full_name=record.full_name,
+            date_of_birth=record.date_of_birth.isoformat(),
+            gender=record.gender,
+            nationality=record.nationality,
+            status=record.status,
+            agency_id=record.agency_id,
+            verified=record.verified,
+            photo_url=record.photo_url,
+            document_count=record.document_count,
+            has_biometrics=record.has_biometrics,
+            created_at=record.created_at.isoformat(),
+            updated_at=record.updated_at.isoformat(),
+            links=IdentityQueryHandler._build_identity_links(record.id),
+        )
 
 
 class IdentityQueryNotFoundError(Exception):

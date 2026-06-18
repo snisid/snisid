@@ -226,28 +226,90 @@ class KafkaProducer:
             )
             if metadata is None:
                 # Batch full — send current batch and create a new one
-                await self._producer.send_batch(
-                    batch, full_topic, partition=None
-                )
+                last_exc: Exception | None = None
+                for attempt in range(1, self._retries + 1):
+                    try:
+                        await self._producer.send_batch(
+                            batch, full_topic, partition=None
+                        )
+                        break
+                    except Exception as exc:
+                        last_exc = exc
+                        wait = min(0.2 * (2 ** (attempt - 1)), 5.0)
+                        logger.warning(
+                            "event_batch_send_retry",
+                            topic=full_topic,
+                            attempt=attempt,
+                            max_retries=self._retries,
+                            wait_seconds=wait,
+                            error=str(exc),
+                        )
+                        await asyncio.sleep(wait)
+                else:
+                    logger.error(
+                        "event_batch_send_failed",
+                        topic=full_topic,
+                        count=published,
+                        error=str(last_exc),
+                    )
+                    raise KafkaPublishError(
+                        f"Failed to send batch to {full_topic} "
+                        f"after {self._retries} attempts: {last_exc}"
+                    )
+
                 logger.debug(
                     "event_batch_flushed",
                     topic=full_topic,
                     count=published,
                 )
                 batch = self._producer.create_batch()
-                batch.append(
+                metadata = batch.append(
                     key=self._serialize_key(key),
                     value=payload,
                     timestamp=None,
                     headers=kafka_headers,
                 )
+                if metadata is None:
+                    logger.error(
+                        "event_too_large_for_batch",
+                        topic=full_topic,
+                        event_id=event.event_id,
+                        event_type=event.event_type,
+                    )
             published += 1
 
         # Send remaining
         if published > 0:
-            await self._producer.send_batch(
-                batch, full_topic, partition=None
-            )
+            last_exc = None
+            for attempt in range(1, self._retries + 1):
+                try:
+                    await self._producer.send_batch(
+                        batch, full_topic, partition=None
+                    )
+                    break
+                except Exception as exc:
+                    last_exc = exc
+                    wait = min(0.2 * (2 ** (attempt - 1)), 5.0)
+                    logger.warning(
+                        "event_batch_final_send_retry",
+                        topic=full_topic,
+                        attempt=attempt,
+                        max_retries=self._retries,
+                        wait_seconds=wait,
+                        error=str(exc),
+                    )
+                    await asyncio.sleep(wait)
+            else:
+                logger.error(
+                    "event_batch_final_send_failed",
+                    topic=full_topic,
+                    count=published,
+                    error=str(last_exc),
+                )
+                raise KafkaPublishError(
+                    f"Failed to send final batch to {full_topic} "
+                    f"after {self._retries} attempts: {last_exc}"
+                )
 
         logger.info(
             "event_batch_published",

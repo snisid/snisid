@@ -28,12 +28,46 @@ logger = get_logger(__name__)
 P = ParamSpec("P")
 T = TypeVar("T")
 
+_redis_client: aioredis.Redis | None = None
+
+
+async def get_redis_client() -> aioredis.Redis:
+    """Get or create a shared Redis client from application config.
+
+    The client is created once and cached as a module-level singleton.
+    """
+    global _redis_client
+    if _redis_client is None:
+        settings = get_settings()
+        _redis_client = aioredis.from_url(
+            settings.redis.url,
+            max_connections=settings.redis.max_connections,
+            socket_timeout=settings.redis.socket_timeout,
+            socket_connect_timeout=settings.redis.socket_connect_timeout,
+            retry_on_timeout=settings.redis.retry_on_timeout,
+            decode_responses=False,
+        )
+        logger.info("redis_client_created")
+    return _redis_client
+
+
+async def close_redis_client() -> None:
+    """Close the shared Redis client if it was created."""
+    global _redis_client
+    if _redis_client is not None:
+        await _redis_client.aclose()
+        _redis_client = None
+        logger.info("redis_client_closed")
+
+
 __all__ = [
     "RedisCache",
     "cache_aside",
     "RateLimiter",
     "RateLimitResult",
     "SessionStore",
+    "get_redis_client",
+    "close_redis_client",
 ]
 
 

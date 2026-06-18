@@ -12,6 +12,7 @@ Middleware order (outermost → innermost):
 """
 from __future__ import annotations
 
+import os
 import re
 import time
 import uuid
@@ -29,6 +30,10 @@ from shared.config import Environment, get_settings
 from shared.logging import get_logger, set_log_context
 
 logger = get_logger(__name__)
+
+# Module-level flag: set True once we confirm Redis is reachable,
+# set False once we confirm it's not, to avoid reconnection on every request.
+_HAS_REDIS: bool | None = None
 
 # ── Constants ─────────────────────────────────────────────────────────
 
@@ -180,8 +185,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers[header_name] = header_value
 
         # Remove the Server header to avoid version fingerprinting
-        response.headers.pop("Server", None)
-        response.headers.pop("server", None)
+        for hdr in ("Server", "server"):
+            try:
+                del response.headers[hdr]
+            except KeyError:
+                pass
 
         return response
 
@@ -466,6 +474,209 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+# ── Rate Limiting Middleware ──────────────────────────────────────────
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Sliding-window rate limiting per client IP.
+
+    Uses the Redis-backed ``RateLimiter`` from ``shared.cache``.
+    Falls open (allows the request) when Redis is unreachable.
+    Once initialisation fails, rate limiting is permanently disabled
+    for the process lifetime to avoid repeated timeout penalties.
+
+    Configured via env vars:
+    ``RATE_LIMIT_DEFAULT=60`` (requests per window),
+    ``RATE_LIMIT_WINDOW=60`` (window in seconds).
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+        self._limiter: RateLimiter | None = None
+        self._limit: int = int(os.environ.get("RATE_LIMIT_DEFAULT", "60"))
+        self._window: int = int(os.environ.get("RATE_LIMIT_WINDOW", "60"))
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        global _HAS_REDIS
+        if _HAS_REDIS is False:
+            return await call_next(request)
+
+        # Skip health probes and docs
+        if request.url.path in ("/health", "/ready", "/metrics", "/docs", "/openapi.json", "/redoc"):
+            return await call_next(request)
+
+        if self._limiter is None:
+            if _HAS_REDIS is None:
+                try:
+                    import redis.asyncio as aioredis
+
+                    from shared.config import get_settings
+
+                    settings = get_settings()
+                    redis = aioredis.from_url(
+                        settings.redis.get_url(settings.redis.rate_limit_db),
+                        socket_timeout=2,
+                        socket_connect_timeout=2,
+                        decode_responses=False,
+                    )
+                    await redis.ping()
+                    from shared.cache import RateLimiter
+
+                    self._limiter = RateLimiter(redis)
+                    _HAS_REDIS = True
+                except Exception as exc:
+                    logger.warning("rate_limiter.disabled", error=str(exc))
+                    _HAS_REDIS = False
+                    return await call_next(request)
+            else:
+                return await call_next(request)
+
+        client_ip = _get_client_ip(request)
+        key = f"ip:{client_ip}:{request.method}:{request.url.path}"
+
+        try:
+            result = await self._limiter.check(key, self._limit, self._window)
+        except Exception as exc:
+            logger.error("rate_limiter.check_failed", error=str(exc))
+            return await call_next(request)
+
+        if not result.allowed:
+            logger.warning(
+                "rate_limiter.denied",
+                client_ip=client_ip,
+                path=request.url.path,
+                retry_after=result.retry_after,
+            )
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "detail": "Rate limit exceeded",
+                    "retry_after": result.retry_after,
+                },
+                headers={
+                    "Retry-After": str(result.retry_after),
+                    "X-RateLimit-Limit": str(self._limit),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(result.reset_at),
+                },
+            )
+
+        response = await call_next(request)
+        response.headers["X-RateLimit-Limit"] = str(self._limit)
+        response.headers["X-RateLimit-Remaining"] = str(result.remaining)
+        response.headers["X-RateLimit-Reset"] = str(result.reset_at)
+        return response
+
+
+# ── Response Cache Middleware ────────────────────────────────────────
+
+
+class ResponseCacheMiddleware(BaseHTTPMiddleware):
+    """Cache GET responses to reduce backend load.
+
+    Only caches ``GET`` requests with ``200`` responses.
+    Skips requests with ``Authorization``, ``Cache-Control: no-cache``,
+    or ``X-No-Cache`` headers.
+    Once initialisation fails, caching is permanently disabled for the
+    process lifetime to avoid repeated timeout penalties.
+
+    Configured via env vars:
+    ``CACHE_DEFAULT_TTL=60`` (seconds),
+    ``CACHE_ENABLED=true``.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+        self._cache: RedisCache | None = None
+        self._ttl: int = int(os.environ.get("CACHE_DEFAULT_TTL", "60"))
+        self._enabled: bool = os.environ.get("CACHE_ENABLED", "true").lower() == "true"
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        global _HAS_REDIS
+
+        if not self._enabled or _HAS_REDIS is False:
+            return await call_next(request)
+
+        # Only cache GET requests
+        if request.method != "GET":
+            return await call_next(request)
+
+        # Skip health probes and docs
+        if request.url.path in ("/health", "/ready", "/metrics", "/docs", "/openapi.json", "/redoc"):
+            return await call_next(request)
+
+        # Respect client cache-busting headers
+        if request.headers.get("Cache-Control", "").find("no-cache") != -1:
+            return await call_next(request)
+        if request.headers.get("X-No-Cache", "").lower() == "true":
+            return await call_next(request)
+
+        if self._cache is None:
+            if _HAS_REDIS is None:
+                try:
+                    import redis.asyncio as aioredis
+
+                    from shared.cache import RedisCache
+                    from shared.config import get_settings
+
+                    settings = get_settings()
+                    redis = aioredis.from_url(
+                        settings.redis.get_url(settings.redis.cache_db),
+                        socket_timeout=2,
+                        socket_connect_timeout=2,
+                        decode_responses=False,
+                    )
+                    await redis.ping()
+                    self._cache = RedisCache(redis, default_ttl=self._ttl)
+                    _HAS_REDIS = True
+                except Exception as exc:
+                    logger.warning("response_cache.disabled", error=str(exc))
+                    _HAS_REDIS = False
+                    return await call_next(request)
+            else:
+                return await call_next(request)
+
+        cache_key = f"resp:{request.method}:{request.url.path}?{request.url.query}"
+
+        # Try cache hit
+        cached: str | None = await self._cache.get(cache_key)
+        if cached is not None:
+            logger.debug("cache.hit", key=cache_key)
+            return Response(
+                content=cached.encode("utf-8"),
+                media_type="application/json",
+                headers={
+                    "X-Cache": "HIT",
+                    "Cache-Control": f"public, max-age={self._ttl}",
+                },
+            )
+
+        response = await call_next(request)
+
+        # Only cache successful JSON responses
+        if response.status_code == 200 and response.headers.get("content-type", "").startswith("application/json"):
+            body = b""
+            async for chunk in response.body_iterator:
+                body += chunk
+            await self._cache.set(cache_key, body.decode("utf-8"), ttl=self._ttl)
+            logger.debug("cache.set", key=cache_key, ttl=self._ttl)
+            return Response(
+                content=body,
+                status_code=response.status_code,
+                headers=dict(response.headers) | {
+                    "X-Cache": "MISS",
+                    "Cache-Control": f"public, max-age={self._ttl}",
+                },
+                media_type=response.media_type,
+            )
+
+        return response
+
+
 # ── Middleware Orchestrator ───────────────────────────────────────────
 
 
@@ -479,30 +690,38 @@ def setup_middleware(app: FastAPI) -> None:
 
     Final execution order (outermost → innermost):
     1. CORS
-    2. SecurityHeaders
-    3. RequestLogging
-    4. Audit
-    5. InputSanitization
+    2. ResponseCache  (new)
+    3. SecurityHeaders
+    4. RequestLogging
+    5. Audit
+    6. InputSanitization
+    7. RateLimit  (innermost — applied per-route)
 
     Args:
         app: The FastAPI application to configure.
     """
-    # 5. InputSanitization (innermost — closest to route handlers)
+    # 7. RateLimit (innermost — closest to route handlers)
+    app.add_middleware(RateLimitMiddleware)
+
+    # 6. InputSanitization
     app.add_middleware(InputSanitizationMiddleware)
 
-    # 4. Audit
+    # 5. Audit
     app.add_middleware(AuditMiddleware)
 
-    # 3. RequestLogging
+    # 4. RequestLogging
     app.add_middleware(RequestLoggingMiddleware)
 
-    # 2. SecurityHeaders
+    # 3. SecurityHeaders
     app.add_middleware(SecurityHeadersMiddleware)
+
+    # 2. ResponseCache
+    app.add_middleware(ResponseCacheMiddleware)
 
     # 1. CORS (outermost — must handle OPTIONS preflight first)
     configure_cors(app)
 
-    logger.info("middleware_stack_configured", middleware_count=5)
+    logger.info("middleware_stack_configured", middleware_count=7)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────

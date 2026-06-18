@@ -100,6 +100,7 @@ markers = [
     "unit: Unit tests",
     "integration: Integration tests",
     "e2e: End-to-end tests",
+    "db_healthy(val): Override database health check return value",
 ]
 
 [tool.mypy]
