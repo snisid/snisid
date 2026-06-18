@@ -1,0 +1,671 @@
+# ============================================================
+# SNI-SIDE: Kubernetes Deployment Configuration
+# RKE2 + Istio + Cilium
+# ============================================================
+
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sniside
+  annotations:
+    openshift.io/node-selector: "node-role.kubernetes.io/infra="
+  labels:
+    name: sniside
+    security.snisid.ht/zone: intelligence
+    istio-injection: enabled
+
+---
+# === STORAGE ===
+# PostgreSQL 16 — NCID, CODIS, Missing, Vehicle, Firearms, Border, Narcotics, Financial, Cyber, Watchlist, Docs, GEOINT
+apiVersion: acid.zalan.do/v1
+kind: postgresql
+metadata:
+  name: sniside-ncid-postgres
+  namespace: sniside
+spec:
+  teamId: sniside
+  volume:
+    size: 500Gi
+    storageClass: ceph-ssd
+  numberOfInstances: 3
+  postgresql:
+    version: "16"
+    parameters:
+      shared_buffers: "4GB"
+      effective_cache_size: "12GB"
+      work_mem: "64MB"
+      maintenance_work_mem: "1GB"
+      max_connections: "500"
+     wal_level: logical
+      max_replication_slots: 10
+      max_wal_senders: 10
+  patroni:
+    initdb:
+      encoding: UTF8
+      locale: fr_HT.UTF-8
+  pods:
+    persistentVolumeClaim:
+      size: 500Gi
+    resources:
+      requests:
+        cpu: 4
+        memory: 16Gi
+      limits:
+        cpu: 8
+        memory: 32Gi
+
+---
+# CockroachDB — ALPR, Evidence (Geo-partitioned)
+apiVersion: cockroachdb.cockroachlabs.com/v1alpha1
+kind: CrdbCluster
+metadata:
+  name: sniside-cockroachdb
+  namespace: sniside
+spec:
+  dataStore:
+    pvc:
+      spec:
+        storageClassName: ceph-ssd
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 500Gi
+  resources:
+    requests:
+      cpu: 8
+      memory: 32Gi
+    limits:
+      cpu: 16
+      memory: 64Gi
+  nodes: 5
+  topology:
+    zones:
+      - name: dc1-zone-a
+        nodeCount: 2
+      - name: dc1-zone-b
+        nodeCount: 2
+      - name: dc2-zone-a
+        nodeCount: 1
+
+---
+# Neo4j Enterprise — National Sovereign Intelligence Graph
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: sniside-neo4j
+  namespace: sniside
+spec:
+  chart:
+    repository: https://neo4j.com/helm-charts
+    name: neo4j-standalone
+    version: 5.x
+  values:
+    core:
+      numberOfServers: 5
+      resources:
+        requests:
+          cpu: 8
+          memory: 32Gi
+        limits:
+          cpu: 16
+          memory: 64Gi
+    durable:
+      volumes:
+        data:
+          storageClass: ceph-ssd
+          size: 2Ti
+    config:
+      dbms.memory.heap.initial_size: "16G"
+      dbms.memory.heap.max_size: "32G"
+      dbms.memory.pagecache.size: "16G"
+      dbms.tx_log.rotation.retention_policy: "7 days"
+      dbms.security.auth_enabled: "true"
+      dbms.security.ldap_authentication_enabled: "true"
+      dbms.connector.bolt.tls_level: REQUIRED
+
+---
+# Milvus — Vector Database for Biometrics
+apiVersion: milvus.io/v1beta1
+kind: MilvusCluster
+metadata:
+  name: sniside-milvus
+  namespace: sniside
+spec:
+  components:
+    proxy:
+      replicas: 3
+    indexNode:
+      replicas: 3
+    queryNode:
+      replicas: 5
+    dataNode:
+      replicas: 3
+  config:
+    proxy:
+      port: 19530
+    common:
+      defaultPartitionCount: 64
+    index:
+      indexMode: "GPU_IVF_FLAT"
+    storage:
+      type: "minio"
+      endpoint: "minio.minio:9000"
+      bucket: "sniside-vectors"
+
+---
+# Kafka — Event Streaming (Strimzi)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: sniside-kafka
+  namespace: sniside
+spec:
+  kafka:
+    version: 3.7.0
+    replicas: 6
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      auto.create.topics.enable: false
+      compression.type: zstd
+      log.retention.bytes: "1073741824000"
+    storage:
+      type: persistent-claim
+      size: 1Ti
+      class: ceph-ssd
+  zookeeper:
+    replicas: 3
+    storage:
+      type: persistent-claim
+      size: 100Gi
+      class: ceph-ssd
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+
+---
+# ClickHouse — Analytics
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseInstallation
+metadata:
+  name: sniside-clickhouse
+  namespace: sniside
+spec:
+  configuration:
+    clusters:
+      - name: sniside
+        layout:
+          shardsCount: 3
+          replicasCount: 2
+    zookeeper:
+      nodes:
+        - host: sniside-zookeeper-0.sniside.svc
+        - host: sniside-zookeeper-1.sniside.svc
+        - host: sniside-zookeeper-2.sniside.svc
+  useTemplates:
+    - name: clickhouse-ssd
+  defaults:
+    templates:
+      podTemplate: clickhouse-ssd
+      volumeClaimTemplate: clickhouse-ssd-500
+
+---
+# MinIO — Evidence Object Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sniside-minio-data
+  namespace: sniside
+spec:
+  storageClassName: ceph-hdd
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Ti
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sniside-minio
+  namespace: sniside
+spec:
+  serviceName: minio
+  replicas: 4
+  selector:
+    matchLabels:
+      app: sniside-minio
+  template:
+    metadata:
+      labels:
+        app: sniside-minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args: ["server", "/data", "--console-address", ":9001"]
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: root-user
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: root-password
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          resources:
+            requests:
+              cpu: 4
+              memory: 16Gi
+            limits:
+              cpu: 8
+              memory: 32Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        storageClassName: ceph-hdd
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Ti
+
+---
+# Redis — Cache for National Search Engine
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: sniside-redis
+  namespace: sniside
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 5
+    resources:
+      requests:
+        cpu: 2
+        memory: 8Gi
+      limits:
+        cpu: 4
+        memory: 16Gi
+
+---
+# === MICROSERVICES ===
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sniside-ncid-api
+  namespace: sniside
+  labels:
+    app: sniside-ncid-api
+    security.snisid.ht/zone: intelligence
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sniside-ncid-api
+  template:
+    metadata:
+      labels:
+        app: sniside-ncid-api
+      annotations:
+        sidecar.istio.io/inject: "true"
+        vault.hashicorp.com/agent-inject: "true"
+    spec:
+      serviceAccountName: sniside-sa
+      containers:
+        - name: ncid-api
+          image: snisid.registry.ht/sniside/ncid-api:latest
+          ports:
+            - containerPort: 8080
+            - containerPort: 9090
+          env:
+            - name: DB_HOST
+              value: sniside-ncid-postgres
+            - name: DB_NAME
+              value: sniside_ncid
+            - name: KAFKA_BOOTSTRAP
+              value: sniside-kafka-kafka-bootstrap:9092
+            - name: NEO4J_URI
+              value: bolt://sniside-neo4j:7687
+            - name: REDIS_ADDR
+              value: sniside-redis:6379
+          resources:
+            requests:
+              cpu: 2
+              memory: 4Gi
+            limits:
+              cpu: 4
+              memory: 8Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sniside-biometrics-api
+  namespace: sniside
+  labels:
+    app: sniside-biometrics-api
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: sniside-biometrics-api
+  template:
+    metadata:
+      labels:
+        app: sniside-biometrics-api
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: sniside-sa
+      containers:
+        - name: biometrics-api
+          image: snisid.registry.ht/sniside/biometrics-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              value: sniside-ncid-postgres
+            - name: MILVUS_HOST
+              value: sniside-milvus-proxy
+            - name: KAFKA_BOOTSTRAP
+              value: sniside-kafka-kafka-bootstrap:9092
+            - name: MODEL_PATH
+              value: /models/arcface_v1.pth
+          resources:
+            requests:
+              cpu: 4
+              memory: 8Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: 8
+              memory: 16Gi
+              nvidia.com/gpu: 1
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sniside-graph-intelligence
+  namespace: sniside
+  labels:
+    app: sniside-graph-intelligence
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sniside-graph-intelligence
+  template:
+    metadata:
+      labels:
+        app: sniside-graph-intelligence
+    spec:
+      containers:
+        - name: graph-intel
+          image: snisid.registry.ht/sniside/graph-intel:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NEO4J_URI
+              value: bolt://sniside-neo4j:7687
+            - name: KAFKA_BOOTSTRAP
+              value: sniside-kafka-kafka-bootstrap:9092
+          resources:
+            requests:
+              cpu: 4
+              memory: 8Gi
+            limits:
+              cpu: 8
+              memory: 16Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sniside-ai-fusion
+  namespace: sniside
+  labels:
+    app: sniside-ai-fusion
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sniside-ai-fusion
+  template:
+    metadata:
+      labels:
+        app: sniside-ai-fusion
+    spec:
+      containers:
+        - name: ai-fusion
+          image: snisid.registry.ht/sniside/ai-fusion:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KAFKA_BOOTSTRAP
+              value: sniside-kafka-kafka-bootstrap:9092
+            - name: NEO4J_URI
+              value: bolt://sniside-neo4j:7687
+            - name: MODELS_PATH
+              value: /models/
+          resources:
+            requests:
+              cpu: 8
+              memory: 16Gi
+              nvidia.com/gpu: 2
+            limits:
+              cpu: 16
+              memory: 32Gi
+              nvidia.com/gpu: 2
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sniside-search-engine
+  namespace: sniside
+  labels:
+    app: sniside-search-engine
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: sniside-search-engine
+  template:
+    metadata:
+      labels:
+        app: sniside-search-engine
+    spec:
+      containers:
+        - name: search-engine
+          image: snisid.registry.ht/sniside/search-engine:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: REDIS_ADDR
+              value: sniside-redis:6379
+            - name: KAFKA_BOOTSTRAP
+              value: sniside-kafka-kafka-bootstrap:9092
+            - name: NEO4J_URI
+              value: bolt://sniside-neo4j:7687
+            - name: CLICKHOUSE_HOST
+              value: sniside-clickhouse
+          resources:
+            requests:
+              cpu: 4
+              memory: 8Gi
+            limits:
+              cpu: 8
+              memory: 16Gi
+
+---
+# == HORIZONTAL POD AUTOSCALERS ==
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sniside-ncid-api-hpa
+  namespace: sniside
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sniside-ncid-api
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sniside-biometrics-api-hpa
+  namespace: sniside
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sniside-biometrics-api
+  minReplicas: 5
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+---
+# == SERVICE MESH (ISTIO) ==
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: sniside-gateway
+  namespace: sniside
+spec:
+  hosts:
+    - "api.snisid.ht"
+  gateways:
+    - sniside-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /intelligence/v1/ncid
+      route:
+        - destination:
+            host: sniside-ncid-api
+            port:
+              number: 8080
+    - match:
+        - uri:
+            prefix: /intelligence/v1/biometrics
+      route:
+        - destination:
+            host: sniside-biometrics-api
+            port:
+              number: 8080
+    - match:
+        - uri:
+            prefix: /intelligence/v1/search
+      route:
+        - destination:
+            host: sniside-search-engine
+            port:
+              number: 8080
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: sniside-mtls
+  namespace: sniside
+spec:
+  host: "*.sniside.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+
+---
+# == CILIUM NETWORK POLICIES ==
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sniside-default-deny
+  namespace: sniside
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            "k8s:io.kubernetes.pod.namespace": istio-system
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            "k8s:io.kubernetes.pod.namespace": sniside
+
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sniside-ncid-db-access
+  namespace: sniside
+spec:
+  endpointSelector:
+    matchLabels:
+      app: sniside-ncid-api
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: sniside-ncid-postgres
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app: sniside-kafka-kafka
+      toPorts:
+        - ports:
+            - port: "9092"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app: sniside-neo4j
+      toPorts:
+        - ports:
+            - port: "7687"
+              protocol: TCP

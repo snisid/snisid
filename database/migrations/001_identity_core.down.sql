@@ -1,0 +1,24 @@
+-- Rollback migration 001
+DROP TABLE IF EXISTS snisid_identity.identity_snapshots;
+DROP TABLE IF EXISTS snisid_identity.identity_events;
+DROP RULE IF EXISTS no_update_events ON snisid_identity.identity_events;
+DROP RULE IF EXISTS no_delete_events ON snisid_identity.identity_events;
+DROP TABLE IF EXISTS snisid_identity.citizens_nippes;
+DROP TABLE IF EXISTS snisid_identity.citizens_grand_anse;
+DROP TABLE IF EXISTS snisid_identity.citizens_sud_est;
+DROP TABLE IF EXISTS snisid_identity.citizens_sud;
+DROP TABLE IF EXISTS snisid_identity.citizens_centre;
+DROP TABLE IF EXISTS snisid_identity.citizens_artibonite;
+DROP TABLE IF EXISTS snisid_identity.citizens_nord_ouest;
+DROP TABLE IF EXISTS snisid_identity.citizens_nord_est;
+DROP TABLE IF EXISTS snisid_identity.citizens_nord;
+DROP TABLE IF EXISTS snisid_identity.citizens_ouest;
+DROP TABLE IF EXISTS snisid_identity.citizens;
+DROP FUNCTION IF EXISTS snisid_identity.update_updated_at();
+DROP FUNCTION IF EXISTS snisid_identity.increment_version();
+DROP TYPE IF EXISTS snisid_identity.identity_status;
+DROP TYPE IF EXISTS snisid_identity.department_code;
+DROP SCHEMA IF EXISTS snisid_identity CASCADE;
+DROP SCHEMA IF EXISTS snisid_civil CASCADE;
+DROP SCHEMA IF EXISTS snisid_audit CASCADE;
+DROP SCHEMA IF EXISTS snisid_biometric CASCADE;

@@ -1,0 +1,28 @@
+{
+  "namespace": "sn.sniside.border",
+  "type": "record",
+  "name": "BorderCrossingEvent",
+  "version": 1,
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "event_type", "type": {"type": "enum", "name": "BorderEventType", "symbols": ["CROSSING", "VISA_ISSUED", "DEPORTATION", "WATCHLIST_HIT", "BIOMETRIC_MATCH"]}},
+    {"name": "crossing_id", "type": "string"},
+    {"name": "niu", "type": ["null", "string"], "default": null},
+    {"name": "passport_number", "type": "string"},
+    {"name": "full_name", "type": "string"},
+    {"name": "nationality", "type": "string"},
+    {"name": "direction", "type": {"type": "enum", "name": "BorderDirection", "symbols": ["ENTRY", "EXIT"]}},
+    {"name": "border_point", "type": "string"},
+    {"name": "crossing_date", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "crossing_method", "type": {"type": "enum", "name": "CrossingMethod", "symbols": ["AIR", "LAND", "SEA", "RAIL", "PEDESTRIAN"]}},
+    {"name": "vehicle_plate", "type": ["null", "string"], "default": null},
+    {"name": "flight_number", "type": ["null", "string"], "default": null},
+    {"name": "biometric_verified", "type": "boolean", "default": false},
+    {"name": "risk_score", "type": "double", "default": 0.0},
+    {"name": "alert_triggered", "type": "boolean", "default": false},
+    {"name": "alert_type", "type": ["null", "string"], "default": null},
+    {"name": "officer_agency", "type": "string"},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "correlation_id", "type": "string"}
+  ]
+}

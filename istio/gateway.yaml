@@ -1,0 +1,52 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: snisid-gateway
+  namespace: snisid
+  labels:
+    app.kubernetes.io/part-of: snisid
+    app.kubernetes.io/component: ingress
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: MUTUAL
+      credentialName: snisid-gateway-tls
+    hosts:
+    - "api.snisid.ht"
+    - "*.snisid.ht"
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "api.snisid.ht"
+    - "*.snisid.ht"
+    tls:
+      httpsRedirect: true
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: snisid-internal-gateway
+  namespace: snisid
+  labels:
+    app.kubernetes.io/part-of: snisid
+    app.kubernetes.io/component: mesh
+spec:
+  selector:
+    istio: mesh
+  servers:
+  - port:
+      number: 443
+      name: mtls
+      protocol: HTTPS
+    tls:
+      mode: ISTIO_MUTUAL
+    hosts:
+    - "*.snisid.svc.cluster.local"

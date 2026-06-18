@@ -25,7 +25,7 @@ func main() {
 
 	err := reader.SetOffsetAt(context.Background(), startTime)
 	if err != nil {
-		logger.Fatal("failed to set offset", err)
+		logger.Fatal(context.Background(), "failed to set offset", err)
 	}
 
 	fmt.Printf("REPLAY: Starting event replay for topic %s from %s\n", topic, startTime.Format(time.RFC3339))

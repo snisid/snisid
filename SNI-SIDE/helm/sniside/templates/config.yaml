@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sniside-sa
+  namespace: sniside
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sniside-config
+  namespace: sniside
+data:
+  LOG_LEVEL: "INFO"
+  KAFKA_BOOTSTRAP_SERVERS: "{{ .Values.global.kafkaBootstrapServers }}"
+  NEO4J_URI: "{{ .Values.global.neo4jUri }}"
+  REDIS_HOST: "{{ .Values.global.redisHost }}"
+  CLICKHOUSE_HOST: "{{ .Values.global.clickhouseHost }}"
+  MILVUS_HOST: "{{ .Values.global.milvusHost }}"
+  MINIO_ENDPOINT: "{{ .Values.global.minioEndpoint }}"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "{{ .Values.global.otelEndpoint }}"
+  ENVIRONMENT: "{{ .Values.global.environment }}"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sniside-secrets
+  namespace: sniside
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password }}"
+  NEO4J_PASSWORD: "sniside-neo4j"
+  MINIO_ACCESS_KEY: "{{ .Values.minio.accessKey | default "sniside" }}"
+  MINIO_SECRET_KEY: "{{ .Values.minio.secretKey | default "sniside-minio-secret" }}"
+  REDIS_PASSWORD: ""
+  JWT_SECRET: "sniside-jwt-secret-change-in-production"
+  API_KEY: "sniside-api-key-change-in-production"

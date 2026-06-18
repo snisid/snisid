@@ -1,0 +1,129 @@
+{{- $root := . -}}
+{{- range $svc := list 
+  (dict "name" "ncid-api" "key" "ncidApi")
+  (dict "name" "biometrics-api" "key" "biometricsApi")
+  (dict "name" "codis-api" "key" "codisApi")
+  (dict "name" "missing-api" "key" "missingApi")
+  (dict "name" "vehicle-api" "key" "vehicleApi")
+  (dict "name" "alpr-ingest" "key" "alprIngest")
+  (dict "name" "firearm-api" "key" "firearmApi")
+  (dict "name" "border-api" "key" "borderApi")
+  (dict "name" "narcotics-api" "key" "narcoticsApi")
+  (dict "name" "financial-api" "key" "financialApi")
+  (dict "name" "cyber-api" "key" "cyberApi")
+  (dict "name" "watchlist-api" "key" "watchlistApi")
+  (dict "name" "document-api" "key" "documentApi")
+  (dict "name" "geoint-api" "key" "geointApi")
+  (dict "name" "evidence-api" "key" "evidenceApi")
+  (dict "name" "search-engine" "key" "searchEngine")
+  (dict "name" "ai-fusion" "key" "aiFusion")
+  (dict "name" "event-processor" "key" "eventProcessor")
+  (dict "name" "graphrag-engine" "key" "graphragEngine")
+}}
+{{- $cfg := index $root.Values $svc.key -}}
+{{- if $cfg.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sniside-{{ $svc.name }}
+  namespace: sniside
+  labels:
+    {{- include "sniside.labels" (dict "name" $svc.name "component" "api" "Release" $root.Release "Chart" $root.Chart) | nindent 4 }}
+spec:
+  replicas: {{ $cfg.replicas | default 3 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "sniside.selectorLabels" (dict "name" $svc.name "Release" $root.Release) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sniside.selectorLabels" (dict "name" $svc.name "Release" $root.Release) | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: sniside-sa
+      securityContext:
+        fsGroup: 1001
+        runAsNonRoot: true
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              {{- include "sniside.selectorLabels" (dict "name" $svc.name "Release" $root.Release) | nindent 14 }}
+      containers:
+        {{- include "sniside.pod" (dict "name" $svc.name "image" (printf "%s/sniside-%s:%s" $root.Values.global.imageRegistry $svc.name $root.Values.global.imageTag) "resources" $cfg.resources "gpu" $cfg.gpu "gpuCount" $cfg.gpuCount "extraEnv" $cfg.extraEnv "Values" $root.Values) | nindent 8 }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "sniside.selectorLabels" (dict "name" $svc.name "Release" $root.Release) | nindent 20 }}
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sniside-{{ $svc.name }}
+  namespace: sniside
+  labels:
+    {{- include "sniside.labels" (dict "name" $svc.name "component" "api" "Release" $root.Release "Chart" $root.Chart) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+    - port: 9100
+      targetPort: metrics
+      name: metrics
+  selector:
+    {{- include "sniside.selectorLabels" (dict "name" $svc.name "Release" $root.Release) | nindent 4 }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sniside-{{ $svc.name }}
+  namespace: sniside
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sniside-{{ $svc.name }}
+  minReplicas: {{ $cfg.minReplicas | default $cfg.replicas | default 3 }}
+  maxReplicas: {{ $cfg.maxReplicas | default 15 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $cfg.cpuTarget | default 70 }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 180
+{{- end }}
+{{- end }}

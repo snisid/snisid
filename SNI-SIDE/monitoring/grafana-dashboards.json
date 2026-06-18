@@ -1,0 +1,264 @@
+{
+  "sniside-dashboards": [
+    {
+      "title": "SNI-SIDE — National Intelligence Overview",
+      "uid": "sniside-overview",
+      "description": "Tableau de bord principal de l'intelligence nationale SNI-SIDE",
+      "timezone": "America/Port-au-Prince",
+      "panels": [
+        {
+          "title": "Alertes en Temps Réel par Séverité",
+          "type": "stat",
+          "datasource": "ClickHouse",
+          "query": "SELECT severity, count() FROM sniside.alerts_stream WHERE created_at > now() - INTERVAL 1 HOUR GROUP BY severity",
+          "refresh": "10s"
+        },
+        {
+          "title": "ALPR — Lectures par Minute",
+          "type": "graph",
+          "datasource": "ClickHouse",
+          "query": "SELECT toStartOfMinute(read_timestamp) AS t, count() FROM sniside.alpr_stream WHERE read_timestamp > now() - INTERVAL 1 HOUR GROUP BY t ORDER BY t",
+          "refresh": "10s"
+        },
+        {
+          "title": "Top 10 Plaques Recherchées",
+          "type": "table",
+          "datasource": "ClickHouse",
+          "query": "SELECT plate_text, count() AS hits, countDistinct(camera_code) AS cameras FROM sniside.alpr_stream WHERE is_wanted = 1 AND read_timestamp > now() - INTERVAL 24 HOUR GROUP BY plate_text ORDER BY hits DESC LIMIT 10",
+          "refresh": "60s"
+        },
+        {
+          "title": "Frontières — Entrées/Sorties Aujourd'hui",
+          "type": "stat",
+          "datasource": "ClickHouse",
+          "query": "SELECT crossing_direction, count() FROM sniside.border_crossings_analytics WHERE toDate(crossing_date) = today() GROUP BY crossing_direction",
+          "refresh": "60s"
+        },
+        {
+          "title": "Transactions Suspectes — Risque Élevé",
+          "type": "table",
+          "datasource": "ClickHouse",
+          "query": "SELECT transaction_ref, amount_usd, source_country, risk_score FROM sniside.suspicious_transactions WHERE risk_score > 0.8 AND transaction_date > now() - INTERVAL 7 DAY ORDER BY risk_score DESC LIMIT 20",
+          "refresh": "5m"
+        },
+        {
+          "title": "Cyber IOCs par Séverité (24h)",
+          "type": "pie",
+          "datasource": "ClickHouse",
+          "query": "SELECT severity, count() FROM sniside.cyber_ioc_stream WHERE last_seen > now() - INTERVAL 24 HOUR GROUP BY severity",
+          "refresh": "5m"
+        },
+        {
+          "title": "Performance Moteur de Recherche",
+          "type": "graph",
+          "datasource": "ClickHouse",
+          "query": "SELECT toStartOfMinute(created_at) AS t, avg(search_duration_ms) AS avg_ms, quantile(0.99)(search_duration_ms) AS p99 FROM sniside.search_log WHERE created_at > now() - INTERVAL 1 HOUR GROUP BY t ORDER BY t",
+          "refresh": "30s"
+        },
+        {
+          "title": "Taux de Résolution Criminelle",
+          "type": "gauge",
+          "datasource": "ClickHouse",
+          "query": "SELECT department, if(solved_cases > 0, round(solved_cases/total_cases*100, 1), 0) AS resolution_rate FROM sniside.crime_statistics WHERE date = yesterday() ORDER BY resolution_rate DESC",
+          "refresh": "1h"
+        },
+        {
+          "title": "État de Santé des Modèles IA",
+          "type": "table",
+          "datasource": "ClickHouse",
+          "query": "SELECT model_name, model_version, avg(avg_latency_ms) AS latency, sum(error_count) AS errors, avg(gpu_utilization) AS gpu FROM sniside.ai_model_performance WHERE observation_time > now() - INTERVAL 1 HOUR GROUP BY model_name, model_version",
+          "refresh": "30s"
+        },
+        {
+          "title": "Évolution du Graphe Intelligence",
+          "type": "graph",
+          "datasource": "ClickHouse",
+          "query": "SELECT snapshot_date, node_count, edge_count, detected_networks FROM sniside.graph_evolution ORDER BY snapshot_date",
+          "refresh": "1h"
+        }
+      ]
+    },
+    {
+      "title": "SNI-SIDE — Real Time Crime Center (RTCC)",
+      "uid": "sniside-rtcc",
+      "description": "Centre de réponse immédiate — temps réel",
+      "timezone": "America/Port-au-Prince",
+      "refresh": "5s",
+      "panels": [
+        {
+          "title": "Alertes Critiques en Direct",
+          "type": "alertlist",
+          "datasource": "ClickHouse",
+          "query": "SELECT alert_type, severity, title, created_at FROM sniside.alerts_stream WHERE severity IN ('CRITICAL', 'HIGH') AND status = 'NEW' ORDER BY created_at DESC LIMIT 50",
+          "refresh": "5s"
+        },
+        {
+          "title": "ALPR — Véhicules Recherchés Détectés",
+          "type": "table",
+          "datasource": "ClickHouse",
+          "query": "SELECT plate_text, camera_code, department, read_timestamp FROM sniside.alpr_hits WHERE read_timestamp > now() - INTERVAL 1 HOUR ORDER BY read_timestamp DESC",
+          "refresh": "10s"
+        },
+        {
+          "title": "Carte des Incidents (24h)",
+          "type": "geomap",
+          "datasource": "ClickHouse",
+          "query": "SELECT latitude, longitude, alert_type, severity FROM sniside.alerts_stream WHERE created_at > now() - INTERVAL 24 HOUR AND latitude IS NOT NULL",
+          "refresh": "60s"
+        },
+        {
+          "title": "Frontières — Watchlist Hits",
+          "type": "stat",
+          "datasource": "ClickHouse",
+          "query": "SELECT countIf(alert_triggered = 1) AS watchlist_hits FROM sniside.border_crossings_analytics WHERE crossing_date > now() - INTERVAL 1 HOUR",
+          "refresh": "30s"
+        },
+        {
+          "title": "Transactions AML — Alertes Récentes",
+          "type": "table",
+          "datasource": "ClickHouse",
+          "query": "SELECT transaction_ref, amount_usd, sender_name, destination_country, risk_score FROM sniside.suspicious_transactions WHERE status = 'PENDING' AND risk_score > 0.7 AND transaction_date > now() - INTERVAL 24 HOUR ORDER BY risk_score DESC LIMIT 20",
+          "refresh": "1m"
+        },
+        {
+          "title": "Personnes Recherchées — Vue Combinée",
+          "type": "table",
+          "datasource": "PostgreSQL",
+          "query": "SELECT wp.niu, wp.full_name, wp.risk_level, count(aw.warrant_id) AS warrants FROM snisid_ncid.wanted_persons wp LEFT JOIN snisid_ncid.arrest_warrants aw ON wp.niu = aw.person_niu AND aw.status = 'ACTIVE' WHERE wp.status = 'ACTIVE' GROUP BY wp.niu, wp.full_name, wp.risk_level ORDER BY wp.risk_level DESC, warrants DESC LIMIT 50",
+          "refresh": "30s"
+        }
+      ]
+    },
+    {
+      "title": "SNI-SIDE — AI Fusion Center Monitor",
+      "uid": "sniside-ai-fusion",
+      "description": "Surveillance des modèles IA et du GraphRAG",
+      "panels": [
+        {
+          "title": "Inférence IA par Modèle (req/min)",
+          "type": "graph",
+          "datasource": "ClickHouse",
+          "query": "SELECT toStartOfMinute(observation_time) AS t, model_name, sum(inference_count) AS count FROM sniside.ai_model_performance WHERE observation_time > now() - INTERVAL 1 HOUR GROUP BY t, model_name",
+          "refresh": "30s"
+        },
+        {
+          "title": "Latence P99 par Modèle",
+          "type": "heatmap",
+          "datasource": "ClickHouse",
+          "query": "SELECT observation_time AS t, model_name, p99_latency_ms FROM sniside.ai_model_performance WHERE observation_time > now() - INTERVAL 6 HOUR",
+          "refresh": "1m"
+        },
+        {
+          "title": "Taux d'Erreur Modèles IA",
+          "type": "graph",
+          "datasource": "ClickHouse",
+          "query": "SELECT toStartOfHour(observation_time) AS t, model_name, avg(error_rate)*100 AS error_pct FROM sniside.ai_model_performance WHERE observation_time > now() - INTERVAL 24 HOUR GROUP BY t, model_name",
+          "refresh": "5m"
+        },
+        {
+          "title": "GraphRAG — Requêtes Traitées",
+          "type": "stat",
+          "datasource": "ClickHouse",
+          "query": "SELECT count() AS queries FROM sniside.search_log WHERE graph_context_used = 1 AND created_at > now() - INTERVAL 1 HOUR",
+          "refresh": "30s"
+        },
+        {
+          "title": "GPU Utilization",
+          "type": "gauge",
+          "datasource": "ClickHouse",
+          "query": "SELECT model_name, avg(gpu_utilization) AS gpu_pct FROM sniside.ai_model_performance WHERE observation_time > now() - INTERVAL 5 MINUTE GROUP BY model_name",
+          "refresh": "15s"
+        }
+      ]
+    },
+    {
+      "title": "SNI-SIDE — Fusion Center National",
+      "uid": "sniside-fusion",
+      "description": "Centre de fusion du renseignement — vue consolidée",
+      "panels": [
+        {
+          "title": "Indicateurs Synthétiques Nationaux",
+          "type": "row",
+          "panels": [
+            {
+              "title": "Personnes Recherchées",
+              "type": "stat",
+              "datasource": "PostgreSQL",
+              "query": "SELECT count(*) FROM snisid_ncid.wanted_persons WHERE status = 'ACTIVE'"
+            },
+            {
+              "title": "Alertes Actives (non traitées)",
+              "type": "stat",
+              "datasource": "ClickHouse",
+              "query": "SELECT count(*) FROM sniside.alerts_stream WHERE status = 'NEW'",
+              "refresh": "10s"
+            },
+            {
+              "title": "ADN Profiles (CODIS)",
+              "type": "stat",
+              "datasource": "PostgreSQL",
+              "query": "SELECT count(*) FROM snisid_codis.dna_profiles WHERE status = 'ACTIVE'"
+            },
+            {
+              "title": "ALPR Lectures Aujourd'hui",
+              "type": "stat",
+              "datasource": "ClickHouse",
+              "query": "SELECT count(*) FROM sniside.alpr_stream WHERE toDate(read_timestamp) = today()",
+              "refresh": "30s"
+            }
+          ]
+        },
+        {
+          "title": "Carte des Hotspots Criminels",
+          "type": "geomap",
+          "datasource": "PostgreSQL",
+          "query": "SELECT h.location[0] AS lat, h.location[1] AS lng, h.hotspot_type, h.risk_level FROM snisid_geoint.hotspots h WHERE h.status = 'ACTIVE'",
+          "refresh": "1h"
+        },
+        {
+          "title": "Corrélations Inter-Bases",
+          "type": "table",
+          "datasource": "ClickHouse",
+          "query": "SELECT entity_id, entity_type, arrayStringConcat(databases_present, ', ') AS databases, total_references, avg_risk_score FROM sniside.entity_correlations WHERE total_references > 2 ORDER BY total_references DESC LIMIT 50",
+          "refresh": "5m"
+        },
+        {
+          "title": "Tendances Criminelles par Département",
+          "type": "heatmap",
+          "datasource": "ClickHouse",
+          "query": "SELECT date, department, total_cases FROM sniside.crime_statistics WHERE date > now() - INTERVAL 90 DAY ORDER BY date",
+          "refresh": "1h"
+        },
+        {
+          "title": "Réseaux Financiers Détectés",
+          "type": "table",
+          "datasource": "ClickHouse",
+          "query": "SELECT transaction_ref, amount_usd, sender_name, beneficiary_name, risk_score, mlro_filed FROM sniside.suspicious_transactions WHERE risk_score > 0.9 AND transaction_date > now() - INTERVAL 30 DAY ORDER BY risk_score DESC, amount_usd DESC LIMIT 20",
+          "refresh": "1h"
+        },
+        {
+          "title": "Route de Trafic — Top Origines",
+          "type": "barchart",
+          "datasource": "PostgreSQL",
+          "query": "SELECT origin_country, count(*) AS cnt FROM snisid_narcotics.narcotics_routes WHERE status = 'ACTIVE' GROUP BY origin_country ORDER BY cnt DESC LIMIT 10"
+        }
+      ]
+    }
+  ],
+  "notifications": [
+    {
+      "name": "SOC Critical Alerts",
+      "type": "webhook",
+      "settings": {
+        "url": "https://soc.snisid.ht/alerts/sniside-webhook"
+      }
+    },
+    {
+      "name": "RTCC Real-Time Alerts",
+      "type": "webhook",
+      "settings": {
+        "url": "https://rtcc.snisid.ht/alerts/realtime"
+      }
+    }
+  ]
+}

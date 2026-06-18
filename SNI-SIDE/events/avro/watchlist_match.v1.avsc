@@ -1,0 +1,27 @@
+{
+  "namespace": "sn.sniside.watchlist",
+  "type": "record",
+  "name": "WatchlistMatchEvent",
+  "version": 1,
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "entry_id", "type": "string"},
+    {"name": "watchlist_type", "type": {"type": "enum", "name": "WatchlistType", "symbols": ["PERSON", "VEHICLE", "ORGANIZATION", "DOCUMENT", "PHONE", "EMAIL"]}},
+    {"name": "watchlist_category", "type": "string"},
+    {"name": "match_value", "type": "string"},
+    {"name": "match_source", "type": "string"},
+    {"name": "match_source_id", "type": "string"},
+    {"name": "match_confidence", "type": "double"},
+    {"name": "detected_at", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "detection_location", "type": ["null", {"type": "record", "name": "GeoLocation", "fields": [
+      {"name": "lat", "type": "double"},
+      {"name": "lng", "type": "double"},
+      {"name": "place", "type": ["null", "string"], "default": null}
+    ]}], "default": null},
+    {"name": "risk_level", "type": {"type": "enum", "name": "AlertLevel", "symbols": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]}},
+    {"name": "alert_generated", "type": "boolean", "default": true},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "source", "type": "string"},
+    {"name": "correlation_id", "type": "string"}
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "namespace": "sn.sniside.ncid",
+  "type": "record",
+  "name": "WantedPersonEvent",
+  "version": 1,
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "event_type", "type": {"type": "enum", "name": "WantedEventType", "symbols": ["CREATED", "UPDATED", "CAPTURED", "DECEASED", "RISK_CHANGED"]}},
+    {"name": "niu", "type": "string"},
+    {"name": "full_name", "type": "string"},
+    {"name": "risk_level", "type": {"type": "enum", "name": "RiskLevel", "symbols": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]}},
+    {"name": "status", "type": "string"},
+    {"name": "warrants_active", "type": "int", "default": 0},
+    {"name": "interpol_notices", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "aliases", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "gang_affiliations", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "detection_alerts", "type": {"type": "array", "items": {"type": "record", "name": "Alert", "fields": [
+      {"name": "alert_type", "type": "string"},
+      {"name": "severity", "type": "string"},
+      {"name": "message", "type": "string"},
+      {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+    ]}}, "default": []},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "source", "type": "string"},
+    {"name": "agency", "type": "string"},
+    {"name": "correlation_id", "type": "string"}
+  ]
+}

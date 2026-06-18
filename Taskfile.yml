@@ -1,0 +1,249 @@
+version: '3'
+
+vars:
+  PROJECT_ROOT: .
+  GO_VERSION: 1.26.4
+  PYTHON_VERSION: 3.12
+  K8S_NAMESPACE: snisid
+  DOCKER_REGISTRY: registry.snisid.ht
+
+tasks:
+  # ===== DEVELOPMENT =====
+  dev:
+    desc: Start development environment
+    cmds:
+      - docker compose -f docker-compose.yml up -d
+      - task: dev:logs
+
+  dev:logs:
+    desc: Tail all logs
+    cmds:
+      - docker compose logs -f
+
+  dev:down:
+    desc: Stop development environment
+    cmds:
+      - docker compose down
+
+  dev:clean:
+    desc: Clean all containers, volumes, and orphans
+    cmds:
+      - docker compose down -v --remove-orphans
+      - docker system prune -f
+
+  # ===== BUILD =====
+  build:go:
+    desc: Build all Go services
+    cmds:
+      - go build ./...
+    sources:
+      - "**/*.go"
+    generates:
+      - "**/main.exe"
+
+  build:docker:
+    desc: Build all Docker images
+    cmds:
+      - docker compose build
+
+  build:frontend:
+    desc: Build frontend applications
+    dir: apps-ecosystem
+    cmds:
+      - npm install
+      - npm run build
+
+  # ===== TEST =====
+  test:go:
+    desc: Run all Go tests
+    cmds:
+      - go test ./... -v -count=1 -timeout 300s
+
+  test:go:short:
+    desc: Run short Go tests only
+    cmds:
+      - go test ./... -short -count=1 -timeout 60s
+
+  test:python:
+    desc: Run Python tests
+    cmds:
+      - cd backend && python -m pytest tests/ -v
+
+  test:all:
+    desc: Run all tests
+    cmds:
+      - task: test:go
+      - task: test:python
+
+  # ===== QUALITY =====
+  lint:go:
+    desc: Run Go linters
+    cmds:
+      - golangci-lint run --timeout 5m ./...
+
+  lint:python:
+    desc: Run Python linters
+    cmds:
+      - ruff check backend/ services/biometric/ SNI-SIDE/
+      - ruff format --check backend/ services/biometric/ SNI-SIDE/
+
+  lint:all:
+    desc: Run all linters
+    cmds:
+      - task: lint:go
+      - task: lint:python
+
+  fmt:go:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+
+  fmt:python:
+    desc: Format Python code
+    cmds:
+      - ruff format backend/ services/biometric/ SNI-SIDE/
+
+  security:scan:
+    desc: Run security scans
+    cmds:
+      - gitleaks detect --verbose
+      - trufflehog filesystem --directory=. --no-update
+      - trivy fs --security-checks vuln,secret,config .
+
+  security:sbom:
+    desc: Generate SBOM
+    cmds:
+      - cyclonedx-bom -o bom.json
+      - grype bom.json -o sarif > bom-vulnerabilities.sarif
+
+  # ===== DATABASE =====
+  db:migrate:
+    desc: Run database migrations
+    cmds:
+      - cd database/migrations && goose up
+
+  db:migrate:down:
+    desc: Rollback last migration
+    cmds:
+      - cd database/migrations && goose down
+
+  db:migrate:status:
+    desc: Show migration status
+    cmds:
+      - cd database/migrations && goose status
+
+  db:seed:
+    desc: Seed database with test data
+    cmds:
+      - go run scripts/seed/main.go
+
+  # ===== KUBERNETES =====
+  k8s:validate:
+    desc: Validate Kubernetes manifests
+    cmds:
+      - kubectl kustomize k8s/base --dry-run=client
+      - kubeconform -summary k8s/base/
+
+  k8s:deploy:
+    desc: Deploy to Kubernetes
+    cmds:
+      - kubectl apply -k k8s/base/
+
+  k8s:rollback:
+    desc: Rollback Kubernetes deployment
+    cmds:
+      - kubectl delete -k k8s/base/ --ignore-not-found
+
+  k8s:namespaces:
+    desc: List SNISID namespaces
+    cmds:
+      - kubectl get ns -l app.kubernetes.io/part-of=snisid
+
+  # ===== HELM =====
+  helm:lint:
+    desc: Lint Helm charts
+    cmds:
+      - helm lint deployments/helm/
+      - helm lint k8s/helm/backend/
+      - helm lint k8s/helm/frontend/
+
+  helm:template:
+    desc: Template Helm charts
+    cmds:
+      - helm template snisid deployments/helm/ --debug
+
+  # ===== VAULT =====
+  vault:init:
+    desc: Initialize Vault
+    cmds:
+      - vault operator init -key-shares=5 -key-threshold=3 > vault/init-keys.txt
+
+  vault:unseal:
+    desc: Unseal Vault
+    cmds:
+      - vault operator unseal
+      - vault operator unseal
+      - vault operator unseal
+
+  vault:apply-policies:
+    desc: Apply all Vault policies
+    cmds:
+      - for policy in vault/policies/*.hcl; do
+          name=$(basename "$policy" .hcl);
+          vault policy write "$name" "$policy";
+        done
+
+  # ===== GITOPS =====
+  argocd:sync:
+    desc: Sync ArgoCD applications
+    cmds:
+      - argocd app sync snisid-core
+      - argocd app sync snisid-services
+      - argocd app sync snisid-infrastructure
+
+  argocd:status:
+    desc: Show ArgoCD application status
+    cmds:
+      - argocd app list
+      - argocd app get snisid-core
+
+  # ===== CI/CD =====
+  ci:validate:
+    desc: Validate CI pipeline locally
+    cmds:
+      - act -j lint
+      - act -j test
+      - act -j security
+
+  # ===== RELEASE =====
+  release:version:
+    desc: Show current version
+    cmds:
+      - git describe --tags --abbrev=0
+
+  release:create:
+    desc: Create a new release
+    cmds:
+      - git tag -a "v{{.VERSION}}" -m "Release v{{.VERSION}}"
+      - git push origin "v{{.VERSION}}"
+    requires:
+      vars: [VERSION]
+
+  release:changelog:
+    desc: Generate changelog
+    cmds:
+      - git log --oneline --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD
+
+  # ===== CLEANUP =====
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - go clean -cache
+      - Remove-Item -Recurse -Force apps-ecosystem/node_modules/ -ErrorAction SilentlyContinue
+      - Remove-Item -Recurse -Force apps-ecosystem/dist/ -ErrorAction SilentlyContinue
+
+  # Default
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list-all

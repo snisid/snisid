@@ -16,7 +16,7 @@ func main() {
 
 	driver, err := database.NewNeo4jDriver(uri, user, pass)
 	if err != nil {
-		logger.Fatal("failed to connect to neo4j", err)
+		logger.Fatal(context.Background(), "failed to connect to neo4j", err)
 	}
 	defer driver.Close(context.Background())
 
@@ -33,8 +33,8 @@ func main() {
 	for _, q := range queries {
 		_, err := session.Run(context.Background(), q, nil)
 		if err != nil {
-			logger.Error("failed to create index", err)
+			logger.Error(context.Background(), "failed to create index", err)
 		}
 	}
-	logger.Info("Neo4j indexes initialized")
+	logger.Info(context.Background(), "Neo4j indexes initialized")
 }

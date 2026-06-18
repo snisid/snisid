@@ -8,7 +8,7 @@ services:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: secretpassword123
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?error}
     volumes:
       - mongo-data:/data/db
     networks:
@@ -35,10 +35,10 @@ services:
       - "5000:5000"
     environment:
       - PORT=5000
-      - MONGO_URI=mongodb://admin:secretpassword123@mongodb:27017/snisid?authSource=admin
+      - MONGO_URI=mongodb://admin:${MONGO_PASSWORD:?error}@mongodb:27017/snisid?authSource=admin
       - REDIS_URI=redis://redis:6379
       - JWT_SECRET=your-jwt-secret
-      - ENCRYPTION_KEY=32_byte_sovereign_encryption_key_ht
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?error}
     depends_on:
       - mongodb
       - redis

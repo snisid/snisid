@@ -1,0 +1,97 @@
+[
+  {
+    "type": "csv",
+    "name" : "Wanted Persons",
+    "path": "/data/legacy/wanted_persons.csv",
+    "target": "snisid_ncid.wanted_persons",
+    "mapping": "mappings/ncid_migration.json"
+  },
+  {
+    "type": "csv",
+    "name": "Warrants",
+    "path": "/data/legacy/warrants.csv",
+    "target": "snisid_ncid.warrants",
+    "mapping": {
+      "field_mappings": [
+        {"source": "warrant_id", "target": "warrant_id", "type": "string"},
+        {"source": "niu", "target": "niu", "type": "string"},
+        {"source": "warrant_type", "target": "warrant_type", "type": "string"},
+        {"source": "issuing_date", "target": "issuing_date", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "expiry_date", "target": "expiry_date", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "issuing_authority", "target": "issuing_authority", "type": "string"},
+        {"source": "status", "target": "status", "type": "string"}
+      ]
+    }
+  },
+  {
+    "type": "excel",
+    "name": "Criminal Cases",
+    "path": "/data/legacy/criminal_cases.xlsx",
+    "target": "snisid_ncid.cases",
+    "mapping": {
+      "field_mappings": [
+        {"source": "CASE_ID", "target": "case_id", "type": "string"},
+        {"source": "CASE_TITLE", "target": "title", "type": "string"},
+        {"source": "CASE_TYPE", "target": "case_type", "type": "string"},
+        {"source": "STATUS", "target": "status", "type": "enum", "mapping": {"O": "OPEN", "C": "CLOSED", "S": "SUSPENDED"}},
+        {"source": "OPENED_DATE", "target": "opened_at", "type": "date", "format": "%d/%m/%Y"},
+        {"source": "CLOSED_DATE", "target": "closed_at", "type": "date", "format": "%d/%m/%Y"},
+        {"source": "AGENCY", "target": "agency_code", "type": "string"},
+        {"source": "LEAD_INVESTIGATOR", "target": "lead_investigator", "type": "string"},
+        {"source": "DESCRIPTION", "target": "description", "type": "text"}
+      ]
+    }
+  },
+  {
+    "type": "csv",
+    "name": "Gangs",
+    "path": "/data/legacy/gangs.csv",
+    "target": "snisid_ncid.gangs",
+    "mapping": {
+      "field_mappings": [
+        {"source": "gang_id", "target": "gang_id", "type": "string"},
+        {"source": "gang_name", "target": "gang_name", "type": "string", "transformer": "upper"},
+        {"source": "territory", "target": "territory", "type": "text"},
+        {"source": "criminal_activities", "target": "criminal_activities", "type": "text"},
+        {"source": "risk_level", "target": "risk_level", "type": "enum",
+         "mapping": {"HIGH": "CRITICAL", "MEDIUM": "HIGH", "LOW": "MEDIUM"}},
+        {"source": "member_count", "target": "member_count", "type": "int"},
+        {"source": "aliases", "target": "aliases", "type": "text"}
+      ]
+    }
+  },
+  {
+    "type": "csv",
+    "name": "Aliases",
+    "path": "/data/legacy/aliases.csv",
+    "target": "snisid_ncid.aliases",
+    "mapping": {
+      "field_mappings": [
+        {"source": "niu", "target": "niu", "type": "string"},
+        {"source": "alias", "target": "alias_name", "type": "string", "transformer": "upper"},
+        {"source": "alias_type", "target": "alias_type", "type": "string"}
+      ]
+    }
+  },
+  {
+    "type": "postgres",
+    "name": "Interpol Notices",
+    "connection": "${INTERPOL_DB_URL}",
+    "query": "SELECT * FROM interpol_notices WHERE active = true",
+    "target": "snisid_ncid.interpol_notices",
+    "mapping": {
+      "field_mappings": [
+        {"source": "notice_id", "target": "notice_id", "type": "string"},
+        {"source": "notice_type", "target": "notice_type", "type": "enum",
+         "mapping": {"R": "RED", "B": "BLUE", "Y": "YELLOW", "G": "GREEN"}},
+        {"source": "full_name", "target": "full_name", "type": "string"},
+        {"source": "niu", "target": "niu", "type": "string", "transformer": "niu_generator"},
+        {"source": "birth_date", "target": "birth_date", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "nationality", "target": "nationality", "type": "string"},
+        {"source": "charges", "target": "charges", "type": "text"},
+        {"source": "issued_at", "target": "issued_at", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "expires_at", "target": "expires_at", "type": "date", "format": "%Y-%m-%d"}
+      ]
+    }
+  }
+]

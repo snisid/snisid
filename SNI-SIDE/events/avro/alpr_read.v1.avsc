@@ -1,0 +1,32 @@
+{
+  "namespace": "sn.sniside.alpr",
+  "type": "record",
+  "name": "ALPRReadEvent",
+  "version": 1,
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "plate_text", "type": "string"},
+    {"name": "plate_country", "type": ["null", "string"], "default": null},
+    {"name": "camera_code", "type": "string"},
+    {"name": "camera_location", "type": {"type": "record", "name": "GeoPoint", "fields": [
+      {"name": "lat", "type": "double"},
+      {"name": "lng", "type": "double"}
+    ]}},
+    {"name": "department", "type": ["null", "string"], "default": null},
+    {"name": "read_timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "speed_kmh", "type": ["null", "int"], "default": null},
+    {"name": "vehicle", "type": ["null", {"type": "record", "name": "VehicleInfo", "fields": [
+      {"name": "make", "type": ["null", "string"], "default": null},
+      {"name": "model", "type": ["null", "string"], "default": null},
+      {"name": "color", "type": ["null", "string"], "default": null},
+      {"name": "year", "type": ["null", "int"], "default": null}
+    ]}], "default": null},
+    {"name": "ocr_confidence", "type": "double"},
+    {"name": "image_refs", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "is_wanted", "type": "boolean", "default": false},
+    {"name": "alert_triggered", "type": "boolean", "default": false},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "source", "type": "string"},
+    {"name": "correlation_id", "type": "string"}
+  ]
+}

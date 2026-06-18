@@ -1,0 +1,217 @@
+{
+  "name": "sniside_full_migration_15_databases",
+  "version": "1.0",
+  "description": "Migration complète des données legacy vers les 15 bases SNI-SIDE",
+  "estimated_rows": 15000000,
+  "batch_size": 500,
+  "kafka_events": true,
+  "neo4j_update": true,
+  "steps": [
+    {
+      "name": "01 NCID — Wanted Persons",
+      "source": {"type": "csv", "path": "/data/legacy/ncid/wanted_persons.csv"},
+      "target": {"schema": "snisid_ncid", "table": "wanted_persons"},
+      "mapping": "mappings/ncid_migration.json"
+    },
+    {
+      "name": "02 NCID — Criminal Cases",
+      "source": {"type": "excel", "path": "/data/legacy/ncid/criminal_cases.xlsx"},
+      "target": {"schema": "snisid_ncid", "table": "cases"},
+      "mapping": {"field_mappings": [
+        {"source": "CASE_ID", "target": "case_id", "type": "string"},
+        {"source": "CASE_TITLE", "target": "title", "type": "string"},
+        {"source": "CASE_TYPE", "target": "case_type", "type": "string"},
+        {"source": "STATUS", "target": "status", "type": "string"},
+        {"source": "OPENED_DATE", "target": "opened_at", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "AGENCY", "target": "agency_code", "type": "string"},
+        {"source": "DESCRIPTION", "target": "description", "type": "text"}
+      ]}
+    },
+    {
+      "name": "03 NCID — Gangs",
+      "source": {"type": "csv", "path": "/data/legacy/ncid/gangs.csv"},
+      "target": {"schema": "snisid_ncid", "table": "gangs"},
+      "mapping": {"field_mappings": [
+        {"source": "gang_name", "target": "gang_name", "type": "string"},
+        {"source": "territory", "target": "territory", "type": "text"},
+        {"source": "risk_level", "target": "risk_level", "type": "string", "default": "MEDIUM"},
+        {"source": "member_count", "target": "member_count", "type": "int"}
+      ]}
+    },
+    {
+      "name": "04 HN-NGI — Fingerprints",
+      "source": {"type": "csv", "path": "/data/legacy/biometric/fingerprints.csv"},
+      "target": {"schema": "snisid_biometric_national", "table": "fingerprint_templates"},
+      "mapping": {"field_mappings": [
+        {"source": "niu", "target": "niu", "type": "string"},
+        {"source": "fingerprint_data", "target": "template_data", "type": "text"},
+        {"source": "finger_type", "target": "finger_position", "type": "string"},
+        {"source": "quality_score", "target": "quality_score", "type": "float"},
+        {"source": "enrolled_at", "target": "created_at", "type": "date", "format": "%Y-%m-%d"}
+      ]}
+    },
+    {
+      "name": "05 HN-CODIS — DNA Profiles",
+      "source": {"type": "csv", "path": "/data/legacy/codis/dna_profiles.csv"},
+      "target": {"schema": "snisid_codis", "table": "dna_profiles"},
+      "mapping": {"field_mappings": [
+        {"source": "profile_id", "target": "profile_id", "type": "string"},
+        {"source": "niu", "target": "niu", "type": "string"},
+        {"source": "profile_type", "target": "profile_type", "type": "string"},
+        {"source": "loci_data", "target": "loci_data", "type": "text"},
+        {"source": "laboratory", "target": "laboratory", "type": "string"},
+        {"source": "analyst", "target": "analyst", "type": "string"},
+        {"source": "created_at", "target": "created_at", "type": "date", "format": "%Y-%m-%d"}
+      ]}
+    },
+    {
+      "name": "06 Missing Persons",
+      "source": {"type": "csv", "path": "/data/legacy/missing/missing_persons.csv"},
+      "target": {"schema": "snisid_missing", "table": "missing_persons"},
+      "mapping": {"field_mappings": [
+        {"source": "niu", "target": "niu", "type": "string"},
+        {"source": "full_name", "target": "full_name", "type": "string"},
+        {"source": "missing_since", "target": "missing_since", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "last_seen_location", "target": "last_seen_location", "type": "text"},
+        {"source": "age_at_disappearance", "target": "age_at_disappearance", "type": "int"},
+        {"source": "alert_type", "target": "alert_type", "type": "enum", "mapping": {"A": "AMBER", "S": "SILVER", "N": "NONE"}},
+        {"source": "status", "target": "status", "type": "string"},
+        {"source": "reported_by", "target": "reported_by", "type": "string"},
+        {"source": "agency_code", "target": "agency_code", "type": "string"}
+      ]}
+    },
+    {
+      "name": "07 Vehicle Intelligence",
+      "source": {"type": "csv", "path": "/data/legacy/vehicle/vehicles.csv"},
+      "target": {"schema": "snisid_vehicle_intelligence", "table": "vehicles"},
+      "mapping": {"field_mappings": [
+        {"source": "vin", "target": "vin", "type": "string"},
+        {"source": "plate", "target": "plate", "type": "string", "transformer": "plate_normalize"},
+        {"source": "make", "target": "make", "type": "string"},
+        {"source": "model", "target": "model", "type": "string"},
+        {"source": "year", "target": "year", "type": "int"},
+        {"source": "color", "target": "color", "type": "string"},
+        {"source": "owner_niu", "target": "owner_niu", "type": "string"},
+        {"source": "status", "target": "status", "type": "enum", "mapping": {"A": "ACTIVE", "S": "STOLEN", "W": "WANTED", "D": "DESTROYED"}}
+      ]}
+    },
+    {
+      "name": "08 ALPR Historical",
+      "source": {"type": "csv", "path": "/data/legacy/alpr/alpr_reads_historical.csv"},
+      "target": {"schema": "snisid_alpr", "table": "alpr_reads"},
+      "mapping": {"file": "mappings/alpr_migration.json"}
+    },
+    {
+      "name": "09 Firearms",
+      "source": {"type": "csv", "path": "/data/legacy/firearms/firearms.csv"},
+      "target": {"schema": "snisid_firearms", "table": "firearms"},
+      "mapping": {"field_mappings": [
+        {"source": "firearm_id", "target": "firearm_id", "type": "string"},
+        {"source": "serial_number", "target": "serial_number", "type": "string"},
+        {"source": "make", "target": "make", "type": "string"},
+        {"source": "model", "target": "model", "type": "string"},
+        {"source": "caliber", "target": "caliber", "type": "string"},
+        {"source": "type", "target": "firearm_type", "type": "string"},
+        {"source": "owner_niu", "target": "owner_niu", "type": "string"},
+        {"source": "status", "target": "status", "type": "string"},
+        {"source": "registered_at", "target": "registered_at", "type": "date", "format": "%Y-%m-%d"}
+      ]}
+    },
+    {
+      "name": "10 Border Crossings",
+      "source": {"type": "csv", "path": "/data/legacy/border/border_crossings.csv"},
+      "target": {"schema": "snisid_border", "table": "border_crossings"},
+      "mapping": {"field_mappings": [
+        {"source": "crossing_id", "target": "crossing_id", "type": "string"},
+        {"source": "niu", "target": "niu", "type": "string"},
+        {"source": "passport_number", "target": "passport_number", "type": "string"},
+        {"source": "port_of_entry", "target": "port_of_entry", "type": "string"},
+        {"source": "direction", "target": "direction", "type": "enum", "mapping": {"E": "ENTRY", "X": "EXIT"}},
+        {"source": "crossing_date", "target": "crossing_timestamp", "type": "date", "format": "%Y-%m-%d %H:%M"},
+        {"source": "origin_country", "target": "origin_country", "type": "string"},
+        {"source": "destination_country", "target": "destination_country", "type": "string"},
+        {"source": "visa_number", "target": "visa_number", "type": "string"},
+        {"source": "agency_code", "target": "agency_code", "type": "string"}
+      ]}
+    },
+    {
+      "name": "11 Counter Narcotics",
+      "source": {"type": "csv", "path": "/data/legacy/narcotics/seizures.csv"},
+      "target": {"schema": "snisid_counter_narcotics", "table": "seizures"},
+      "mapping": {"field_mappings": [
+        {"source": "seizure_id", "target": "seizure_id", "type": "string"},
+        {"source": "drug_type", "target": "drug_type", "type": "string"},
+        {"source": "quantity_kg", "target": "quantity_kg", "type": "float"},
+        {"source": "estimated_value_usd", "target": "estimated_value", "type": "float"},
+        {"source": "seizure_date", "target": "seizure_date", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "location", "target": "seizure_location", "type": "text"},
+        {"source": "agency_code", "target": "agency_code", "type": "string"},
+        {"source": "status", "target": "status", "type": "string"}
+      ]}
+    },
+    {
+      "name": "12 Financial Crime",
+      "source": {"type": "csv", "path": "/data/legacy/financial/suspicious_transactions.csv"},
+      "target": {"schema": "snisid_financial_crime", "table": "suspicious_transactions"},
+      "mapping": {"field_mappings": [
+        {"source": "transaction_id", "target": "transaction_id", "type": "string"},
+        {"source": "sender_niu", "target": "sender_niu", "type": "string"},
+        {"source": "beneficiary_niu", "target": "beneficiary_niu", "type": "string"},
+        {"source": "amount", "target": "amount", "type": "float"},
+        {"source": "currency", "target": "currency", "type": "string"},
+        {"source": "transaction_date", "target": "transaction_date", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "bank", "target": "bank", "type": "string"},
+        {"source": "transaction_type", "target": "transaction_type", "type": "string"},
+        {"source": "risk_score", "target": "risk_score", "type": "float"},
+        {"source": "agency_code", "target": "agency_code", "type": "string"}
+      ]}
+    },
+    {
+      "name": "13 Cybercrime",
+      "source": {"type": "csv", "path": "/data/legacy/cyber/iocs.csv"},
+      "target": {"schema": "snisid_cybercrime", "table": "indicators_of_compromise"},
+      "mapping": {"field_mappings": [
+        {"source": "ioc_id", "target": "ioc_id", "type": "string"},
+        {"source": "ioc_type", "target": "ioc_type", "type": "enum", "mapping": {"IP": "ip_address", "DOMAIN": "domain", "URL": "url", "HASH": "file_hash", "EMAIL": "email", "WALLET": "crypto_wallet"}},
+        {"source": "ioc_value", "target": "ioc_value", "type": "string"},
+        {"source": "threat_type", "target": "threat_type", "type": "string"},
+        {"source": "confidence", "target": "confidence_score", "type": "float"},
+        {"source": "first_seen", "target": "first_seen", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "source", "target": "source_feed", "type": "string"},
+        {"source": "tags", "target": "tags", "type": "text"}
+      ]}
+    },
+    {
+      "name": "14 Watchlist",
+      "source": {"type": "excel", "path": "/data/legacy/watchlist/national_watchlist.xlsx"},
+      "target": {"schema": "snisid_watchlist", "table": "watchlist_entries"},
+      "mapping": {"field_mappings": [
+        {"source": "entry_id", "target": "entry_id", "type": "string"},
+        {"source": "niu", "target": "niu", "type": "string"},
+        {"source": "full_name", "target": "full_name", "type": "string"},
+        {"source": "watchlist_type", "target": "watchlist_type", "type": "enum", "mapping": {"T": "TERRORISM", "O": "ORGANIZED_CRIME", "N": "NARCOTICS", "F": "FINANCIAL", "W": "WANTED", "I": "IMMIGRATION"}},
+        {"source": "risk_level", "target": "risk_level", "type": "string"},
+        {"source": "added_at", "target": "added_at", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "expires_at", "target": "expires_at", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "reason", "target": "reason", "type": "text"},
+        {"source": "agency_code", "target": "agency_code", "type": "string"},
+        {"source": "status", "target": "status", "type": "string"}
+      ]}
+    },
+    {
+      "name": "15 Document Fraud",
+      "source": {"type": "csv", "path": "/data/legacy/documents/stolen_documents.csv"},
+      "target": {"schema": "snisid_document_fraud", "table": "stolen_documents"},
+      "mapping": {"field_mappings": [
+        {"source": "doc_id", "target": "document_id", "type": "string"},
+        {"source": "document_type", "target": "document_type", "type": "string"},
+        {"source": "document_number", "target": "document_number", "type": "string"},
+        {"source": "niu", "target": "niu", "type": "string"},
+        {"source": "status", "target": "status", "type": "enum", "mapping": {"S": "STOLEN", "L": "LOST", "F": "FRAUDULENT"}},
+        {"source": "reported_at", "target": "reported_at", "type": "date", "format": "%Y-%m-%d"},
+        {"source": "fraud_type", "target": "fraud_type", "type": "string"},
+        {"source": "agency_code", "target": "agency_code", "type": "string"}
+      ]}
+    }
+  ]
+}

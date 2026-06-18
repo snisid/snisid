@@ -18,14 +18,14 @@ func main() {
 
 	driver, err := database.NewNeo4jDriver(neoUri, neoUser, neoPass)
 	if err != nil {
-		logger.Fatal("failed to connect to neo4j", err)
+		logger.Fatal(context.Background(), "failed to connect to neo4j", err)
 	}
 	defer driver.Close(context.Background())
 
 	// Replay state from a specific point in time
 	replayTime := time.Now().Add(-2 * time.Hour)
 	
-	logger.Info(fmt.Sprintf("REPLAY: Mirroring infrastructure state from %s", replayTime.Format(time.RFC3339)))
+	logger.Info(context.Background(), fmt.Sprintf("REPLAY: Mirroring infrastructure state from %s", replayTime.Format(time.RFC3339)))
 
 	ctx := context.Background()
 	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
@@ -39,7 +39,7 @@ func main() {
 	`
 	result, err := session.Run(ctx, query, map[string]interface{}{"replayTime": replayTime})
 	if err != nil {
-		logger.Fatal("replay query failed", err)
+		logger.Fatal(context.Background(), "replay query failed", err)
 	}
 
 	for result.Next(ctx) {
@@ -48,7 +48,7 @@ func main() {
 			record.Values[0], record.Values[2], record.Values[1])
 	}
 	
-	logger.Info("Digital Twin Replay complete.")
+	logger.Info(context.Background(), "Digital Twin Replay complete.")
 }
 
 func getEnv(k, def string) string {

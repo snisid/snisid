@@ -1,0 +1,343 @@
+# ============================================================
+# SNI-SIDE: Prometheus Alerting Rules
+# 15 Databases + Search Engine + AI Fusion + Infrastructure
+# ============================================================
+
+groups:
+  - name: sniside-ncid-alerts
+    interval: 30s
+    rules:
+      - alert: NCID_WantedPersonCreated
+        expr: rate(sniside_ncid_wanted_created_total[5m]) > 0
+        labels: { severity: info, database: ncid }
+        annotations:
+          summary: "New wanted person created"
+
+      - alert: NCID_CriticalWantedPerson
+        expr: sniside_ncid_wanted_critical_total > 0
+        labels: { severity: critical, database: ncid }
+        annotations:
+          summary: "CRITICAL wanted person in NCID"
+          description: "Person {{ $labels.niu }} with CRITICAL risk level"
+
+      - alert: NCID_WarrantExpiring
+        expr: sniside_ncid_warrant_expiring_7days > 0
+        labels: { severity: warning, database: ncid }
+        annotations:
+          summary: "Warrants expiring within 7 days"
+
+  - name: sniside-biometrics-alerts
+    interval: 30s
+    rules:
+      - alert: Biometrics_DuplicateDetected
+        expr: rate(sniside_biometric_duplicate_total[5m]) > 0
+        labels: { severity: high, database: biometrics }
+        annotations:
+          summary: "Biometric duplicate detected"
+          description: "Duplicate match score: {{ $value }}"
+
+      - alert: Biometrics_QualityDegraded
+        expr: sniside_biometric_quality_below_threshold > 100
+        labels: { severity: warning, database: biometrics }
+        annotations:
+          summary: "High number of low-quality biometric captures"
+
+      - alert: Milvus_ConnectionDown
+        expr: sniside_milvus_up == 0
+        labels: { severity: critical, database: biometrics }
+        annotations:
+          summary: "Milvus vector database down"
+
+  - name: sniside-codis-alerts
+    interval: 30s
+    rules:
+      - alert: CODIS_DNAMatchPositive
+        expr: rate(sniside_codis_match_positive_total[5m]) > 0
+        labels: { severity: critical, database: codis }
+        annotations:
+          summary: "Positive DNA match in CODIS"
+          description: "Match probability: {{ $value }}"
+
+      - alert: CODIS_FamilialMatch
+        expr: rate(sniside_codis_match_familial_total[5m]) > 0
+        labels: { severity: high, database: codis }
+        annotations:
+          summary: "Familial DNA match found"
+
+  - name: sniside-alpr-alerts
+    interval: 10s
+    rules:
+      - alert: ALPR_WantedVehicleDetected
+        expr: rate(sniside_alpr_wanted_hits_total[1m]) > 0
+        labels: { severity: critical, database: alpr }
+        annotations:
+          summary: "WANTED vehicle detected by ALPR"
+          description: "Plate {{ $labels.plate }} at {{ $labels.camera }}"
+
+      - alert: ALPR_HighVolumeAnomaly
+        expr: rate(sniside_alpr_reads_total[5m]) > 10000
+        labels: { severity: warning, database: alpr }
+        annotations:
+          summary: "Abnormally high ALPR read volume"
+
+      - alert: ALPR_CameraOffline
+        expr: sniside_alpr_camera_up{status="ACTIVE"} == 0
+        labels: { severity: high, database: alpr }
+        annotations:
+          summary: "ALPR camera offline"
+          description: "Camera {{ $labels.camera }} is not reporting"
+
+  - name: sniside-border-alerts
+    interval: 30s
+    rules:
+      - alert: Border_WatchlistHit
+        expr: rate(sniside_border_watchlist_hits_total[5m]) > 0
+        labels: { severity: critical, database: border }
+        annotations:
+          summary: "Watchlist hit at border"
+          description: "Person {{ $labels.name }} at {{ $labels.border_point }}"
+
+      - alert: Border_HighRiskCrossing
+        expr: sniside_border_high_risk_crossings > 10
+        labels: { severity: high, database: border }
+        annotations:
+          summary: "High number of high-risk border crossings"
+
+  - name: sniside-financial-alerts
+    interval: 1m
+    rules:
+      - alert: AML_HighRiskTransaction
+        expr: sniside_financial_aml_high_risk_total > 0
+        labels: { severity: critical, database: financial }
+        annotations:
+          summary: "HIGH RISK AML transaction detected"
+          description: "Transaction {{ $labels.txn_ref }} risk score > 0.9"
+
+      - alert: AML_UnusualVolume
+        expr: rate(sniside_financial_suspicious_total[1h]) > 100
+        labels: { severity: high, database: financial }
+        annotations:
+          summary: "Unusual volume of suspicious transactions"
+
+      - alert: PEP_TransactionDetected
+        expr: rate(sniside_financial_pep_txn_total[5m]) > 0
+        labels: { severity: high, database: financial }
+        annotations:
+          summary: "PEP-related transaction"
+
+  - name: sniside-cyber-alerts
+    interval: 30s
+    rules:
+      - alert: Cyber_IOC_Critical
+        expr: rate(sniside_cyber_ioc_critical_total[5m]) > 0
+        labels: { severity: critical, database: cyber }
+        annotations:
+          summary: "CRITICAL IOC detected"
+          description: "IOC: {{ $labels.ioc_value }} Type: {{ $labels.ioc_type }}"
+
+      - alert: Cyber_IncidentReported
+        expr: rate(sniside_cyber_incident_total[5m]) > 0
+        labels: { severity: high, database: cyber }
+        annotations:
+          summary: "Cyber incident reported"
+          description: "Type: {{ $labels.incident_type }}"
+
+      - alert: Cyber_ThreatActorActive
+        expr: sniside_cyber_threat_actor_active > 0
+        labels: { severity: high, database: cyber }
+        annotations:
+          summary: "Active threat actor campaign"
+
+  - name: sniside-watchlist-alerts
+    interval: 10s
+    rules:
+      - alert: Watchlist_CriticalMatch
+        expr: rate(sniside_watchlist_critical_matches_total[1m]) > 0
+        labels: { severity: critical, database: watchlist }
+        annotations:
+          summary: "CRITICAL watchlist match"
+          description: "Entry: {{ $labels.entry }} matched at {{ $labels.source }}"
+
+  - name: sniside-missing-alerts
+    interval: 30s
+    rules:
+      - alert: Missing_ChildSighted
+        expr: rate(sniside_missing_sightings_total[5m]) > 0
+        labels: { severity: high, database: missing }
+        annotations:
+          summary: "Missing child sighted"
+          description: "Person {{ $labels.name }} sighted at {{ $labels.location }}"
+
+      - alert: Missing_AMBERAlertTriggered
+        expr: rate(sniside_missing_amber_alert_total[5m]) > 0
+        labels: { severity: critical, database: missing }
+        annotations:
+          summary: "AMBER Alert triggered!"
+
+  - name: sniside-vehicle-alerts
+    interval: 1m
+    rules:
+      - alert: Vehicle_StolenDetected
+        expr: rate(sniside_vehicle_stolen_reported_total[5m]) > 0
+        labels: { severity: high, database: vehicle }
+        annotations:
+          summary: "Stolen vehicle reported"
+
+  - name: sniside-firearm-alerts
+    interval: 1m
+    rules:
+      - alert: Firearm_BallisticMatch
+        expr: rate(sniside_firearm_ballistic_match_total[5m]) > 0
+        labels: { severity: high, database: firearm }
+        annotations:
+          summary: "Ballistic match found"
+          description: "Firearm {{ $labels.serial }} linked to case {{ $labels.case }}"
+
+  - name: sniside-narcotics-alerts
+    interval: 1m
+    rules:
+      - alert: Narcotics_MajorSeizure
+        expr: sniside_narcotics_seizure_value > 1000000
+        labels: { severity: high, database: narcotics }
+        annotations:
+          summary: "Major narcotics seizure > $1M"
+
+  - name: sniside-search-engine-alerts
+    interval: 30s
+    rules:
+      - alert: SearchEngine_HighLatency
+        expr: sniside_search_p99_latency_ms > 2000
+        labels: { severity: warning, service: search-engine }
+        annotations:
+          summary: "Search engine P99 latency > 2s"
+
+      - alert: SearchEngine_ErrorRate
+        expr: rate(sniside_search_errors_total[5m]) / rate(sniside_search_requests_total[5m]) > 0.05
+        labels: { severity: high, service: search-engine }
+        annotations:
+          summary: "Search engine error rate > 5%"
+
+  - name: sniside-ai-alerts
+    interval: 1m
+    rules:
+      - alert: AI_ModelDegraded
+        expr: sniside_ai_model_error_rate > 0.1
+        labels: { severity: high, service: ai-fusion }
+        annotations:
+          summary: "AI model error rate > 10%"
+          description: "Model {{ $labels.model }} error rate: {{ $value }}"
+
+      - alert: AI_GPUOverloaded
+        expr: sniside_ai_gpu_utilization > 0.95
+        labels: { severity: warning, service: ai-fusion }
+        annotations:
+          summary: "GPU utilization > 95%"
+
+      - alert: AI_GraphRAGSlow
+        expr: sniside_ai_graphrag_latency_ms > 10000
+        labels: { severity: warning, service: ai-fusion }
+        annotations:
+          summary: "GraphRAG latency > 10s"
+
+      - alert: AI_FraudDetected
+        expr: rate(sniside_ai_fraud_detected_total[5m]) > 0
+        labels: { severity: critical, service: ai-fusion }
+        annotations:
+          summary: "AI fraud detection alert"
+          description: "Fraud score: {{ $value }}"
+
+      - alert: AI_DeepfakeDetected
+        expr: rate(sniside_ai_deepfake_total[5m]) > 0
+        labels: { severity: critical, service: ai-fusion }
+        annotations:
+          summary: "Deepfake detected in evidence"
+
+  - name: sniside-infrastructure-alerts
+    interval: 30s
+    rules:
+      - alert: PostgreSQL_ReplicationLag
+        expr: pg_replication_lag > 100
+        labels: { severity: high, infrastructure: database }
+        annotations:
+          summary: "PostgreSQL replication lag > 100MB"
+
+      - alert: Kafka_ConsumerLag
+        expr: kafka_consumer_lag > 10000
+        labels: { severity: warning, infrastructure: kafka }
+        annotations:
+          summary: "Kafka consumer lag > 10,000 messages"
+          description: "Consumer group {{ $labels.consumer_group }}"
+
+      - alert: Redis_MemoryHigh
+        expr: redis_memory_usage_bytes / redis_memory_max_bytes > 0.85
+        labels: { severity: warning, infrastructure: cache }
+        annotations:
+          summary: "Redis memory usage > 85%"
+
+      - alert: Neo4j_HeapPressure
+        expr: neo4j_heap_usage_percentage > 85
+        labels: { severity: warning, infrastructure: graph }
+        annotations:
+          summary: "Neo4j heap usage > 85%"
+
+      - alert: ClickHouse_QuerySlow
+        expr: rate(clickhouse_query_duration_seconds_sum[5m]) / rate(clickhouse_query_duration_seconds_count[5m]) > 30
+        labels: { severity: warning, infrastructure: analytics }
+        annotations:
+          summary: "ClickHouse average query time > 30s"
+
+      - alert: MinIO_DiskFull
+        expr: minio_bucket_usage_bytes / minio_bucket_quota_bytes > 0.9
+        labels: { severity: high, infrastructure: storage }
+        annotations:
+          summary: "MinIO disk usage > 90%"
+
+      - alert: Pod_Restarting
+        expr: rate(kube_pod_container_status_restarts_total[15m]) * 3600 > 5
+        labels: { severity: warning, infrastructure: kubernetes }
+        annotations:
+          summary: "Pod restarting frequently"
+          description: "Pod {{ $labels.pod }} restarted {{ $value }} times/hour"
+
+  - name: sniside-security-alerts
+    interval: 30s
+    rules:
+      - alert: Auth_FailedAttempts
+        expr: rate(sniside_auth_failed_total[5m]) > 10
+        labels: { severity: high, security: authentication }
+        annotations:
+          summary: "High rate of failed authentication attempts"
+
+      - alert: API_AbnormalTraffic
+        expr: rate(sniside_api_requests_total[5m]) > 10000
+        labels: { severity: warning, security: api }
+        annotations:
+          summary: "Abnormal API traffic volume"
+
+      - alert: UnauthorizedAccess
+        expr: rate(sniside_unauthorized_access_total[5m]) > 0
+        labels: { severity: critical, security: access }
+        annotations:
+          summary: "Unauthorized access attempt detected"
+
+      - alert: SensitiveDataExfil
+        expr: sniside_data_exfiltration_score > 0.8
+        labels: { severity: critical, security: data }
+        annotations:
+          summary: "Potential data exfiltration detected"
+
+  - name: sniside-graph-alerts
+    interval: 1m
+    rules:
+      - alert: Graph_NewCriminalNetwork
+        expr: rate(sniside_graph_network_detected_total[1h]) > 0
+        labels: { severity: high, service: graph-intelligence }
+        annotations:
+          summary: "New criminal network detected in graph"
+          description: "Network size: {{ $value }} nodes"
+
+      - alert: Graph_CentralitySpike
+        expr: sniside_graph_centrality_avg > 0.8
+        labels: { severity: high, service: graph-intelligence }
+        annotations:
+          summary: "High centrality score detected — potential kingpin"

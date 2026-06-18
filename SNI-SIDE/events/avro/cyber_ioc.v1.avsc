@@ -1,0 +1,23 @@
+{
+  "namespace": "sn.sniside.cyber",
+  "type": "record",
+  "name": "CyberIOCEvent",
+  "version": 1,
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "event_type", "type": {"type": "enum", "name": "CyberEventType", "symbols": ["IOC_SUBMITTED", "IOC_CRITICAL", "INCIDENT_REPORTED", "CAMPAIGN_DETECTED", "THREAT_ACTOR_UPDATED"]}},
+    {"name": "ioc_value", "type": "string"},
+    {"name": "ioc_type", "type": {"type": "enum", "name": "IOCType", "symbols": ["IPV4", "IPV6", "DOMAIN", "URL", "MD5", "SHA1", "SHA256", "EMAIL", "YARA"]}},
+    {"name": "severity", "type": {"type": "enum", "name": "SeverityLevel", "symbols": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]}},
+    {"name": "threat_actor", "type": ["null", "string"], "default": null},
+    {"name": "malware_family", "type": ["null", "string"], "default": null},
+    {"name": "mitre_attack_ids", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "tlp_level", "type": {"type": "enum", "name": "TLPLevel", "symbols": ["RED", "AMBER", "GREEN", "WHITE"]}},
+    {"name": "source", "type": "string"},
+    {"name": "tags", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "targeted_sectors", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "incident_id", "type": ["null", "string"], "default": null},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "correlation_id", "type": "string"}
+  ]
+}

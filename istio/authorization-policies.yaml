@@ -1,0 +1,135 @@
+# Identity Service - only accessible by gateway and biometrics
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: identity-service-authz
+  namespace: snisid
+spec:
+  selector:
+    matchLabels:
+      app: identity-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/gateway-service"]
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/biometrics-service"]
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/fraud-service"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT"]
+        paths: ["/v1/identity/*"]
+---
+# Biometrics Service - only gateway and identity
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: biometrics-service-authz
+  namespace: snisid
+spec:
+  selector:
+    matchLabels:
+      app: biometrics-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/gateway-service"]
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/identity-service"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/v1/biometrics/*"]
+---
+# Fraud Engine - only gateway and identity
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: fraud-engine-authz
+  namespace: snisid
+spec:
+  selector:
+    matchLabels:
+      app: fraud-engine
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/gateway-service"]
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/identity-service"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/v1/fraud/*"]
+---
+# Audit Service - all internal services can write
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: audit-service-authz
+  namespace: snisid
+spec:
+  selector:
+    matchLabels:
+      app: audit-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/*"]
+    to:
+    - operation:
+        methods: ["POST", "PUT"]
+        paths: ["/v1/audit/*"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/admin-service"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/v1/audit/*"]
+---
+# Deny all other traffic
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: snisid
+spec:
+  selector:
+    matchLabels: {}
+  action: DENY
+  rules:
+  - to:
+    - operation:
+        notMethods: ["GET", "POST", "PUT", "DELETE"]
+---
+# Gateway - allow public ingress
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: gateway-authz
+  namespace: snisid
+spec:
+  selector:
+    matchLabels:
+      app: gateway-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        paths: ["/v1/public/*"]
+        methods: ["GET", "POST"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid/sa/*"]
+    to:
+    - operation:
+        paths: ["/v1/internal/*"]

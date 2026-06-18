@@ -1,6 +1,0 @@
-🔥 dataset schema réel SNISID (fraude biométrique)
-🔥 training pipeline complet GNN + ArcFace
-🔥 SOC decision engine avancé (rules + ML hybrid)
-🔥 UI graph intelligence (type Palantir)
-“build SNISID dataset + training pipeline réel”
-Pour passer du design → intelligence réelle exploitable

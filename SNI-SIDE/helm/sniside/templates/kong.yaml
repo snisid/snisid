@@ -1,0 +1,110 @@
+{{- if .Values.kongGateway.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sniside-kong
+  namespace: sniside
+spec:
+  replicas: {{ .Values.kongGateway.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kong
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kong
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: sniside-sa
+      containers:
+        - name: kong
+          image: {{ .Values.kongGateway.image | default "kong:3.7" }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: proxy
+            - containerPort: 8443
+              name: proxy-tls
+            - containerPort: 8001
+              name: admin
+          env:
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_DECLARATIVE_CONFIG
+              value: "/kong/declarative/kong.yml"
+            - name: KONG_PROXY_LISTEN
+              value: "0.0.0.0:8000 http2, 0.0.0.0:8443 http2 ssl"
+            - name: KONG_ADMIN_LISTEN
+              value: "0.0.0.0:8001"
+            - name: KONG_PLUGINS
+              value: "bundled,prometheus,jwt,acl,rate-limiting,openid-connect"
+            - name: KONG_LOG_LEVEL
+              value: "notice"
+          volumeMounts:
+            - name: kong-config
+              mountPath: /kong/declarative/
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8001
+            initialDelaySeconds: 30
+          resources:
+            {{- toYaml .Values.kongGateway.resources | nindent 12 }}
+      volumes:
+        - name: kong-config
+          configMap:
+            name: sniside-kong-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sniside-kong
+  namespace: sniside
+spec:
+  type: {{ .Values.kongGateway.proxy.type | default "LoadBalancer" }}
+  {{- with .Values.kongGateway.proxy.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  ports:
+    - port: 443
+      targetPort: 8443
+      name: https
+    - port: 80
+      targetPort: 8000
+      name: http
+  selector:
+    app.kubernetes.io/name: kong
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sniside-kong-config
+  namespace: sniside
+data:
+  kong.yml: |
+    _format_version: "3.0"
+    _transform: true
+    services:
+      {{- range $svc := list "ncid" "biometrics" "codis" "missing" "vehicle" "alpr" "firearm" "border" "narcotics" "financial" "cyber" "watchlist" "documents" "geoint" "evidence" "search-engine" "ai-fusion" "alerts" }}
+      - name: {{ $svc }}
+        url: http://sniside-{{ $svc }}.sniside:8080
+        routes:
+          - name: {{ $svc }}-route
+            paths:
+              - /intelligence/v1/{{ $svc }}
+            strip_path: true
+            methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+        plugins:
+          - name: jwt
+          - name: rate-limiting
+            config:
+              minute: 300
+              policy: local
+      {{- end }}
+{{- end }}

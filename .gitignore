@@ -66,6 +66,8 @@ frontend/vite.config.js
 .env.*
 !.env.example
 !.env.template
+secrets.*
+*.secret
 *.pem
 *.key
 *-key.pem

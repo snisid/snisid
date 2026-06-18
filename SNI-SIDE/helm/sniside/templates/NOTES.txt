@@ -1,0 +1,22 @@
+SNI-SIDE {{ .Chart.Version }} deployed successfully.
+
+Access the system:
+  API Gateway:     https://api.sniside.ht/intelligence/v1/
+  Grafana:         http://grafana.monitoring:3000
+  Neo4j Browser:   http://neo4j.sniside:7474
+  MinIO Console:   http://minio.sniside:9001
+  Kong Admin:      http://sniside-kong.sniside:8001
+
+Services deployed:
+{{- range $svc := list "ncid-api" "biometrics-api" "codis-api" "missing-api" "vehicle-api" "alpr-ingest" "firearm-api" "border-api" "narcotics-api" "financial-api" "cyber-api" "watchlist-api" "document-api" "geoint-api" "evidence-api" "search-engine" "ai-fusion" "event-processor" "graphrag-engine" }}
+  {{ $svc }}{{ end }}
+
+To check status:
+  kubectl get pods -n sniside
+  kubectl get svc -n sniside
+  kubectl get hpa -n sniside
+
+Documentation:
+  Architecture:   SNI-SIDE-ARCHITECTURE.md
+  Service Topo:   SERVICE-TOPOLOGY.md
+  Roadmap:        ROADMAP-2026-2035.md

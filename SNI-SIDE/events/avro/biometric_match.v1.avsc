@@ -1,0 +1,23 @@
+{
+  "namespace": "sn.sniside.biometrics",
+  "type": "record",
+  "name": "BiometricMatchEvent",
+  "version": 1,
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "event_type", "type": {"type": "enum", "name": "BioEventType", "symbols": ["MATCH_FOUND", "DUPLICATE_DETECTED", "QUALITY_ALERT", "SPOOF_DETECTED"]}},
+    {"name": "biometric_type", "type": {"type": "enum", "name": "BioType", "symbols": ["FACE", "FINGERPRINT", "IRIS", "VOICE", "PALM", "MULTIMODAL"]}},
+    {"name": "query_niu", "type": ["null", "string"], "default": null},
+    {"name": "candidates", "type": {"type": "array", "items": {"type": "record", "name": "Candidate", "fields": [
+      {"name": "niu", "type": "string"},
+      {"name": "score", "type": "double"},
+      {"name": "threshold", "type": "double"},
+      {"name": "rank", "type": "int"}
+    ]}}},
+    {"name": "gallery_size", "type": "int"},
+    {"name": "search_duration_ms", "type": "int"},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "source", "type": "string"},
+    {"name": "correlation_id", "type": "string"}
+  ]
+}

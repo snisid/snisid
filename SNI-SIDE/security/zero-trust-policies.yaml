@@ -1,0 +1,293 @@
+# ============================================================
+# SNI-SIDE: Zero Trust Security Policies
+# OPA / Istio / Cilium / Vault
+# ============================================================
+
+---
+# OPA Policy — Agency-based access control for SNI-SIDE databases
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sniside-opa-policies
+  namespace: sniside
+data:
+  agency_access.rego: |
+    package sniside.agency
+
+    # Agency role mappings
+    agency_roles := {
+        "PNH":       ["ncid_read", "ncid_write", "biometric_read", "biometric_write",
+                      "alpr_read", "vehicle_read", "firearm_read", "evidence_read",
+                      "missing_read", "border_read", "narcotics_read"],
+        "DCPJ":      ["ncid_read", "ncid_write", "codis_read", "codis_write",
+                      "biometric_read", "forensic_read", "forensic_write",
+                      "cyber_read", "cyber_write", "graph_read"],
+        "IMMIGRATION": ["border_read", "border_write", "watchlist_read",
+                        "document_read", "alpr_read"],
+        "INTELLIGENCE": ["ncid_read", "graph_read", "graph_write", "cyber_read",
+                         "financial_read", "geoint_read", "watchlist_read",
+                         "narcotics_read", "border_read"],
+        "FIU":       ["financial_read", "financial_write", "aml_read",
+                      "beneficial_owner_read", "pep_read"],
+        "SOC":       ["cyber_read", "cyber_write", "evidence_read",
+                      "watchlist_read", "ncid_read"],
+        "CUSTOMS":   ["border_read", "narcotics_read", "alpr_read",
+                      "vehicle_read", "firearm_read"],
+        "ANTI_NARCOTICS": ["narcotics_read", "narcotics_write", "border_read",
+                           "vehicle_read", "alpr_read", "graph_read"],
+        "ONI":       ["biometric_read", "document_read"],
+        "SNISID_ADMIN": ["*"]
+    }
+
+    # Permission check
+    default allow = false
+
+    allow {
+        input.agency == "SNISID_ADMIN"
+    }
+
+    allow {
+        roles := agency_roles[input.agency]
+        required_permission := input.permission
+        roles[_] == required_permission
+    }
+
+    # Database-scoped access
+    allow {
+        input.agency == "PNH"
+        input.database == "ncid"
+        input.action == "SELECT"
+    }
+
+    allow {
+        input.agency == "DCPJ"
+        input.database == "codis"
+        input.action == "SELECT"
+        # CODIS requires warrant reference
+        input.warrant_ref != ""
+    }
+
+    # Graph query restrictions
+    allow {
+        input.service == "neo4j"
+        input.query_depth <= 3
+        input.agency_clearance in ["TOP_SECRET", "SECRET"]
+    }
+
+  data_classification.rego: |
+    package sniside.classification
+
+    # Data classification levels
+    classification_levels := {
+        "UNCLASSIFIED": 0,
+        "RESTRICTED": 1,
+        "CONFIDENTIAL": 2,
+        "SECRET": 3,
+        "TOP_SECRET": 4
+    }
+
+    # Can user access classified data?
+    default can_access_classified = false
+
+    can_access_classified {
+        user_clearance := classification_levels[input.user_clearance]
+        data_class := classification_levels[input.data_classification]
+        user_clearance >= data_class
+    }
+
+    # Database classification
+    database_classification := {
+        "ncid_wanted": "SECRET",
+        "ncid_cases": "CONFIDENTIAL",
+        "biometric_templates": "TOP_SECRET",
+        "codis_profiles": "TOP_SECRET",
+        "codis_matches": "TOP_SECRET",
+        "financial_transactions": "SECRET",
+        "cyber_iocs": "CONFIDENTIAL",
+        "watchlist": "TOP_SECRET",
+        "evidence": "SECRET",
+        "geoint": "SECRET",
+        "narcotics_intel": "SECRET",
+        "graph_intelligence": "TOP_SECRET"
+    }
+
+  data_retention.rego: |
+    package sniside.retention
+
+    retention_period_days := {
+        "alpr_reads": 365,
+        "border_crossings": 3650,
+        "ncid_wanted_active": 99999,
+        "codis_profiles": 99999,
+        "biometric_templates": 99999,
+        "cyber_iocs": 730,
+        "vehicle_ownership": 3650,
+        "financial_transactions": 3650,
+        "evidence": 99999
+    }
+
+    allow_purge {
+        input.table_name == "alpr_reads"
+        input.age_days > retention_period_days["alpr_reads"]
+    }
+
+---
+# Istio Authorization Policy — Microsegmentation
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: sniside-ncid-api-authz
+  namespace: sniside
+spec:
+  selector:
+    matchLabels:
+      app: sniside-ncid-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway"]
+            requestPrincipals: ["*"]
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+            paths: ["/ncid/*", "/health", "/ready"]
+      when:
+        - key: request.auth.claims[agency]
+          values: ["PNH", "DCPJ", "INTELLIGENCE", "SNISID_ADMIN"]
+        - key: request.auth.claims[clearance]
+          values: ["SECRET", "TOP_SECRET"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: sniside-biometrics-api-authz
+  namespace: sniside
+spec:
+  selector:
+    matchLabels:
+      app: sniside-biometrics-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway"]
+      to:
+        - operation:
+            methods: ["POST"]
+            paths: ["/biometrics/*"]
+      when:
+        - key: request.auth.claims[agency]
+          values: ["PNH", "DCPJ", "ONI", "IMMIGRATION", "SNISID_ADMIN"]
+        - key: request.auth.claims[clearance]
+          values: ["TOP_SECRET"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: sniside-codis-api-authz
+  namespace: sniside
+spec:
+  selector:
+    matchLabels:
+      app: sniside-codis-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway"]
+      to:
+        - operation:
+            methods: ["POST", "GET"]
+            paths: ["/codis/*"]
+      when:
+        - key: request.auth.claims[agency]
+          values: ["DCPJ", "LABORATORY", "SNISID_ADMIN"]
+        - key: request.auth.claims[clearance]
+          values: ["TOP_SECRET"]
+        - key: request.auth.claims[has_warrant]
+          values: ["true"]
+
+---
+# Cilium Network Policy — Database isolation
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sniside-isolate-databases
+  namespace: sniside
+spec:
+  endpointSelector:
+    matchLabels:
+      "k8s:app": sniside-ncid-postgres
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            "k8s:app": sniside-ncid-api
+            "k8s:security.snisid.ht/zone": intelligence
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+  egress:
+    - toEntities:
+        - cluster
+
+---
+# Vault Policy — SNI-SIDE Secrets
+apiVersion: vault.microsoft.com/v1alpha1
+kind: VaultPolicy
+metadata:
+  name: sniside-database-credentials
+  namespace: sniside
+spec:
+  policy: |
+    path "sniside/data/database/*" {
+      capabilities = ["read", "list"]
+      control_group = {
+        factor "agency_approval" {
+          identity {
+            group = "agency-leads"
+          }
+        }
+      }
+    }
+    path "sniside/data/neo4j/*" {
+      capabilities = ["read"]
+      required_approval = true
+    }
+    path "sniside/data/kafka/*" {
+      capabilities = ["read"]
+    }
+    path "sniside/data/milvus/*" {
+      capabilities = ["read"]
+    }
+    path "sniside/data/ai-models/*" {
+      capabilities = ["read"]
+    }
+
+---
+# SPIFFE/SPIRE Registration Entries
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: sniside-ncid-workload
+spec:
+  spiffeID: "spiffe://snisid.ht/snsiside/ncid-api"
+  podSelector:
+    matchLabels:
+      app: sniside-ncid-api
+  dnsNameTemplates:
+    - "{{ .PodName }}.sniside.svc.cluster.local"
+
+---
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: sniside-neo4j-workload
+spec:
+  spiffeID: "spiffe://snisid.ht/snsiside/neo4j"
+  podSelector:
+    matchLabels:
+      app: sniside-neo4j

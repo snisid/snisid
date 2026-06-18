@@ -1,0 +1,39 @@
+{
+  "name": "alpr_bulk_import",
+  "version": "1.0",
+  "description": "Import en masse des données ALPR historiques vers CockroachDB",
+  "estimated_rows": 5000000,
+  "batch_size": 2000,
+  "kafka_events": false,
+  "sources": [
+    {
+      "type": "csv",
+      "path": "/data/legacy/alpr_reads_2020_2025.csv"
+    }
+  ],
+  "targets": [
+    {"schema": "snisid_alpr", "table": "alpr_reads"}
+  ],
+  "mapping": {
+    "field_mappings": [
+      {"source": "reading_id", "target": "reading_id", "type": "string", "required": true},
+      {"source": "plate_number", "target": "plate", "type": "string", "transformer": "plate_normalize", "required": true},
+      {"source": "reading_date", "target": "reading_timestamp", "type": "date", "format": "%Y-%m-%d %H:%M:%S"},
+      {"source": "camera_id", "target": "camera_id", "type": "string"},
+      {"source": "camera_location", "target": "camera_location", "type": "text"},
+      {"source": "latitude", "target": "latitude", "type": "float"},
+      {"source": "longitude", "target": "longitude", "type": "float"},
+      {"source": "vehicle_make", "target": "make", "type": "string", "transformer": "upper"},
+      {"source": "vehicle_model", "target": "model", "type": "string"},
+      {"source": "vehicle_year", "target": "year", "type": "int"},
+      {"source": "vehicle_color", "target": "color", "type": "string", "transformer": "upper"},
+      {"source": "speed_kmh", "target": "speed_kmh", "type": "int"},
+      {"source": "direction", "target": "direction", "type": "enum", "mapping": {"N": "NORTH", "S": "SOUTH", "E": "EAST", "W": "WEST"}},
+      {"source": "image_path", "target": "image_url", "type": "string", "transformer": "file_copy", "copy_to": "sniside-media/alpr/"}
+    ],
+    "validations": [
+      {"field": "plate", "rule": "plate"},
+      {"field": "plate", "rule": "required"}
+    ]
+  }
+}
