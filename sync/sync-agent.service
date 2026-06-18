@@ -1,0 +1,15 @@
+[Unit]
+Description=SNISID Sync Agent
+After=network.target
+
+[Service]
+Type=simple
+User=snisid
+ExecStart=/usr/local/bin/snisid-sync-agent --watch /var/snisid/sync/inbox --archive /var/snisid/sync/archive --state /var/snisid/sync/state.json
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

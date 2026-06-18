@@ -117,7 +117,7 @@ services:
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?error}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -181,6 +181,150 @@ services:
         condition: service_healthy
     logging: *default-logging
 
+  enrollment-service:
+    build:
+      context: .
+      dockerfile: services/enrollment-service/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: snisid
+      DB_USER: snisid
+      DB_PASSWORD: ${DB_PASSWORD:-dev_password}
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
+      PORT: "8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  identity-mesh:
+    build:
+      context: .
+      dockerfile: services/identity-mesh/Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      NEO4J_HOST: neo4j
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-dev_password}
+      KAFKA_BROKERS: kafka:9092
+      PORT: "8084"
+    depends_on:
+      neo4j:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  entity-resolution:
+    build:
+      context: .
+      dockerfile: services/entity-resolution/Dockerfile
+    ports:
+      - "8095:8095"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: snisid
+      DB_USER: snisid
+      DB_PASSWORD: ${DB_PASSWORD:-dev_password}
+      NEO4J_HOST: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-dev_password}
+      KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: "8095"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+
+  offline-sync-engine:
+    build:
+      context: .
+      dockerfile: services/offline-sync-engine/Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: snisid_sync
+      DB_USER: snisid
+      DB_PASSWORD: ${DB_PASSWORD:-dev_password}
+      KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: "8090"
+      SYNC_INTERVAL_SECONDS: "60"
+      MAX_BATCH_SIZE: "1000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    volumes:
+      - sync_data:/data/sync
+    logging: *default-logging
+
+  backend-python:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      SNISID_ENVIRONMENT: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: snisid
+      DB_USER: snisid
+      DB_PASSWORD: ${DB_PASSWORD:-dev_password}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+
+  identity-provider:
+    build:
+      context: .
+      dockerfile: services/identity-provider/Dockerfile
+    ports:
+      - "8096:8096"
+    environment:
+      PORT: "8096"
+      ISSUER: ${OIDC_ISSUER:-http://localhost:8096}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+
   # --- Frontend ---
   frontend:
     build:
@@ -202,3 +346,4 @@ volumes:
   milvus_data:
   minio_data:
   clickhouse_data:
+  sync_data:

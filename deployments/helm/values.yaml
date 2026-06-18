@@ -1,24 +1,28 @@
 global:
   domain: snisid.gov.ht
-  jwtSecret: "change-me-in-production"
+  jwtSecret: "" # Must be set via --set global.jwtSecret=$JWT_SECRET or External Secrets Operator
+  vault:
+    address: http://vault-internal:8200
+    kubernetesAuthRole: snisid-service
 
 postgresql:
   enabled: true
   auth:
     username: snisid
-    password: snisid
+    password: "" # Must be set via --set or External Secrets
     database: snisid
+    existingSecret: snisid-postgres-secret
 
 kafka:
   enabled: true
   listeners:
     client:
-      protocol: PLAINTEXT
+      protocol: SASL_SSL
 
 neo4j:
   enabled: true
   neo4j:
-    password: "neo4jpass"
+    existingSecret: snisid-neo4j-secret
 
 services:
   identityApi:
@@ -32,7 +36,7 @@ services:
       tag: latest
     service:
       port: 8081
-  
+
 monitoring:
   prometheus:
     enabled: true
@@ -40,26 +44,12 @@ monitoring:
     enabled: true
   loki:
     enabled: true
-  
+
   fraudEngine:
     replicaCount: 2
     image:
       repository: snisid/fraud-engine
       tag: latest
-  
+
   alertFeed:
-    replicaCount: 2
-    image:
-      repository: snisid/alert-feed
-      tag: latest
-    service:
-      port: 8082
-  
-  faceService:
-    replicaCount: 2
-    image:
-      repository: snisid/ai-face
-      tag: latest
-    resources:
-      limits:
-        nvidia.com/gpu: 1
+    enabled: true

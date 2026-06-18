@@ -6,9 +6,12 @@ This script provides an interactive CLI dashboard to monitor, verify, and run co
 on the 18 sovereign production readiness components of the SNISID platform in Haiti.
 """
 
+import io
 import os
 import sys
 import time
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # ANSI colors for styling
 RESET = "\033[0m"

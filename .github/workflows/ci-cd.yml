@@ -7,6 +7,21 @@ on:
     branches: [ main ]
 
 jobs:
+  fraud-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: Fraud Engine Build & Test
+        run: |
+          cd services/fraud-engine
+          go mod tidy
+          go build ./cmd/
+          go test ./... -v -count=1
+
   backend-test:
     runs-on: ubuntu-latest
     services:
@@ -20,9 +35,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.26'
       - name: Run Go Tests
-        run: go test -v ./... -cover
+        run: go test ./internal/... -v -cover
 
   ai-test:
     runs-on: ubuntu-latest

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="SNISID" Language="1033" Version="1.0.0" Manufacturer="SNISID Systems" UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+    <Media Id="1" Cabinet="snisid.cab" EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLDIR" Name="SNISID">
+          <Directory Id="BINDIR" Name="bin" />
+          <Directory Id="APIDIR" Name="api" />
+          <Directory Id="FRONTENDDIR" Name="frontend" />
+          <Directory Id="TOOLSDIR" Name="tools" />
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="SNISIDShortcuts" Name="SNISID" />
+      </Directory>
+    </Directory>
+
+    <!-- Feature: Core Services -->
+    <Feature Id="CoreServices" Title="Core Services" Description="SNISID core backend services" Level="1" Absent="disallow">
+      <ComponentGroupRef Id="CoreComponents" />
+      <ComponentRef Id="RegistryEntries" />
+      <ComponentRef Id="PathEnvVar" />
+    </Feature>
+
+    <!-- Feature: API Service -->
+    <Feature Id="ApiService" Title="API Service" Description="SNISID REST API" Level="1">
+      <ComponentGroupRef Id="ApiComponents" />
+    </Feature>
+
+    <!-- Feature: Frontend -->
+    <Feature Id="Frontend" Title="Frontend" Description="SNISID web frontend" Level="1">
+      <ComponentGroupRef Id="FrontendComponents" />
+    </Feature>
+
+    <!-- Feature: Tools -->
+    <Feature Id="Tools" Title="Offline Tools" Description="SNISID offline utility tools" Level="1">
+      <ComponentGroupRef Id="ToolsComponents" />
+    </Feature>
+
+    <!-- Registry entries -->
+    <Component Id="RegistryEntries" Directory="INSTALLDIR" Guid="B2C3D4E5-F6A7-8901-BCD2-EF3456789012">
+      <RegistryKey Root="HKLM" Key="Software\SNISID">
+        <RegistryValue Type="string" Name="InstallDir" Value="[INSTALLDIR]" />
+        <RegistryValue Type="string" Name="Version" Value="1.0.0" />
+      </RegistryKey>
+    </Component>
+
+    <!-- PATH environment variable -->
+    <Component Id="PathEnvVar" Directory="BINDIR" Guid="C3D4E5F6-A7B8-9012-CDE3-F45678901234">
+      <Environment Id="AddToPath" Name="PATH" Value="[BINDIR]" Permanent="no" Part="last" Action="set" System="yes" />
+    </Component>
+
+    <!-- Start Menu shortcuts -->
+    <Component Id="StartMenuShortcuts" Directory="SNISIDShortcuts" Guid="D4E5F6A7-B8C9-0123-DEF4-567890123456">
+      <Shortcut Id="SnisidConsole" Name="SNISID Console" Target="[BINDIR]snisid.exe" WorkingDirectory="BINDIR" />
+      <Shortcut Id="UninstallShortcut" Name="Uninstall SNISID" Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]" />
+      <RemoveFolder Id="RemoveSNISIDShortcuts" On="uninstall" />
+    </Component>
+
+    <UI>
+      <UIRef Id="WixUI_FeatureTree" />
+    </UI>
+  </Product>
+
+  <!-- Component Groups -->
+  <Fragment>
+    <ComponentGroup Id="CoreComponents" Directory="BINDIR">
+      <Component Guid="E5F6A7B8-C9D0-1234-EFAB-678901234567">
+        <File Source="..\build\bin\snisid-svc.exe" KeyPath="yes" />
+      </Component>
+      <Component Guid="F6A7B8C9-D0E1-2345-FABC-789012345678">
+        <File Source="..\build\bin\snisid-core.dll" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="ApiComponents" Directory="APIDIR">
+      <Component Guid="A7B8C9D0-E1F2-3456-ABCD-890123456789">
+        <File Source="..\build\api\snisid-api.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="FrontendComponents" Directory="FRONTENDDIR">
+      <Component Guid="B8C9D0E1-F2A3-4567-BCDE-901234567890">
+        <File Source="..\build\frontend\index.html" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="ToolsComponents" Directory="TOOLSDIR">
+      <Component Guid="C9D0E1F2-A3B4-5678-CDEF-012345678901">
+        <File Source="..\build\tools\snisid-viewer.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

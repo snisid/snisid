@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-core-quota
+  namespace: snisid
+spec:
+  hard:
+    requests.cpu: "32"
+    requests.memory: "64Gi"
+    limits.cpu: "64"
+    limits.memory: "128Gi"
+    persistentvolumeclaims: "20"
+    services.nodeports: "5"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: snisid-default-limits
+  namespace: snisid
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container

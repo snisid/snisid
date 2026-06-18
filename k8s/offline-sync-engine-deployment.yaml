@@ -1,0 +1,244 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: offline-sync-engine
+  namespace: snisid-core
+  labels:
+    app: offline-sync-engine
+    snisid.dev/service: offline
+    snisid.dev/tier: edge
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: offline-sync-engine
+  template:
+    metadata:
+      labels:
+        app: offline-sync-engine
+        snisid.dev/tier: edge
+        snisid.dev/lifecycle: offline
+      annotations:
+        snisid.dev/offline: "true"
+        snisid.dev/sync: "critical"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8090"
+    spec:
+      serviceAccountName: offline-sync-engine
+      containers:
+      - name: offline-sync-engine
+        image: snisid/offline-sync-engine:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8090
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: GIN_MODE
+          value: "release"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: db_host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: db_port
+        - name: DB_NAME
+          value: "snisid_sync"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-secret
+              key: password
+        - name: KAFKA_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: kafka_brokers
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: redis_host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: redis_port
+        - name: PORT
+          value: "8090"
+        - name: SYNC_INTERVAL_SECONDS
+          value: "60"
+        - name: MAX_BATCH_SIZE
+          value: "1000"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8090
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8090
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        volumeMounts:
+        - name: sync-data
+          mountPath: /data/sync
+        - name: tmp
+          mountPath: /tmp
+        - name: sync-state
+          mountPath: /state
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop: ["ALL"]
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: sync-data
+        persistentVolumeClaim:
+          claimName: offline-sync-data
+      - name: tmp
+        emptyDir: {}
+      - name: sync-state
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: offline-sync-engine
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: "snisid.dev/edge"
+        operator: "Exists"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: offline-sync-engine
+  namespace: snisid-core
+  labels:
+    app: offline-sync-engine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: offline-sync-engine
+  namespace: snisid-core
+  labels:
+    app: offline-sync-engine
+    snisid.dev/service: offline
+spec:
+  selector:
+    app: offline-sync-engine
+  ports:
+  - port: 8090
+    targetPort: 8090
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: offline-sync-data
+  namespace: snisid-core
+  labels:
+    app: offline-sync-engine
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: encrypted-sc
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: offline-sync-engine-network-policy
+  namespace: snisid-core
+spec:
+  podSelector:
+    matchLabels:
+      app: offline-sync-engine
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-core
+      podSelector:
+        matchLabels:
+          snisid.dev/gateway: "true"
+    ports:
+    - port: 8090
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - port: 9090
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-infra
+      podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - port: 5432
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-infra
+      podSelector:
+        matchLabels:
+          app: kafka
+    ports:
+    - port: 9092
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-infra
+      podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - port: 6379

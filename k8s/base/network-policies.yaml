@@ -1,0 +1,126 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: snisid
+  labels:
+    app.kubernetes.io/part-of: snisid
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: snisid
+  labels:
+    app.kubernetes.io/part-of: snisid
+spec:
+  podSelector:
+    matchLabels:
+      app: gateway-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: istio-system
+    ports:
+    - port: 8080
+      protocol: TCP
+    - port: 8443
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-identity-db
+  namespace: snisid
+  labels:
+    app.kubernetes.io/part-of: snisid
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: identity-service
+    ports:
+    - port: 5432
+      protocol: TCP
+  - from:
+    - podSelector:
+        matchLabels:
+          app: audit-service
+    ports:
+    - port: 5432
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-ingress
+  namespace: snisid
+  labels:
+    app.kubernetes.io/part-of: snisid
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/metrics: prometheus
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+    ports:
+    - port: 9090
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: snisid
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kube-api-egress
+  namespace: snisid
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/needs-kube-api: "true"
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 10.96.0.0/12
+    ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP

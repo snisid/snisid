@@ -1,71 +1,66 @@
-# =============================================================================
-# SNISID - .dockerignore
-# Exclut les fichiers inutiles du contexte Docker pour des builds plus rapides
-# et pour éviter de copier des données sensibles dans l'image
-# =============================================================================
+# --- SNISID system - .dockerignore ---
 
-# Contrôle de version
-.git
-.gitignore
-.gitattributes
+# Heavy monorepo folders — never needed in Docker
+/apps-ecosystem/
+/SNISID-Phase3/
+/SNISID-*/
+/National-*/
+/snisid mcp/
+/snisid/
 
-# Documentation
-*.md
-docs/
-README*
+# Root-level source dirs not part of this service
+/src/
+/services/
+/phase*/
 
-# Développement local
-.env
-.env.*
-*.local
-
-# Dépendances (reconstruites dans le container)
-node_modules/
-vendor/
-
-# Builds locaux (on rebuild dans le container)
-dist/
-build/
-frontend/build/
+# OS / IDE
 *.exe
 *.dll
-
-# Tests
-**/*_test.go
-**/test/
-**/tests/
-**/__tests__/
-coverage/
-*.test.js
-
-# Logs
-*.log
-logs/
-
-# OS / Éditeurs
+.tmp.driveupload/
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-*.swp
-*.swo
+.cursor/
+.claude/
 
-# Docker lui-même
-Dockerfile*
-docker-compose*
-.dockerignore
+# Git
+.git/
 
-# CI/CD
-.github/
-.gitlab-ci.yml
-Jenkinsfile
+# Node — exclude host node_modules and build outputs
+# (these are rebuilt inside Docker, not copied from host)
+**/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/.nuxt/
+frontend/.output/
+frontend/.turbo/
+frontend/.cache/
+frontend/.expo/
 
-# Données sensibles (NE JAMAIS inclure dans une image Docker)
+# Env / secrets
+.env
+.env.*
+*.local
+*.log
+logs/
 secrets/
 *.pem
 *.key
 *.crt
 *.p12
 *.pfx
-configs/local/
-configs/secrets/
+
+# Docs / CI
+*.md
+docs/
+.github/
+
+# -------------------------------------------------------
+# IMPORTANT: vendor/ must NOT be listed here
+# Run on host before building:
+#   $env:GOWORK = "off"
+#   go mod tidy
+#   go mod vendor
+# -------------------------------------------------------
