@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/open-policy-agent/opa/rego"
-	"github.com/snisid/platform/backend/internal/domain/authorization/entity"
-	"github.com/snisid/platform/backend/internal/domain/authorization/repository"
-	"github.com/snisid/platform/backend/internal/platform/events"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/domain/authorization/entity"
+	"github.com/snisid/platform/internal/domain/authorization/repository"
+	"github.com/snisid/platform/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type AuthorizationEngine interface {
@@ -75,7 +75,7 @@ func (e *opaEngine) RefreshPolicies(ctx context.Context) error {
 	e.compiledQuery = &query
 	e.mu.Unlock()
 
-	logger.Info("Authorization policies refreshed", nil)
+	logger.Info(ctx, "Authorization policies refreshed")
 	return nil
 }
 

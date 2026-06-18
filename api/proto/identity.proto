@@ -3,39 +3,318 @@ syntax = "proto3";
 package snisid.v1;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
 
 option go_package = "github.com/snisid/platform/backend/api/proto/v1";
 
 service IdentityService {
+  // Core CRUD
   rpc CreateIdentity(CreateIdentityRequest) returns (IdentityResponse);
   rpc GetIdentity(GetIdentityRequest) returns (IdentityResponse);
+  rpc UpdateIdentity(UpdateIdentityRequest) returns (IdentityResponse);
+  rpc DeleteIdentity(DeleteIdentityRequest) returns (DeleteIdentityResponse);
+
+  // Lifecycle
+  rpc VerifyIdentity(VerifyIdentityRequest) returns (IdentityResponse);
+  rpc SuspendIdentity(SuspendIdentityRequest) returns (IdentityResponse);
+  rpc RevokeIdentity(RevokeIdentityRequest) returns (IdentityResponse);
+  rpc ReactivateIdentity(ReactivateIdentityRequest) returns (IdentityResponse);
+
+  // Biometrics
+  rpc EnrollBiometric(EnrollBiometricRequest) returns (BiometricResponse);
+  rpc MatchBiometric(MatchBiometricRequest) returns (MatchBiometricResponse);
+  rpc VerifyLiveness(LivenessRequest) returns (LivenessResponse);
+
+  // Search & Query
+  rpc SearchIdentities(SearchIdentitiesRequest) returns (SearchIdentitiesResponse);
+  rpc GetIdentityHistory(GetIdentityHistoryRequest) returns (IdentityHistoryResponse);
+  rpc GetIdentityStats(GetIdentityStatsRequest) returns (IdentityStatsResponse);
+
+  // Documents
+  rpc IssueDocument(IssueDocumentRequest) returns (DocumentResponse);
+  rpc VerifyDocument(VerifyDocumentRequest) returns (VerifyDocumentResponse);
+
+  // Enrollment
+  rpc CreateEnrollment(CreateEnrollmentRequest) returns (EnrollmentResponse);
+  rpc GetEnrollment(GetEnrollmentRequest) returns (EnrollmentResponse);
+  rpc UpdateEnrollmentStatus(UpdateEnrollmentStatusRequest) returns (EnrollmentResponse);
 }
 
 message Citizen {
   string id = 1;
   string first_name = 2;
   string last_name = 3;
-  string dob = 4;
-  string national_id = 5;
-  string status = 6;
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp updated_at = 8;
-  map<string, string> attributes = 9;
+  string middle_name = 4;
+  string dob = 5;
+  string place_of_birth = 6;
+  string gender = 7;
+  string nationality = 8;
+  string national_id = 9;
+  string status = 10;
+  string email = 11;
+  string phone = 12;
+  google.protobuf.Struct address = 13;
+  string photo_url = 14;
+  string agency_id = 15;
+  int32 version = 16;
+  bool verified = 17;
+  google.protobuf.Timestamp created_at = 18;
+  google.protobuf.Timestamp updated_at = 19;
+  google.protobuf.Timestamp verified_at = 20;
+}
+
+message BiometricRecord {
+  string id = 1;
+  string citizen_id = 2;
+  string biometric_type = 3;
+  string template_hash = 4;
+  double quality_score = 5;
+  string capture_device = 6;
+  bool is_primary = 7;
+  google.protobuf.Timestamp captured_at = 8;
+}
+
+message IdentityDocument {
+  string id = 1;
+  string citizen_id = 2;
+  string document_type = 3;
+  string document_number = 4;
+  string issue_date = 5;
+  string expiry_date = 6;
+  string issuing_agency = 7;
+  string status = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message Enrollment {
+  string id = 1;
+  string nnu = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string date_of_birth = 5;
+  string gender = 6;
+  string nationality = 7;
+  string status = 8;
+  string agency_id = 9;
+  string agent_id = 10;
+  string location_id = 11;
+  string device_id = 12;
+  double quality_score = 13;
+  bool consent_given = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp expires_at = 16;
 }
 
 message CreateIdentityRequest {
   string first_name = 1;
   string last_name = 2;
-  string dob = 3;
-  string national_id = 4;
-  string agency = 5;
+  string middle_name = 3;
+  string dob = 4;
+  string place_of_birth = 5;
+  string gender = 6;
+  string nationality = 7;
+  string agency = 8;
+  string email = 9;
+  string phone = 10;
 }
 
 message GetIdentityRequest {
   string id = 1;
 }
 
-message IdentityResponse {
-  Citizen citizen = 1;
+message UpdateIdentityRequest {
+  string id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string email = 4;
+  string phone = 5;
+  google.protobuf.Struct address = 6;
+  string photo_url = 7;
 }
 
+message DeleteIdentityRequest {
+  string id = 1;
+  string reason = 2;
+}
+
+message DeleteIdentityResponse {
+  bool success = 1;
+}
+
+message VerifyIdentityRequest {
+  string id = 1;
+  string verification_method = 2;
+  string verifier_id = 3;
+}
+
+message SuspendIdentityRequest {
+  string id = 1;
+  string reason = 2;
+}
+
+message RevokeIdentityRequest {
+  string id = 1;
+  string reason = 2;
+}
+
+message ReactivateIdentityRequest {
+  string id = 1;
+  string reason = 2;
+}
+
+message EnrollBiometricRequest {
+  string citizen_id = 1;
+  string biometric_type = 2;
+  bytes template_data = 3;
+  double quality_score = 4;
+  string capture_device = 5;
+}
+
+message BiometricResponse {
+  string id = 1;
+  string template_hash = 2;
+  double quality_score = 3;
+  bool success = 4;
+}
+
+message MatchBiometricRequest {
+  string biometric_type = 1;
+  bytes probe_template = 2;
+  int32 max_candidates = 3;
+  double threshold = 4;
+}
+
+message MatchBiometricResponse {
+  repeated MatchCandidate candidates = 1;
+  double match_time_ms = 2;
+}
+
+message MatchCandidate {
+  string citizen_id = 1;
+  double confidence = 2;
+  bool match = 3;
+}
+
+message LivenessRequest {
+  bytes image_data = 1;
+  string modality = 2;
+}
+
+message LivenessResponse {
+  bool alive = 1;
+  double score = 2;
+  map<string, double> details = 3;
+}
+
+message SearchIdentitiesRequest {
+  string search_term = 1;
+  string status = 2;
+  string agency_id = 3;
+  string nationality = 4;
+  int32 page = 5;
+  int32 page_size = 6;
+  string sort_by = 7;
+  string sort_order = 8;
+}
+
+message SearchIdentitiesResponse {
+  repeated Citizen items = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  int32 total_pages = 5;
+}
+
+message GetIdentityHistoryRequest {
+  string identity_id = 1;
+  int32 after_version = 2;
+  int32 limit = 3;
+}
+
+message IdentityHistoryEntry {
+  string event_id = 1;
+  string event_type = 2;
+  int32 version = 3;
+  string timestamp = 4;
+  string actor_id = 5;
+  google.protobuf.Struct data = 6;
+}
+
+message IdentityHistoryResponse {
+  repeated IdentityHistoryEntry events = 1;
+}
+
+message GetIdentityStatsRequest {
+  string agency_id = 1;
+}
+
+message IdentityStatsResponse {
+  int32 total = 1;
+  map<string, int32> by_status = 2;
+  int32 verified_count = 3;
+  int32 biometric_enrolled_count = 4;
+}
+
+message IssueDocumentRequest {
+  string citizen_id = 1;
+  string document_type = 2;
+  string document_number = 3;
+  string issue_date = 4;
+  string expiry_date = 5;
+  string issuing_agency = 6;
+}
+
+message DocumentResponse {
+  string id = 1;
+  string document_number = 2;
+  string status = 3;
+  bool success = 4;
+}
+
+message VerifyDocumentRequest {
+  string document_number = 1;
+  string document_type = 2;
+  string issuing_agency = 3;
+}
+
+message VerifyDocumentResponse {
+  bool valid = 1;
+  string status = 2;
+  string owner_name = 3;
+  google.protobuf.Timestamp issue_date = 4;
+  google.protobuf.Timestamp expiry_date = 5;
+  string verification_id = 6;
+}
+
+message CreateEnrollmentRequest {
+  string first_name = 1;
+  string last_name = 2;
+  string date_of_birth = 3;
+  string place_of_birth = 4;
+  string gender = 5;
+  string nationality = 6;
+  string agency_id = 7;
+  string agent_id = 8;
+  string location_id = 9;
+  string device_id = 10;
+  bool consent_given = 11;
+  bool offline_sync = 12;
+  string email = 13;
+  string phone = 14;
+}
+
+message GetEnrollmentRequest {
+  string id = 1;
+}
+
+message UpdateEnrollmentStatusRequest {
+  string id = 1;
+  string status = 2;
+  string reason = 3;
+  string biometric_hash = 4;
+  double quality_score = 5;
+}
+
+message EnrollmentResponse {
+  Enrollment enrollment = 1;
+}

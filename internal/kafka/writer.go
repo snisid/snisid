@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type Producer struct {

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/snisid/platform/backend/internal/platform/middleware"
+	"github.com/snisid/platform/internal/platform/middleware"
 )
 
 // CreateIdentityDTO represents a request with strict validation rules.

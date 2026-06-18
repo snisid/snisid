@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 // NewReverseProxy creates a customized httputil.ReverseProxy.
@@ -42,7 +42,7 @@ func NewReverseProxy(target string) (*httputil.ReverseProxy, error) {
 	}
 
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-		logger.Error("proxy error", err, logger.Log.With(logger.Log.Name("target"), logger.Log.Name(targetURL.String())).Core().Check(nil, nil))
+		logger.Error(context.Background(), "proxy error", err)
 		w.WriteHeader(http.StatusBadGateway)
 		_, _ = w.Write([]byte(`{"error": "bad gateway"}`))
 	}

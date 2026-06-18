@@ -1,8 +1,10 @@
 package intelligence
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type Signals struct {
@@ -20,8 +22,8 @@ type FinalDecision struct {
 }
 
 func EvaluateRisk(citizenID string, s Signals) FinalDecision {
-	logger.Info(fmt.Sprintf("NEXUS-INTEL: Fusing signals for citizen %s", citizenID))
-	
+	logger.Info(context.Background(), fmt.Sprintf("NEXUS-INTEL: Fusing signals for citizen %s", citizenID))
+
 	explanation := []string{}
 	riskScore := 0.0
 	riskLevel := "LOW"
@@ -32,6 +34,10 @@ func EvaluateRisk(citizenID string, s Signals) FinalDecision {
 		return FinalDecision{citizenID, 0.95, "CRITICAL", explanation}
 	}
 
+	if s.GraphScore > 0.9 {
+		explanation = append(explanation, "critical: graph cluster anomaly")
+		return FinalDecision{citizenID, 0.95, "CRITICAL", explanation}
+	}
 	if s.GraphScore > 0.8 {
 		explanation = append(explanation, "high: graph cluster anomaly")
 	}

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/snisid/platform/backend/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/events"
 )
 
 type AuditEvent struct {

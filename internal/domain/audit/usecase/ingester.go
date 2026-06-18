@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/snisid/platform/backend/internal/domain/audit/entity"
-	"github.com/snisid/platform/backend/internal/domain/audit/repository"
-	"github.com/snisid/platform/backend/internal/platform/events"
-	"github.com/snisid/platform/backend/internal/platform/logger"
-	"github.com/snisid/platform/backend/internal/platform/security"
+	"github.com/snisid/platform/internal/domain/audit/entity"
+	"github.com/snisid/platform/internal/domain/audit/repository"
+	"github.com/snisid/platform/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/security"
 )
 
 type AuditIngester interface {
@@ -34,7 +34,7 @@ func (i *kafkaIngester) Start(ctx context.Context) {
 		// Assuming payload structure is generic for auditing
 		var payload map[string]interface{}
 		if err := json.Unmarshal(msg, &payload); err != nil {
-			logger.Error("failed to unmarshal audit message", err)
+			logger.Error(ctx, "failed to unmarshal audit message", err)
 			return err
 		}
 
@@ -82,7 +82,7 @@ func (i *kafkaIngester) Start(ctx context.Context) {
 		}
 
 		if err := i.repo.Append(ctx, event); err != nil {
-			logger.Error("failed to append audit event to ledger", err)
+			logger.Error(ctx, "failed to append audit event to ledger", err)
 			return err
 		}
 

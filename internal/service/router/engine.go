@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 	"go.uber.org/zap"
 )
 
@@ -58,6 +58,11 @@ func (e *Engine) UpdateRules(newRules []Rule) error {
 
 	e.rules = compiledRules
 	return nil
+}
+
+// Rules returns the currently loaded rules
+func (e *Engine) Rules() []Rule {
+	return e.rules
 }
 
 // Evaluate checks an event against all rules and returns the combined list of target topics

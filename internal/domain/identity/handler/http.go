@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/snisid/platform/backend/internal/domain/identity/entity"
-	"github.com/snisid/platform/backend/internal/domain/identity/usecase"
+	"github.com/snisid/platform/internal/domain/identity/entity"
+	"github.com/snisid/platform/internal/domain/identity/usecase"
 )
 
 type HttpHandler struct {

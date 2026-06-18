@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/snisid/platform/backend/internal/domain/auth/entity"
+	"github.com/snisid/platform/internal/domain/auth/entity"
 )
 
 type SessionRepository interface {

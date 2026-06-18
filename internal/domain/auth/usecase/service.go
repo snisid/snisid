@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/snisid/platform/backend/internal/domain/auth/entity"
-	"github.com/snisid/platform/backend/internal/domain/auth/repository"
-	"github.com/snisid/platform/backend/internal/platform/security"
+	"github.com/snisid/platform/internal/domain/auth/entity"
+	"github.com/snisid/platform/internal/domain/auth/repository"
+	"github.com/snisid/platform/internal/platform/security"
 )
 
 var (

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-	"github.com/snisid/platform/backend/internal/platform/database"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/database"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 func TrackLineage(ctx context.Context, driver neo4j.DriverWithContext, identityID, source, processor string) {
@@ -26,6 +26,6 @@ func TrackLineage(ctx context.Context, driver neo4j.DriverWithContext, identityI
 		"processor": processor,
 	})
 	if err != nil {
-		logger.Error("failed to track data lineage", err)
+		logger.Error(ctx, "failed to track data lineage", err)
 	}
 }

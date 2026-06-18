@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/snisid/platform/backend/internal/domain/audit/entity"
-	"github.com/snisid/platform/backend/internal/domain/audit/repository"
-	"github.com/snisid/platform/backend/internal/platform/security"
+	"github.com/snisid/platform/internal/domain/audit/entity"
+	"github.com/snisid/platform/internal/domain/audit/repository"
+	"github.com/snisid/platform/internal/platform/security"
 )
 
 type ForensicsService interface {

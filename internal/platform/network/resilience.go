@@ -6,7 +6,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/sony/gobreaker"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type CircuitBreaker struct {
@@ -24,7 +24,7 @@ func NewCircuitBreaker(name string) *CircuitBreaker {
 			return counts.Requests >= 3 && failureRatio >= 0.6
 		},
 		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
-			logger.Info("Circuit breaker state changed", logger.Log.With(logger.Log.Name("name"), logger.Log.Name(name)).Core().Check(nil, nil))
+			logger.Info(context.Background(), "Circuit breaker state changed")
 		},
 	}
 	return &CircuitBreaker{cb: gobreaker.NewCircuitBreaker(settings)}

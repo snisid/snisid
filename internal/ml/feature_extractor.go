@@ -1,41 +1,55 @@
 package ml
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"time"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"go.uber.org/zap"
 )
 
 type FeatureVector struct {
-	UserID    string  `json:"user_id"`
-	Amount    float64 `json:"amount"`
-	Velocity  float64 `json:"velocity"`
-	GraphRisk float64 `json:"graph_risk"`
-	Timestamp int64   `json:"timestamp"`
+	UserID    string
+	Amount    float64
+	Velocity  float64
+	GraphRisk float64
 }
 
-type FeatureExtractor struct{}
+type FeatureExtractor struct {
+	store  FeatureStore
+	logger *zap.Logger
+}
 
-func (e *FeatureExtractor) Extract(payload map[string]interface{}) FeatureVector {
-	userID, _ := payload["user_id"].(string)
-	amount, _ := payload["amount"].(float64)
-	
-	vector := FeatureVector{
-		UserID:    userID,
-		Amount:    amount,
-		Velocity:  0.88, // Mock: computed from window
-		GraphRisk: 0.42, // Mock: fetched from Neo4j cache
-		Timestamp: time.Now().Unix(),
+func NewFeatureExtractor(store FeatureStore, logger *zap.Logger) *FeatureExtractor {
+	return &FeatureExtractor{store: store, logger: logger}
+}
+
+func (fe *FeatureExtractor) ExtractFeatures(ctx context.Context, payload map[string]interface{}) (*FeatureVector, error) {
+	userID, ok := payload["user_id"].(string)
+	if !ok || userID == "" {
+		return nil, fmt.Errorf("%w: user_id is required", ErrInvalidPayload)
 	}
 
-	logger.Info(fmt.Sprintf("NEXUS-ML: Extracted features for user %s", userID))
-	return vector
-}
+	amount, _ := payload["amount"].(float64)
 
-func (e *FeatureExtractor) SaveOnline(v FeatureVector) {
-	data, _ := json.Marshal(v)
-	fmt.Printf("📦 NEXUS-ML: Saving online feature vector to Redis for %s\n", v.UserID)
-	// redis.Set(ctx, "fv:"+v.UserID, data, 0)
-	_ = data
+	velocity, err := fe.store.GetVelocity(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("feature extraction failed for user %s: %w", userID, err)
+	}
+
+	graphRisk, err := fe.store.GetGraphRisk(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("feature extraction failed for user %s: %w", userID, err)
+	}
+
+	if velocity == 0.0 && graphRisk == 0.0 {
+		fe.logger.Debug("feature extraction: no cached features, using zero values (degraded mode)",
+			zap.String("user_id", userID))
+	}
+
+	return &FeatureVector{
+		UserID:    userID,
+		Amount:    amount,
+		Velocity:  velocity,
+		GraphRisk: graphRisk,
+	}, nil
 }

@@ -5,10 +5,10 @@ import (
 )
 
 type CalibratedSignals struct {
-	MLRisk         float64
-	GraphRisk      float64
-	BehaviorRisk   float64
-	Confidence     float64
+	MLRisk       float64
+	GraphRisk    float64
+	BehaviorRisk float64
+	Confidence   float64
 }
 
 // Platt Scaling calibration: maps raw scores to true probabilities

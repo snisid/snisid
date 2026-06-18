@@ -1,13 +1,15 @@
 package middleware
 
 import (
-	"bytes"
+		"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
+	"go.uber.org/zap"
 )
 
 // Authorize is a middleware hook for other microservices to enforce access.
@@ -42,7 +44,7 @@ func Authorize(authzServiceURL string, action string, resource string) gin.Handl
 		client := &http.Client{Timeout: 2 * time.Second}
 		resp, err := client.Post(authzServiceURL+"/v1/authz/enforce", "application/json", bytes.NewBuffer(payload))
 		if err != nil || resp.StatusCode != http.StatusOK {
-			logger.Error("failed to call authz service", err)
+			logger.Error(context.Background(), "failed to call authz service", err, zap.String("url", authzServiceURL))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "authorization service unavailable"})
 			return
 		}

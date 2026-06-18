@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/snisid/platform/backend/internal/domain/auth/entity"
+	"github.com/snisid/platform/internal/domain/auth/entity"
 	"gorm.io/gorm"
 )
 

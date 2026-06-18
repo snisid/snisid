@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/snisid/platform/backend/internal/platform/validation"
+	"github.com/snisid/platform/internal/platform/validation"
 )
 
 // Envelope represents the standard SNISID JSON wrapper for all Kafka events

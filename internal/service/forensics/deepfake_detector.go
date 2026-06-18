@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 	"go.uber.org/zap"
 )
 

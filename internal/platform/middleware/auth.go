@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/snisid/platform/backend/internal/platform/security"
+	"github.com/snisid/platform/internal/platform/security"
 )
 
 func Auth(secret string, allowedRoles ...string) gin.HandlerFunc {

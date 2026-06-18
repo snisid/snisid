@@ -2,30 +2,80 @@ package ml
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"math"
+	"time"
+
 	"github.com/redis/go-redis/v9"
+	"github.com/snisid/platform/internal/service/fraud"
 )
 
+type StateProvider interface {
+	GetState(ctx context.Context, key string) (string, error)
+	IncrementVelocity(ctx context.Context, key string, window time.Duration) (int64, error)
+}
+
 type FeatureStore struct {
+	state StateProvider
+}
+
+func NewFeatureStore(state StateProvider) *FeatureStore {
+	return &FeatureStore{state: state}
+}
+
+func NewFeatureStoreFromAddr(addr string) *FeatureStore {
+	return NewFeatureStore(fraud.NewStateStore(addr))
+}
+
+type RedisFeatureStore struct {
 	client *redis.Client
 }
 
-func NewFeatureStore(addr string) *FeatureStore {
-	return &FeatureStore{
-		client: redis.NewClient(&redis.Options{Addr: addr}),
+func NewRedisFeatureStore(client *redis.Client) *RedisFeatureStore {
+	return &RedisFeatureStore{client: client}
+}
+
+func (s *RedisFeatureStore) GetTransactionVelocity(ctx context.Context, userID string) (float64, error) {
+	val, err := s.client.Get(ctx, fmt.Sprintf("snisid:features:%s:velocity", userID)).Float64()
+	if errors.Is(err, redis.Nil) {
+		return 0.0, nil
 	}
+	if err != nil {
+		return 0.0, fmt.Errorf("get velocity for %s: %w", userID, err)
+	}
+	return val, nil
 }
 
 func (fs *FeatureStore) GetTransactionVelocity(ctx context.Context, userID string) float64 {
-	// Mock: Fetch recent transaction velocity for userID from Redis
-	return 0.85
+	if userID == "" || fs.state == nil {
+		return 0.0
+	}
+	key := fmt.Sprintf("snisid:features:%s:velocity", userID)
+	count, err := fs.state.GetState(ctx, key)
+	if err != nil {
+		return 0.0
+	}
+	var c float64
+	fmt.Sscanf(count, "%f", &c)
+	return math.Min(c/10.0, 1.0)
 }
 
 type FraudModel struct {
-	Version string
+	Version         string
+	store           *FeatureStore
+	lastKnownAmount float64
 }
 
-func (m *FraudModel) Predict(velocity, amount float64) float64 {
-	// Adaptive ML Model Logic (Placeholder)
-	// In production, this would call a Python/PyTorch inference service
+func (m *FraudModel) Predict(ctx context.Context, userID string) (float64, error) {
+	if m.store == nil {
+		return 0.5, nil
+	}
+	velocity := m.store.GetTransactionVelocity(ctx, userID)
+	score := velocity*0.7 + m.lastKnownAmount*0.3
+	return math.Min(score, 1.0), nil
+}
+
+func (m *FraudModel) PredictTraditional(velocity, amount float64) float64 {
 	return (velocity * 0.7) + (amount * 0.3)
 }

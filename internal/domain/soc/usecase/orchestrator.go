@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/snisid/platform/backend/internal/domain/soc/entity"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/domain/soc/entity"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type SOAROrchestrator interface {
@@ -23,7 +23,7 @@ func NewSOAROrchestrator() SOAROrchestrator {
 }
 
 func (o *orchestrator) HandleAlert(ctx context.Context, alertType string, payload map[string]interface{}) error {
-	logger.Info(fmt.Sprintf("SOC: processing alert %s", alertType))
+	logger.Info(ctx, fmt.Sprintf("SOC: processing alert %s", alertType))
 
 	// 1. Create Incident
 	incident := &entity.Incident{
@@ -46,7 +46,7 @@ func (o *orchestrator) HandleAlert(ctx context.Context, alertType string, payloa
 }
 
 func (o *orchestrator) executeCriticalPlaybook(ctx context.Context, incident *entity.Incident, payload map[string]interface{}) error {
-	logger.Warn(fmt.Sprintf("SOC: executing Critical Playbook %s", incident.PlaybookID))
+	logger.Warn(ctx, fmt.Sprintf("SOC: executing Critical Playbook %s", incident.PlaybookID))
 
 	// Step 1: Revoke Sessions (Simulated)
 	userID, _ := payload["user_id"].(string)
@@ -61,6 +61,6 @@ func (o *orchestrator) executeCriticalPlaybook(ctx context.Context, incident *en
 	// Step 2: Flag for Manual Review
 	incident.Status = entity.StatusContained
 	
-	logger.Info(fmt.Sprintf("SOC: Incident %s contained autonomously", incident.ID))
+	logger.Info(ctx, fmt.Sprintf("SOC: Incident %s contained autonomously", incident.ID))
 	return nil
 }

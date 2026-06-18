@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/snisid/platform/backend/internal/config"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/config"
+	"github.com/snisid/platform/internal/platform/logger"
 	"go.uber.org/zap"
 )
 

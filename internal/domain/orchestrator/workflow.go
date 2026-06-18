@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/snisid/platform/backend/internal/platform/events"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type IdentityState struct {
@@ -98,7 +98,7 @@ func (w *WorkflowManager) evaluateState(ctx context.Context, state *IdentityStat
 			"timestamp":  time.Now().UTC(),
 		}
 
-		logger.Info("workflow completed for identity", nil) // Adjust log
+		logger.Info(ctx, "workflow completed for identity")
 		return w.producer.Publish(ctx, state.IdentityID, resultEvt)
 	}
 

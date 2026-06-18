@@ -23,7 +23,7 @@ func (o *Orchestrator) Calculate(ctx context.Context, event map[string]interface
 	totalWeightedScore := 0.0
 	modelScores := make(map[string]int)
 	explanations := make([]string, 0)
-	
+
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 

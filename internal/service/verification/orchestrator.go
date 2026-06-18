@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )

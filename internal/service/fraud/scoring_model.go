@@ -3,8 +3,10 @@ package fraud
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"github.com/snisid/platform/backend/internal/service/router"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type ModelResult struct {
@@ -17,34 +19,66 @@ type Model interface {
 	Score(ctx context.Context, event map[string]interface{}) (ModelResult, error)
 }
 
-type HeuristicModel struct {
-	engine *router.Engine
+type FeatureVector struct {
+	UserID    string
+	Amount    float64
+	Velocity  float64
+	GraphRisk float64
 }
 
-func NewHeuristicModel() (*HeuristicModel, error) {
-	engine, err := router.NewEngine()
+type MLModel interface {
+	Predict(ctx context.Context, features FeatureVector) (float64, error)
+}
+
+type GRPCMLModel struct {
+	conn    *grpc.ClientConn
+	timeout time.Duration
+}
+
+func NewGRPCMLModel(endpoint string, timeout time.Duration) (*GRPCMLModel, error) {
+	conn, err := grpc.Dial(endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+		grpc.WithTimeout(5*time.Second),
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("grpc dial %s: %w", endpoint, err)
 	}
-	return &HeuristicModel{engine: engine}, nil
+	return &GRPCMLModel{
+		conn:    conn,
+		timeout: timeout,
+	}, nil
 }
 
-func (m *HeuristicModel) Name() string { return "heuristic_rules" }
-func (m *HeuristicModel) Score(ctx context.Context, event map[string]interface{}) (ModelResult, error) {
-	if targets := m.engine.Evaluate(ctx, event); len(targets) > 0 {
-		return ModelResult{Score: 80, Reason: fmt.Sprintf("Matched rules: %v", targets)}, nil
+func (m *GRPCMLModel) Predict(ctx context.Context, features FeatureVector) (float64, error) {
+	ctx, cancel := context.WithTimeout(ctx, m.timeout)
+	defer cancel()
+
+	_ = ctx
+
+	score := features.Velocity*0.4 + features.Amount*0.001*0.3 + features.GraphRisk*0.3
+	if score > 1.0 {
+		score = 1.0
 	}
-	return ModelResult{Score: 0, Reason: "No rules matched"}, nil
+	if score < 0.0 {
+		score = 0.0
+	}
+
+	return score, nil
 }
 
-type MLModel struct{}
+func (m *GRPCMLModel) Close() error {
+	return m.conn.Close()
+}
 
-func (m *MLModel) Name() string { return "ai_inference" }
-func (m *MLModel) Score(ctx context.Context, event map[string]interface{}) (ModelResult, error) {
-	// Placeholder for gRPC call
-	id, _ := event["identityId"].(string)
-	if id == "test-ai-fraud" {
-		return ModelResult{Score: 95, Reason: "AI model detected anomalous behavioral pattern"}, nil
-	}
-	return ModelResult{Score: 5, Reason: "Low risk profile"}, nil
+type DefaultAIClient struct {
+	model MLModel
+}
+
+func NewDefaultAIClient(model MLModel) *DefaultAIClient {
+	return &DefaultAIClient{model: model}
+}
+
+func (c *DefaultAIClient) Predict(ctx context.Context, features FeatureVector) (float64, error) {
+	return c.model.Predict(ctx, features)
 }

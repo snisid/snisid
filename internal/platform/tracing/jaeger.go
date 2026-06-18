@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -26,6 +27,6 @@ func InitTracer(serviceName, url string) (*sdktrace.TracerProvider, error) {
 	return tp, nil
 }
 
-func StartSpan(ctx context.Context, name string) (context.Context, sdktrace.Span) {
+func StartSpan(ctx context.Context, name string) (context.Context, trace.Span) {
 	return otel.Tracer("snisid").Start(ctx, name)
 }

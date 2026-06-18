@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/snisid/platform/backend/internal/platform/errors"
+	"github.com/snisid/platform/internal/platform/errors"
 )
 
 // TranslateError converts go-playground ValidationErrors into our structured platform error.

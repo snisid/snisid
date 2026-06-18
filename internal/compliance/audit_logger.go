@@ -1,10 +1,12 @@
 package compliance
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type AuditEntry struct {
@@ -27,7 +29,7 @@ func LogAccess(actor, action, resource, justification string) {
 	data, _ := json.Marshal(entry)
 	
 	// In production, this goes to an immutable WORM S3 bucket or Audit Kafka topic
-	logger.Info(fmt.Sprintf("NEXUS-AUDIT: %s", string(data)))
+	logger.Info(context.Background(), fmt.Sprintf("NEXUS-AUDIT: %s", string(data)))
 }
 
 func (e *AuditEntry) IsBiometricAccess() bool {

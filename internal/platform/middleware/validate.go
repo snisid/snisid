@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/snisid/platform/backend/internal/platform/errors"
-	"github.com/snisid/platform/backend/internal/platform/validation"
+	"github.com/snisid/platform/internal/platform/errors"
+	"github.com/snisid/platform/internal/platform/validation"
 )
 
 // DTOContextKey is a generic context key used to store the parsed object

@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/snisid/platform/backend/internal/platform/tracing"
+	"github.com/snisid/platform/internal/platform/tracing"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

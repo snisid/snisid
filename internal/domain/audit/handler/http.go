@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/snisid/platform/backend/internal/domain/audit/usecase"
+	"github.com/snisid/platform/internal/domain/audit/usecase"
 )
 
 type HttpHandler struct {

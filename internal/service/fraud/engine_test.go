@@ -3,9 +3,10 @@ package fraud
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/snisid/platform/backend/internal/service/router"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
+	"github.com/snisid/platform/internal/service/router"
 )
 
 type mockAIClient struct {
@@ -16,28 +17,37 @@ func (m *mockAIClient) Predict(ctx context.Context, event map[string]interface{}
 	if m.predictFn != nil {
 		return m.predictFn(ctx, event)
 	}
-	return 0, nil
+	return 5, nil // match DefaultAIClient baseline
 }
 
-func newTestEngine(aiClient AIClient) *ScoringEngine {
+func newTestEngine(aiClient AIClient) (*ScoringEngine, *miniredis.Miniredis) {
+	s, err := miniredis.Run()
+	if err != nil {
+		panic(err)
+	}
+	client := redis.NewClient(&redis.Options{Addr: s.Addr()})
 	eng, _ := router.NewEngine()
 	return &ScoringEngine{
 		rules:    eng,
-		state:    NewStateStore(""),
+		state:    &StateStore{client: client},
 		aiClient: aiClient,
-	}
+	}, s
 }
 
 func TestScoringEngine_CalculateScore_NoTriggers(t *testing.T) {
-	engine := newTestEngine(&mockAIClient{})
+	engine, mini := newTestEngine(&mockAIClient{})
+	t.Cleanup(func() { mini.Close() })
 	event := map[string]interface{}{
 		"identityId": "normal-user",
 		"action":     "view",
 	}
 
-	score, _ := engine.CalculateScore(context.Background(), event)
+	score, _, riskLevel := engine.CalculateScore(context.Background(), event)
 	if score != 5 {
 		t.Errorf("score = %d, want 5 (only AI default)", score)
+	}
+	if riskLevel == "" {
+		t.Error("expected non-empty risk level")
 	}
 }
 
@@ -48,18 +58,22 @@ func TestScoringEngine_AIHighRisk(t *testing.T) {
 		},
 	}
 
-	engine := newTestEngine(aiClient)
+	engine, mini := newTestEngine(aiClient)
+	t.Cleanup(func() { mini.Close() })
 	event := map[string]interface{}{
 		"identityId": "test-fraud",
 		"action":     "enroll",
 	}
 
-	score, reasons := engine.CalculateScore(context.Background(), event)
+	score, reasons, riskLevel := engine.CalculateScore(context.Background(), event)
 	if score < 60 {
 		t.Errorf("score = %d, want >= 60", score)
 	}
 	if reasons == "" {
 		t.Error("expected reasons for high risk")
+	}
+	if riskLevel == "" {
+		t.Error("expected non-empty risk level")
 	}
 }
 
@@ -70,14 +84,61 @@ func TestScoringEngine_AIErrorFallback(t *testing.T) {
 		},
 	}
 
-	engine := newTestEngine(aiClient)
+	engine, mini := newTestEngine(aiClient)
+	t.Cleanup(func() { mini.Close() })
 	event := map[string]interface{}{
 		"identityId": "user-001",
 	}
 
-	score, _ := engine.CalculateScore(context.Background(), event)
+	score, _, riskLevel := engine.CalculateScore(context.Background(), event)
 	if score < 0 || score > 100 {
 		t.Errorf("score = %d, out of expected range [0,100]", score)
+	}
+	if riskLevel == "" {
+		t.Error("expected non-empty risk level")
+	}
+}
+
+func TestScoringEngine_IntelligenceFusion(t *testing.T) {
+	engine, mini := newTestEngine(&mockAIClient{})
+	t.Cleanup(func() { mini.Close() })
+	event := map[string]interface{}{
+		"identityId": "high-graph-risk",
+		"graph_risk": 0.95,
+	}
+
+	score, reasons, riskLevel := engine.CalculateScore(context.Background(), event)
+	if score < 5 {
+		t.Errorf("score = %d, want >= 5", score)
+	}
+	if reasons == "" {
+		t.Error("expected reasons from intelligence fusion")
+	}
+	if riskLevel != "CRITICAL" {
+		t.Errorf("riskLevel = %s, want CRITICAL (graph_risk=0.95)", riskLevel)
+	}
+}
+
+func TestScoringEngine_VelocityScore(t *testing.T) {
+	engine, mini := newTestEngine(&mockAIClient{})
+	t.Cleanup(func() { mini.Close() })
+	ctx := context.Background()
+
+	event := map[string]interface{}{
+		"identityId": "vel-user",
+		"action":     "enroll",
+	}
+
+	for i := 0; i < 6; i++ {
+		engine.CalculateScore(ctx, event)
+	}
+
+	score, reasons, _ := engine.CalculateScore(ctx, event)
+	if score < 50 {
+		t.Errorf("score = %d, want >= 50 (velocity penalty)", score)
+	}
+	if reasons == "" {
+		t.Error("expected reasons including velocity")
 	}
 }
 
@@ -118,7 +179,8 @@ func TestNewScoringEngine(t *testing.T) {
 }
 
 func TestScoringEngine_ReloadRules(t *testing.T) {
-	engine := newTestEngine(&mockAIClient{})
+	engine, mini := newTestEngine(&mockAIClient{})
+	t.Cleanup(func() { mini.Close() })
 	err := engine.ReloadRules([]router.Rule{})
 	if err != nil {
 		t.Errorf("ReloadRules failed: %v", err)

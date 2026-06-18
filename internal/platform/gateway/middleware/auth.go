@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/snisid/platform/backend/internal/platform/errors"
+	"github.com/snisid/platform/internal/platform/errors"
 )
 
 type userContextKey struct{}

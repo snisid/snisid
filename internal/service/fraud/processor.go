@@ -5,14 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/snisid/platform/backend/internal/platform/events"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/logger"
 	"go.uber.org/zap"
 )
 
+type EventConsumer interface {
+	Start(ctx context.Context, handler func(ctx context.Context, msg []byte) error) error
+}
+
+type EventProducer interface {
+	Publish(ctx context.Context, key string, event any) error
+}
+
 type IdentityEventProcessor struct {
-	consumer *events.Consumer
-	producer *events.Producer
+	consumer EventConsumer
+	producer EventProducer
 }
 
 func NewIdentityEventProcessor(brokers []string) *IdentityEventProcessor {
@@ -35,7 +43,7 @@ func (p *IdentityEventProcessor) processEvent(ctx context.Context, payload []byt
 		return err
 	}
 
-	logger.Info(ctx, "Processing identity event for fraud detection", 
+	logger.Info(ctx, "Processing identity event for fraud detection",
 		zap.Any("identity_id", event["identityId"]),
 		zap.Any("action", event["action"]),
 	)
@@ -46,12 +54,12 @@ func (p *IdentityEventProcessor) processEvent(ctx context.Context, payload []byt
 
 	if isFraudulent {
 		logger.Warn(ctx, "IDENTITY FRAUD DETECTED", zap.Any("identity_id", event["identityId"]))
-		
+
 		// Publish risk update event
 		alert := map[string]interface{}{
-			"identityId": event["identityId"],
+			"identityId":      event["identityId"],
 			"score_increment": 50,
-			"reason": "Suspicious identity lifecycle activity",
+			"reason":          "Suspicious identity lifecycle activity",
 		}
 		return p.producer.Publish(ctx, fmt.Sprintf("%v", event["identityId"]), alert)
 	}

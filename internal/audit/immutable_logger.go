@@ -1,10 +1,12 @@
 package audit
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type AccessAuditLog struct {
@@ -27,5 +29,5 @@ func (l *ImmutableLogger) LogAccess(log AccessAuditLog) {
 
 	// In a real system, this would push to an immutable WORM (Write Once Read Many) storage
 	fmt.Printf("📜 NEXUS-AUDIT: Committing immutable access log: %s\n", string(data))
-	logger.Info(fmt.Sprintf("ACCESS-AUDIT: %s", string(data)))
+	logger.Info(context.Background(), fmt.Sprintf("ACCESS-AUDIT: %s", string(data)))
 }

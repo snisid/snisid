@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/snisid/platform/backend/internal/platform/logger"
-	"github.com/snisid/platform/backend/internal/platform/tracing"
+	"github.com/snisid/platform/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/tracing"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/snisid/platform/backend/internal/platform/events"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type IdentityCreatedEvent struct {
@@ -48,19 +48,19 @@ func (s *service) Start(ctx context.Context) error {
 	return s.consumer.Read(ctx, func(msg kafka.Message) error {
 		var evt IdentityCreatedEvent
 		if err := json.Unmarshal(msg.Value, &evt); err != nil {
-			logger.Error("failed to unmarshal event", err)
+			logger.Error(ctx, "failed to unmarshal event", err)
 			return nil // Skip invalid messages
 		}
 
 		// Insert into Graph DB
 		if err := s.graphRepo.AddIdentityNode(ctx, evt.IdentityID, evt.Agency); err != nil {
-			logger.Error("failed to add node to graph", err)
+			logger.Error(ctx, "failed to add node to graph", err)
 		}
 
 		// Check for Fraud Rings
 		isFraudRing, err := s.graphRepo.CheckFraudRing(ctx, evt.IdentityID)
 		if err != nil {
-			logger.Error("failed to check fraud ring", err)
+			logger.Error(ctx, "failed to check fraud ring", err)
 		}
 
 		// Simple scoring logic
@@ -88,13 +88,11 @@ func (s *service) Start(ctx context.Context) error {
 
 		// Publish to fraud.scored
 		if err := s.producer.Publish(ctx, evt.IdentityID, scoreEvt); err != nil {
-			logger.Error("failed to publish fraud score", err)
+			logger.Error(ctx, "failed to publish fraud score", err)
 			return err // Return err to retry message if needed
 		}
 
-		logger.Info("fraud score evaluated", logger.Log.With(
-			logger.Log.Name("identityId"), logger.Log.Name(evt.IdentityID),
-		).Core().Check(nil, nil)) // Adjust logger signature if needed.
+		logger.Info(ctx, "fraud score evaluated")
 
 		return nil
 	})

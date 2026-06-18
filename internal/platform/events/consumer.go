@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/snisid/platform/backend/internal/platform/logger"
-	"github.com/snisid/platform/backend/internal/platform/tracing"
+	"github.com/snisid/platform/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/tracing"
 	"go.uber.org/zap"
 )
 

@@ -2,7 +2,7 @@ package learning
 
 import (
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type ModelUpdate struct {

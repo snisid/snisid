@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/snisid/platform/backend/internal/config"
+	"github.com/snisid/platform/internal/config"
 )
 
 type Claims struct {
@@ -45,6 +45,20 @@ func (s *JWTService) SignToken(subject, role, agency string) (string, error) {
 func (s *JWTService) ParseToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.secret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+	return claims, nil
+}
+
+func ParseToken(secret, tokenStr string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
 	})
 	if err != nil {
 		return nil, err

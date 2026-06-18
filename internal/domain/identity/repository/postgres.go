@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/snisid/platform/backend/internal/domain/identity/entity"
+	"github.com/snisid/platform/internal/domain/identity/entity"
 	"gorm.io/gorm"
 )
 

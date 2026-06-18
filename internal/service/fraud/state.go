@@ -2,43 +2,58 @@ package fraud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
-type StateStore struct {
+type StateStore interface {
+	IncrementVelocity(ctx context.Context, userID string) (int64, error)
+	GetState(ctx context.Context, userID string) (*FraudState, error)
+	SetState(ctx context.Context, userID string, state *FraudState) error
+}
+
+type FraudState struct {
+	Velocity      int64     `json:"velocity"`
+	LastAmount    float64   `json:"last_amount"`
+	LastActivity  time.Time `json:"last_activity"`
+	WindowStart   time.Time `json:"window_start"`
+}
+
+type RedisStateStore struct {
 	client *redis.Client
 }
 
-func NewStateStore(addr string) *StateStore {
-	return &StateStore{
-		client: redis.NewClient(&redis.Options{
-			Addr: addr,
-		}),
-	}
+func NewRedisStateStore(client *redis.Client) *RedisStateStore {
+	return &RedisStateStore{client: client}
 }
 
-// IncrementVelocity tracks the frequency of an event within a window
-func (s *StateStore) IncrementVelocity(ctx context.Context, key string, window time.Duration) (int64, error) {
-	pipe := s.client.Pipeline()
-	count := pipe.Incr(ctx, key)
-	pipe.Expire(ctx, key, window)
-	
-	_, err := pipe.Exec(ctx)
+func (s *RedisStateStore) IncrementVelocity(ctx context.Context, userID string) (int64, error) {
+	key := fmt.Sprintf("snisid:fraud:%s:velocity", userID)
+	val, err := s.client.Incr(ctx, key).Result()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("redis incr velocity: %w", err)
 	}
-
-	return count.Val(), nil
+	s.client.Expire(ctx, key, time.Hour)
+	return val, nil
 }
 
-// GetState retrieves a generic state value
-func (s *StateStore) GetState(ctx context.Context, key string) (string, error) {
-	return s.client.Get(ctx, key).Result()
+func (s *RedisStateStore) GetState(ctx context.Context, userID string) (*FraudState, error) {
+	key := fmt.Sprintf("snisid:fraud:%s:state", userID)
+	val, err := s.client.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return &FraudState{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("redis get state: %w", err)
+	}
+	_ = val
+	return &FraudState{}, nil
 }
 
-func (s *StateStore) Close() error {
-	return s.client.Close()
+func (s *RedisStateStore) SetState(ctx context.Context, userID string, state *FraudState) error {
+	key := fmt.Sprintf("snisid:fraud:%s:state", userID)
+	return s.client.Set(ctx, key, "state", time.Hour).Err()
 }

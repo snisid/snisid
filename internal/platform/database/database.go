@@ -7,7 +7,7 @@ import (
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/redis/go-redis/v9"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 func NewRedisClient(addr string) *redis.Client {
@@ -17,7 +17,7 @@ func NewRedisClient(addr string) *redis.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		logger.Error("failed to connect to redis", err)
+		logger.Error(context.Background(), "failed to connect to redis", err)
 	}
 	return rdb
 }
