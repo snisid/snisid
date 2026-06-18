@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	nexusv1 "github.com/snisid/platform/api/proto/nexus/v1"
-	"github.com/snisid/platform/nexus/core"
-	"github.com/snisid/platform/nexus/internal/agent"
+	nexusv1 "github.com/snisid/platform/services/nexus/api/proto/nexus/v1"
+	"github.com/snisid/platform/services/nexus/core"
+	"github.com/snisid/platform/services/nexus/internal/agent"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

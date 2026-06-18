@@ -1,8 +1,10 @@
 package policyoptimizer
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type SystemState struct {
@@ -23,7 +25,7 @@ func (o *PolicyOptimizer) CalculateReward(state SystemState, previousFraud float
 }
 
 func (o *PolicyOptimizer) SuggestAction(state SystemState) string {
-	logger.Info("RL-OPTIMIZER: Analyzing system state for policy suggestion...")
+	logger.Info(context.Background(), "RL-OPTIMIZER: Analyzing system state for policy suggestion...")
 	
 	if state.FraudRate > 0.4 {
 		return "SUGGESTION: Tighten transaction verification threshold"

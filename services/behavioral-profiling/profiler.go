@@ -1,8 +1,10 @@
 package behavioralprofiling
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type BehaviorProfile struct {
@@ -13,7 +15,7 @@ type BehaviorProfile struct {
 }
 
 func AnalyzeBehavior(currentTransaction float64, profile BehaviorProfile) bool {
-	logger.Info(fmt.Sprintf("PROFILER: Analyzing behavior for subject %s", profile.SubjectID))
+	logger.Info(context.Background(), fmt.Sprintf("PROFILER: Analyzing behavior for subject %s", profile.SubjectID))
 
 	// Anomaly detection: pattern-of-life deviation
 	if currentTransaction > profile.AvgTransaction*3 {

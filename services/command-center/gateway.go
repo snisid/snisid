@@ -1,8 +1,10 @@
 package commandcenter
 
 import (
+	"context"
+
 	"github.com/gorilla/websocket"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/logger"
 	"sync"
 )
 
@@ -31,7 +33,7 @@ func Broadcast(event LiveEvent) {
 }
 
 func Stream(ws *websocket.Conn) {
-	logger.Info("COMMAND-CENTER: New national supervisor connected via WebSocket.")
+	logger.Info(context.Background(), "COMMAND-CENTER: New national supervisor connected via WebSocket.")
 	ch := make(chan LiveEvent, 100)
 	
 	subMu.Lock()
@@ -47,7 +49,7 @@ func Stream(ws *websocket.Conn) {
 
 	for event := range ch {
 		if err := ws.WriteJSON(event); err != nil {
-			logger.Error("COMMAND-CENTER: WebSocket write failed", err)
+			logger.Error(context.Background(), "COMMAND-CENTER: WebSocket write failed", err)
 			break
 		}
 	}

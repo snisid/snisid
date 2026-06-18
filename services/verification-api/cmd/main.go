@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
-	"github.com/snisid/platform/backend/internal/platform/events"
-	"github.com/snisid/platform/backend/internal/platform/logger"
-	"github.com/snisid/platform/backend/internal/service/verification"
+	"github.com/snisid/platform/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/logger"
+	"github.com/snisid/platform/internal/service/verification"
 	"go.uber.org/zap"
 )
 

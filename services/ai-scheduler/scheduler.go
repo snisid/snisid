@@ -1,8 +1,10 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type Pod struct {
@@ -22,7 +24,7 @@ type Node struct {
 type AIScheduler struct{}
 
 func (s *AIScheduler) OptimizePlacement(pods []Pod, nodes []Node) map[string]string {
-	logger.Info("AI-SCHEDULER: Optimizing pod placement for national resilience...")
+	logger.Info(context.Background(), "AI-SCHEDULER: Optimizing pod placement for national resilience...")
 	
 	placement := make(map[string]string)
 	for _, p := range pods {

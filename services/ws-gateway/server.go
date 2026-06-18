@@ -4,14 +4,14 @@ import (
 	"context"
 	"github.com/gorilla/websocket"
 	"github.com/segmentio/kafka-go"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"log"
 	"net/http"
 	"sync"
 )
 
 var (
 	upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.http.Request) bool { return true },
+		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 	clients = make(map[*websocket.Conn]bool)
 	mu      sync.Mutex
@@ -20,7 +20,7 @@ var (
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logger.Error("WS-GATEWAY: Upgrade failed", err)
+		log.Println("WS-GATEWAY: Upgrade failed:", err)
 		return
 	}
 	defer ws.Close()
@@ -50,7 +50,7 @@ func StartKafkaConsumer(brokers []string, topic string) {
 	for {
 		msg, err := reader.ReadMessage(context.Background())
 		if err != nil {
-			logger.Error("WS-GATEWAY: Kafka read failed", err)
+			log.Println("WS-GATEWAY: Kafka read failed:", err)
 			continue
 		}
 

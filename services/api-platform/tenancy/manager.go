@@ -1,8 +1,10 @@
-package apiplatform
+package tenancy
 
 import (
-	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"context"
+
+	"github.com/snisid/platform/internal/platform/logger"
+	"go.uber.org/zap"
 )
 
 type Permission string
@@ -31,7 +33,10 @@ func (m *TenantManager) ValidateAccess(apiKey string, required Permission) (bool
 
 	for _, p := range tenant.Permissions {
 		if p == required {
-			logger.Info(fmt.Sprintf("API-PLATFORM: Access granted for country %s to %s", tenant.Country, required))
+			logger.Info(context.Background(), "API-PLATFORM: Access granted",
+				zap.String("country", tenant.Country),
+				zap.String("permission", string(required)),
+			)
 			return true, ""
 		}
 	}

@@ -1,8 +1,10 @@
 package healing
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type SystemState struct {
@@ -17,7 +19,7 @@ type HealingEngine struct {
 
 func (h *HealingEngine) DetectAndHeal(currentState *SystemState, isSafe bool) {
 	if !isSafe {
-		logger.Warn("HEALING-ENGINE: Formal violation detected. Initiating proof-backed recovery sequence.")
+		logger.Warn(context.Background(), "HEALING-ENGINE: Formal violation detected. Initiating proof-backed recovery sequence.")
 		h.RollbackToLastValid()
 	} else {
 		h.Snapshot(currentState)
@@ -25,13 +27,13 @@ func (h *HealingEngine) DetectAndHeal(currentState *SystemState, isSafe bool) {
 }
 
 func (h *HealingEngine) Snapshot(s *SystemState) {
-	logger.Info("HEALING-ENGINE: Snapshotting math-verified system state.")
+	logger.Info(context.Background(), "HEALING-ENGINE: Snapshotting math-verified system state.")
 	h.LastValidState = s
 }
 
 func (h *HealingEngine) RollbackToLastValid() {
 	if h.LastValidState == nil {
-		logger.Error("HEALING-ENGINE: No valid snapshot available. Escalating to global lock mode.")
+		logger.Error(context.Background(), "HEALING-ENGINE: No valid snapshot available. Escalating to global lock mode.")
 		return
 	}
 	

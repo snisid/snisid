@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/snisid/platform/backend/internal/domain/orchestrator"
-	"github.com/snisid/platform/backend/internal/platform/events"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+	"github.com/snisid/platform/internal/domain/orchestrator"
+	"github.com/snisid/platform/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 func main() {
@@ -34,24 +34,24 @@ func main() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigChan
-		logger.Info("shutting down orchestrator...", nil)
+		logger.Info(context.Background(), "shutting down orchestrator...")
 		cancel()
 	}()
 
 	// Run consumers in parallel
 	go func() {
 		if err := identityConsumer.Read(ctx, manager.HandleIdentityCreated); err != nil && err != context.Canceled {
-			logger.Error("identity consumer error", err)
+			logger.Error(context.Background(), "identity consumer error", err)
 		}
 	}()
 
 	go func() {
 		if err := fraudConsumer.Read(ctx, manager.HandleFraudScored); err != nil && err != context.Canceled {
-			logger.Error("fraud consumer error", err)
+			logger.Error(context.Background(), "fraud consumer error", err)
 		}
 	}()
 
-	logger.Info("orchestrator started", nil)
+	logger.Info(context.Background(), "orchestrator started")
 	<-ctx.Done()
 }
 

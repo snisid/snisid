@@ -1,8 +1,10 @@
 package oversight
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type Decision struct {
@@ -16,7 +18,7 @@ type OversightAI struct {
 }
 
 func (o *OversightAI) ValidateDecision(d Decision) (bool, string) {
-	logger.Info("OVERSIGHT: Validating automated fraud decision...")
+	logger.Info(context.Background(), "OVERSIGHT: Validating automated fraud decision...")
 
 	if d.Confidence < 0.7 {
 		return false, "REJECTED: LOW_CONFIDENCE"
@@ -26,7 +28,7 @@ func (o *OversightAI) ValidateDecision(d Decision) (bool, string) {
 		return false, "REJECTED: INSUFFICIENT_EVIDENCE"
 	}
 
-	logger.Info("OVERSIGHT: Decision APPROVED for investigation.")
+	logger.Info(context.Background(), "OVERSIGHT: Decision APPROVED for investigation.")
 	return true, "APPROVED"
 }
 

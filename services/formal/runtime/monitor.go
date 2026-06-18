@@ -1,8 +1,10 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type SystemEvent struct {
@@ -16,11 +18,11 @@ type FormalMonitor struct {
 }
 
 func (m *FormalMonitor) ValidateEvent(e SystemEvent) bool {
-	logger.Info(fmt.Sprintf("FORMAL-MONITOR: Validating runtime event %s against TLA+ Invariants.", e.ID))
+	logger.Info(context.Background(), fmt.Sprintf("FORMAL-MONITOR: Validating runtime event %s against TLA+ Invariants.", e.ID))
 	
 	// TLA+ Invariant: risk[n] <= THRESHOLD
 	if e.Risk > m.Threshold {
-		logger.Error(fmt.Sprintf("🚨 INVARIANT VIOLATION: Node %s Risk (%d) exceeds Threshold (%d).", e.Node, e.Risk, m.Threshold))
+		logger.Error(context.Background(), fmt.Sprintf("🚨 INVARIANT VIOLATION: Node %s Risk (%d) exceeds Threshold (%d).", e.Node, e.Risk, m.Threshold))
 		return false
 	}
 	

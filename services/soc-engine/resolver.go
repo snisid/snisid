@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type Incident struct {
@@ -15,7 +17,7 @@ type Incident struct {
 type IncidentResolver struct{}
 
 func (r *IncidentResolver) Resolve(incident Incident) string {
-	logger.Info(fmt.Sprintf("SOC-AI: Analyzing incident %s of type %s", incident.ID, incident.Type))
+	logger.Info(context.Background(), fmt.Sprintf("SOC-AI: Analyzing incident %s of type %s", incident.ID, incident.Type))
 
 	if incident.Risk > 0.9 {
 		return r.triggerQuarantine(incident.TargetSvc)
@@ -34,5 +36,5 @@ func (r *IncidentResolver) triggerQuarantine(svc string) string {
 
 func (r *IncidentResolver) ReconcileSwarm() {
 	// Logic to coordinate with the AI Swarm Manager
-	logger.Info("SOC-AI: Reconciling with Autonomous Defense Swarm...")
+	logger.Info(context.Background(), "SOC-AI: Reconciling with Autonomous Defense Swarm...")
 }

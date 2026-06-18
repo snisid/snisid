@@ -9,16 +9,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/snisid/platform/backend/internal/domain/audit/handler"
-	"github.com/snisid/platform/backend/internal/domain/audit/repository"
-	"github.com/snisid/platform/backend/internal/domain/audit/usecase"
-	"github.com/snisid/platform/backend/internal/platform/events"
-	"github.com/snisid/platform/backend/internal/platform/logger"
-	"github.com/snisid/platform/backend/internal/platform/middleware"
+	"github.com/snisid/platform/internal/domain/audit/handler"
+	"github.com/snisid/platform/internal/domain/audit/repository"
+	"github.com/snisid/platform/internal/domain/audit/usecase"
+	"github.com/snisid/platform/internal/platform/events"
+	"github.com/snisid/platform/internal/platform/logger"
+	"github.com/snisid/platform/internal/platform/middleware"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	
-	"github.com/snisid/platform/backend/internal/domain/audit/entity"
+	"github.com/snisid/platform/internal/domain/audit/entity"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 	// Init PostgreSQL
 	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
 	if err != nil {
-		logger.Fatal("failed to connect database", err)
+		logger.Fatal(context.Background(), "failed to connect database", err)
 	}
 	
 	if getEnv("ENV", "dev") == "dev" {
@@ -49,7 +49,7 @@ func main() {
 
 	// Start Background Ingester
 	go ingester.Start(context.Background())
-	logger.Info("audit kafka ingester started", nil)
+	logger.Info(context.Background(), "audit kafka ingester started")
 
 	// Router
 	r := gin.Default()
@@ -67,17 +67,17 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("failed to run audit service", err)
+			logger.Fatal(context.Background(), "failed to run audit service", err)
 		}
 	}()
 
-	logger.Info("audit-service api started on port "+port, nil)
+	logger.Info(context.Background(), "audit-service api started on port "+port)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	logger.Info("shutting down audit-service...", nil)
+	logger.Info(context.Background(), "shutting down audit-service...")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	srv.Shutdown(ctx)

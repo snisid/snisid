@@ -1,8 +1,10 @@
 package causalinference
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type CausalEdge struct {
@@ -16,7 +18,7 @@ type CausalEngine struct {
 }
 
 func (e *CausalEngine) EstimateEffect(feature string, delta float64) float64 {
-	logger.Info(fmt.Sprintf("CAUSAL: Estimating effect of %s change (delta=%f)", feature, delta))
+	logger.Info(context.Background(), fmt.Sprintf("CAUSAL: Estimating effect of %s change (delta=%f)", feature, delta))
 	
 	// Simplified DAG traversal for demonstration
 	for _, edge := range e.Edges {

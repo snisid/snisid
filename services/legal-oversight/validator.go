@@ -1,8 +1,10 @@
 package legaloversight
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type Decision struct {
@@ -13,7 +15,7 @@ type Decision struct {
 }
 
 func ValidateDecision(d Decision) (bool, string) {
-	logger.Info(fmt.Sprintf("LEGAL-AI: Validating decision for subject %s", d.SubjectID))
+	logger.Info(context.Background(), fmt.Sprintf("LEGAL-AI: Validating decision for subject %s", d.SubjectID))
 
 	if d.Confidence < 0.7 {
 		return false, "LOW_CONFIDENCE"

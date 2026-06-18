@@ -2,7 +2,6 @@ package proto
 
 import (
 	"fmt"
-	"time"
 )
 
 type ThreatEvent struct {

@@ -1,68 +1,94 @@
-import { SymbolView } from 'expo-symbols';
-import { Link, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Platform, Pressable } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { useAuth } from '@/lib/auth';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { isAuthenticated } = useAuth();
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
+        tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
         headerShown: useClientOnlyValue(false, true),
+        tabBarStyle: {
+          borderTopColor: Colors[colorScheme].tabIconDefault + '40',
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => (
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => (
             <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
+              name={{ ios: 'house.fill', android: 'home', web: 'home' }}
               tintColor={color}
-              size={28}
+              size={size}
             />
           ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable style={{ marginRight: 15 }}>
-                {({ pressed }) => (
-                  <SymbolView
-                    name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-                    size={25}
-                    tintColor={Colors[colorScheme].text}
-                    style={{ opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          href: isAuthenticated ? '/(tabs)' : null,
         }}
       />
       <Tabs.Screen
         name="two"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => (
+          title: 'Documents',
+          tabBarIcon: ({ color, size }) => (
             <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
+              name={{ ios: 'doc.text.fill', android: 'description', web: 'description' }}
               tintColor={color}
-              size={28}
+              size={size}
             />
           ),
+          href: isAuthenticated ? '/(tabs)/two' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Activity',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView
+              name={{ ios: 'bell.fill', android: 'notifications', web: 'notifications' }}
+              tintColor={color}
+              size={size}
+            />
+          ),
+          href: isAuthenticated ? '/(tabs)/notifications' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="support"
+        options={{
+          title: 'Support',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView
+              name={{ ios: 'questionmark.circle.fill', android: 'support', web: 'support' }}
+              tintColor={color}
+              size={size}
+            />
+          ),
+          href: isAuthenticated ? '/(tabs)/support' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView
+              name={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }}
+              tintColor={color}
+              size={size}
+            />
+          ),
+          href: isAuthenticated ? '/(tabs)/settings' : null,
         }}
       />
     </Tabs>

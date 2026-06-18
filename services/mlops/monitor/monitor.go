@@ -1,9 +1,11 @@
 package monitor
 
 import (
+	"context"
 	"math"
 	"sync"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type ModelMetrics struct {
@@ -57,6 +59,6 @@ func (m *ModelMetrics) CalculateDrift() {
 	m.DriftScore = math.Abs(avg - 0.5)
 	
 	if m.DriftScore > 0.2 {
-		logger.Warn("MLOPS: Significant model drift detected.")
+		logger.Warn(context.Background(), "MLOPS: Significant model drift detected.")
 	}
 }

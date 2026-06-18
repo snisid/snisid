@@ -1,8 +1,10 @@
 package monitor
 
 import (
+	"context"
 	"fmt"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type SystemState struct {
@@ -16,7 +18,7 @@ type RuntimeChecker struct {
 }
 
 func (c *RuntimeChecker) CheckInvariant(state SystemState) (bool, string) {
-	logger.Info("RUNTIME-VERIF: Checking global state invariants...")
+	logger.Info(context.Background(), "RUNTIME-VERIF: Checking global state invariants...")
 
 	for node, risk := range state.RiskVector {
 		// Invariant 1: risk[n] <= THRESHOLD => policy[n] == "ALLOW"
@@ -29,7 +31,7 @@ func (c *RuntimeChecker) CheckInvariant(state SystemState) (bool, string) {
 }
 
 func (c *RuntimeChecker) OnViolation(violation string) {
-	logger.Error("RUNTIME-VERIF: CRITICAL INVARIANT VIOLATION DETECTED!", fmt.Errorf(violation))
+	logger.Error(context.Background(), "RUNTIME-VERIF: CRITICAL INVARIANT VIOLATION DETECTED!", fmt.Errorf(violation))
 	// 1. Trigger Circuit Breaker
 	// 2. Call Self-Healer Rollback
 }

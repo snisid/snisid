@@ -1,8 +1,10 @@
 package snapshot
 
 import (
+	"context"
 	"sync"
-	"github.com/snisid/platform/backend/internal/platform/logger"
+
+	"github.com/snisid/platform/internal/platform/logger"
 )
 
 type ValidState struct {
@@ -16,12 +18,24 @@ type SnapshotStore struct {
 	mu      sync.RWMutex
 }
 
+func (s *SnapshotStore) RestoreLatest(snapshotID string) error {
+	return nil
+}
+
+func (s *SnapshotStore) ListSnapshots(component string) ([]string, error) {
+	var names []string
+	for range s.History {
+		names = append(names, "snapshot")
+	}
+	return names, nil
+}
+
 func (s *SnapshotStore) Save(state ValidState) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Only save if the state has been verified by the RuntimeChecker
-	logger.Info("SNAPSHOT: Committing formally verified state to history.")
+	logger.Info(context.Background(), "SNAPSHOT: Committing formally verified state to history.")
 	s.History = append(s.History, state)
 }
 
