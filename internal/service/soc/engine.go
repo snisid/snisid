@@ -1,8 +1,6 @@
 package soc
 
-import (
-	"fmt"
-)
+// No imports needed
 
 type Severity string
 

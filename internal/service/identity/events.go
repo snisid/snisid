@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/snisid/platform/internal/platform/events"
-	"github.com/snisid/platform/internal/platform/tracing"
 )
 
 type EventSender struct {

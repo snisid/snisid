@@ -130,22 +130,22 @@ func findSoftHSM() string {
 	return ""
 }
 
-type SPIFFEAdapter struct {
+type MinimalSPIFFEAdapter struct {
 	spiffeID    string
 	trustDomain string
 }
 
-func NewSPIFFEAdapter(spiffeID, trustDomain string) *SPIFFEAdapter {
-	return &SPIFFEAdapter{
+func NewMinimalSPIFFEAdapter(spiffeID, trustDomain string) *MinimalSPIFFEAdapter {
+	return &MinimalSPIFFEAdapter{
 		spiffeID:    spiffeID,
 		trustDomain: trustDomain,
 	}
 }
 
-func (a *SPIFFEAdapter) GetID() string {
+func (a *MinimalSPIFFEAdapter) GetID() string {
 	return a.spiffeID
 }
 
-func (a *SPIFFEAdapter) GetTrustDomain() string {
+func (a *MinimalSPIFFEAdapter) GetTrustDomain() string {
 	return a.trustDomain
 }

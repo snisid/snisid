@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/snisid/platform/internal/domain/identity/entity"
-	"github.com/snisid/platform/internal/platform/events"
 )
 
 type mockRepo struct {

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/snisid/platform/internal/service/fraud"
 )
 
 type StateProvider interface {

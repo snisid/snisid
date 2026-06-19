@@ -2,7 +2,6 @@ package soc
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/snisid/platform/internal/platform/logger"
 	"go.uber.org/zap"
