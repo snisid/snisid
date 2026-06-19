@@ -57,7 +57,7 @@ func TestPublish_EmptyStream(t *testing.T) {
 }
 
 func TestPublish_MultipleMessages(t *testing.T) {
-	client, s := newTestRedisClient(t)
+	client, _ := newTestRedisClient(t)
 	mgr := NewRedisStreamManager(client)
 
 	for i := 0; i < 5; i++ {

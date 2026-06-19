@@ -177,7 +177,7 @@ func TestIngester_AppendFailure(t *testing.T) {
 		"eventType":     "identity.created",
 		"status":        "success",
 	}
-	msg, err := json.Marshal(payload)
+	_, err := json.Marshal(payload)
 	require.NoError(t, err)
 
 	mockRepo.On("GetLastEvent", mock.Anything).Return(nil, nil).Once()

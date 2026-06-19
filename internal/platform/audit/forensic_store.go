@@ -38,13 +38,6 @@ func (s *ForensicStore) Commit(ctx context.Context, eventID string, payload []by
 	dataToHash := fmt.Sprintf("%s:%s:%s", s.lastHash, eventID, string(payload))
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(dataToHash)))
 
-	entry := ForensicEntry{
-		EventID:  eventID,
-		Payload:  payload,
-		PrevHash: s.lastHash,
-		Hash:     hash,
-	}
-
 	// 2. Mock: Write to Immutable Storage (e.g., ClickHouse with Object Lock)
 	s.lastHash = hash
 

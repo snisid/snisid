@@ -26,6 +26,10 @@ func (m *mockAuditRepo) Append(ctx context.Context, event *entity.AuditEvent) er
 	return nil
 }
 
+func (m *mockAuditRepo) GetLastEvent(ctx context.Context) (*entity.AuditEvent, error) {
+	return nil, nil
+}
+
 func (m *mockAuditRepo) GetEventsByCorrelationID(ctx context.Context, correlationID string) ([]entity.AuditEvent, error) {
 	if m.getByCorrelationIDFn != nil {
 		return m.getByCorrelationIDFn(ctx, correlationID)

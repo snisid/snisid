@@ -213,6 +213,13 @@ func NewGRPCInferenceEngine(endpoint string, timeout time.Duration) (*GRPCInfere
 	}, nil
 }
 
+func preprocessImage(data []byte, height, width int) ([]byte, error) {
+	expected := height * width * 3
+	result := make([]byte, expected)
+	copy(result, data)
+	return result, nil
+}
+
 func CosineSimilarity(a, b []float32) float64 {
 	if len(a) != len(b) {
 		return 0

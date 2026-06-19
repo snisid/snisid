@@ -3,9 +3,6 @@ package detection
 import (
 	"context"
 	"fmt"
-
-	"github.com/snisid/platform/internal/platform/logger"
-	"go.uber.org/zap"
 )
 
 type DetectionEngine struct {

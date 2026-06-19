@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-	"github.com/snisid/platform/internal/platform/database"
 	"github.com/snisid/platform/internal/platform/logger"
 )
 
