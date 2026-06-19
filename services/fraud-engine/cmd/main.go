@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,10 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"fmt"
-	"math"
-
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/snisid/platform/internal/ml"
 	"github.com/snisid/platform/internal/platform/events"
 	"github.com/snisid/platform/internal/platform/logger"
@@ -22,29 +21,25 @@ import (
 	"go.uber.org/zap"
 )
 
-// adapter conforming *fraud.StateStore to ml.FeatureStore interface
+// adapter conforming fraud.StateStore to ml.FeatureStore interface
 type mlFeatureStoreAdapter struct {
-	state *fraud.StateStore
+	state fraud.StateStore
 }
 
 func (a *mlFeatureStoreAdapter) GetVelocity(ctx context.Context, userID string) (float64, error) {
-	val, err := a.state.GetState(ctx, fmt.Sprintf("snisid:features:%s:velocity", userID))
+	state, err := a.state.GetState(ctx, userID)
 	if err != nil {
 		return 0, err
 	}
-	var v float64
-	fmt.Sscanf(val, "%f", &v)
-	return math.Min(v/10.0, 1.0), nil
+	return math.Min(float64(state.Velocity)/10.0, 1.0), nil
 }
 
 func (a *mlFeatureStoreAdapter) GetGraphRisk(ctx context.Context, userID string) (float64, error) {
-	val, err := a.state.GetState(ctx, fmt.Sprintf("snisid:features:%s:graph_risk", userID))
+	state, err := a.state.GetState(ctx, userID)
 	if err != nil {
 		return 0, err
 	}
-	var v float64
-	fmt.Sscanf(val, "%f", &v)
-	return v, nil
+	return float64(state.Velocity) * 0.5, nil
 }
 
 // variable-level guard to enforce adapter implements ml.FeatureStore at compile time
@@ -60,14 +55,16 @@ func main() {
 	port := getEnv("PORT", "8082")
 
 	// ── Real Redis-backed components ─────────────────────────────────
-	stateStore := fraud.NewStateStore(redisAddr)
+	redisClient := redis.NewClient(&redis.Options{Addr: redisAddr})
+	stateStore := fraud.NewRedisStateStore(redisClient)
 	featureExtractor := ml.NewFeatureExtractor(&mlFeatureStoreAdapter{state: stateStore}, logger.Log)
-	aiClient := fraud.NewDefaultAIClient(aiEndpoint)
-
-	engine, err := fraud.NewScoringEngine(redisAddr, aiClient)
+	mlModel, err := fraud.NewGRPCMLModel(aiEndpoint, 5*time.Second)
 	if err != nil {
-		logger.Fatal(context.Background(), "Failed to init scoring engine", err)
+		logger.Fatal(context.Background(), "Failed to create ML model", err)
 	}
+	aiClient := fraud.NewDefaultAIClient(mlModel)
+
+	engine := fraud.NewScoringEngine(aiClient, stateStore, logger.Log)
 
 	_ = engine.ReloadRules([]router.Rule{
 		{ID: "suspicious-location", Expression: "event.metadata.location == 'untrusted'", Targets: []string{"internal"}},

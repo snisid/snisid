@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/snisid/platform/internal/service/router"
 	"go.uber.org/zap"
 )
 
@@ -12,6 +13,7 @@ type ScoringEngine struct {
 	aiClient AIClient
 	state    StateStore
 	logger   *zap.Logger
+	rules    []router.Rule
 }
 
 type AIClient interface {
@@ -70,6 +72,26 @@ func classifyRisk(score float64) string {
 	default:
 		return "LOW"
 	}
+}
+
+func (e *ScoringEngine) CalculateScore(ctx context.Context, event map[string]interface{}) (int, string, string) {
+	userID, _ := event["identityId"].(string)
+	amount, _ := event["amount"].(float64)
+	result, err := e.ScoreTransaction(ctx, userID, amount)
+	if err != nil || result == nil {
+		return 0, "error", "LOW"
+	}
+	score := int(result.Score * 100)
+	return score, result.RiskLevel, result.RiskLevel
+}
+
+func (e *ScoringEngine) ReloadRules(rules []router.Rule) error {
+	e.rules = rules
+	return nil
+}
+
+func (e *ScoringEngine) Rules() []router.Rule {
+	return e.rules
 }
 
 func (e *ScoringEngine) explainFactors(features FeatureVector, score float64) []string {
