@@ -45,11 +45,32 @@ func (m *mockIngesterAuditRepo) GetEventsBySequenceRange(ctx context.Context, st
 
 var _ repository.AuditRepository = (*mockIngesterAuditRepo)(nil)
 
+type mockIngesterConsumer struct {
+	msgs [][]byte
+}
+
+func (m *mockIngesterConsumer) Start(ctx context.Context, handler func(ctx context.Context, msg []byte) error) error {
+	for _, msg := range m.msgs {
+		if err := handler(ctx, msg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *mockIngesterConsumer) Decode(data []byte, v interface{}) error { return nil }
+func (m *mockIngesterConsumer) Close() error                             { return nil }
+
 func TestIngester_IngestSingleEvent(t *testing.T) {
 	t.Parallel()
 
 	mockRepo := new(mockIngesterAuditRepo)
-	ingester := NewKafkaIngester(mockRepo, nil)
+	mockConsumer := &mockIngesterConsumer{
+		msgs: [][]byte{
+			[]byte(`{"correlationId":"corr-single","userId":"actor-1","action":"CREATE","resource":"identity/1","eventType":"identity.created","status":"success"}`),
+		},
+	}
+	ingester := NewKafkaIngester(mockRepo, mockConsumer)
 	require.NotNil(t, ingester)
 
 	payload := map[string]interface{}{
@@ -93,7 +114,13 @@ func TestIngester_BatchIngestMultipleEvents(t *testing.T) {
 	t.Parallel()
 
 	mockRepo := new(mockIngesterAuditRepo)
-	ingester := NewKafkaIngester(mockRepo, nil)
+	payloads := [][]byte{
+		[]byte(`{"correlationId":"corr-batch","userId":"actor-1","action":"CREATE","resource":"identity/1","eventType":"identity.created","status":"success"}`),
+		[]byte(`{"correlationId":"corr-batch","userId":"actor-2","action":"UPDATE","resource":"identity/2","eventType":"identity.updated","status":"success"}`),
+		[]byte(`{"correlationId":"corr-batch","userId":"actor-3","action":"DELETE","resource":"identity/3","eventType":"identity.deleted","status":"success"}`),
+	}
+	mockConsumer := &mockIngesterConsumer{msgs: payloads}
+	ingester := NewKafkaIngester(mockRepo, mockConsumer)
 
 	events := []map[string]interface{}{
 		{"correlationId": "corr-batch", "userId": "actor-1", "action": "CREATE", "resource": "identity/1", "eventType": "identity.created", "status": "success"},
@@ -129,7 +156,8 @@ func TestIngester_InvalidEventReturnsError(t *testing.T) {
 	t.Parallel()
 
 	mockRepo := new(mockIngesterAuditRepo)
-	ingester := NewKafkaIngester(mockRepo, nil)
+	mockConsumer := &mockIngesterConsumer{msgs: [][]byte{[]byte(`not-valid-json`)}}
+	ingester := NewKafkaIngester(mockRepo, mockConsumer)
 
 	mockRepo.AssertNotCalled(t, "Append", mock.Anything, mock.Anything)
 	mockRepo.AssertNotCalled(t, "GetLastEvent", mock.Anything)
@@ -143,18 +171,8 @@ func TestIngester_RepositoryFailureHandling(t *testing.T) {
 	t.Parallel()
 
 	mockRepo := new(mockIngesterAuditRepo)
-	ingester := NewKafkaIngester(mockRepo, nil)
-
-	payload := map[string]interface{}{
-		"correlationId": "corr-fail",
-		"userId":        "actor-1",
-		"action":        "CREATE",
-		"resource":      "identity/1",
-		"eventType":     "identity.created",
-		"status":        "success",
-	}
-	_, err := json.Marshal(payload)
-	require.NoError(t, err)
+	mockConsumer := &mockIngesterConsumer{msgs: [][]byte{[]byte(`{"correlationId":"corr-fail","userId":"actor-1","action":"CREATE","resource":"identity/1","eventType":"identity.created","status":"success"}`)}}
+	ingester := NewKafkaIngester(mockRepo, mockConsumer)
 
 	mockRepo.On("GetLastEvent", mock.Anything).Return(nil, errors.New("db connection failed")).Once()
 
@@ -167,18 +185,8 @@ func TestIngester_AppendFailure(t *testing.T) {
 	t.Parallel()
 
 	mockRepo := new(mockIngesterAuditRepo)
-	ingester := NewKafkaIngester(mockRepo, nil)
-
-	payload := map[string]interface{}{
-		"correlationId": "corr-append-fail",
-		"userId":        "actor-1",
-		"action":        "CREATE",
-		"resource":      "identity/1",
-		"eventType":     "identity.created",
-		"status":        "success",
-	}
-	_, err := json.Marshal(payload)
-	require.NoError(t, err)
+	mockConsumer := &mockIngesterConsumer{msgs: [][]byte{[]byte(`{"correlationId":"corr-append-fail","userId":"actor-1","action":"CREATE","resource":"identity/1","eventType":"identity.created","status":"success"}`)}}
+	ingester := NewKafkaIngester(mockRepo, mockConsumer)
 
 	mockRepo.On("GetLastEvent", mock.Anything).Return(nil, nil).Once()
 	mockRepo.On("Append", mock.Anything, mock.Anything).Return(errors.New("constraint violation")).Once()

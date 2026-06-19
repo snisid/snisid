@@ -54,6 +54,9 @@ func LoadRSAPublicKey(path string) (*rsa.PublicKey, error) {
 }
 
 func GenerateRS256Token(subject string, roles []string, ttl time.Duration, key *rsa.PrivateKey) (string, error) {
+	if key == nil {
+		return "", errors.New("private key is nil")
+	}
 	now := time.Now()
 	claims := jwt.MapClaims{
 		"sub":   subject,

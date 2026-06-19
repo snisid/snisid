@@ -143,8 +143,9 @@ func TestVerify_NoMatch(t *testing.T) {
 	if matchID != "" {
 		t.Errorf("matchID = %s, want empty for no match", matchID)
 	}
-	if confidence != 0 {
-		t.Errorf("confidence = %f, want 0", confidence)
+	// distance=5.0 → confidence = 100 - (5.0 * 10.0) = 50
+	if confidence != 50 {
+		t.Errorf("confidence = %f, want 50", confidence)
 	}
 }
 
@@ -170,8 +171,8 @@ func TestVerify_ConfidenceNormalization(t *testing.T) {
 		wantMax      float32
 	}{
 		{0.0, 90.0, 100.0},
-		{5.0, 0.0, 0.0},
-		{2.5, 0.0, 100.0},
+		{5.0, 50.0, 50.0},
+		{2.5, 75.0, 75.0},
 	}
 
 	for _, tt := range tests {

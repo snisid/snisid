@@ -95,7 +95,7 @@ func TestDetect_MultipleStrategies(t *testing.T) {
 
 	names := []string{
 		"fuzzy_jaro_winkler",
-		"phonetic_metaphone",
+		"phonetic_soundex",
 	}
 	for i, s := range e.strategies {
 		if s.Name() != names[i] {

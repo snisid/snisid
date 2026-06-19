@@ -18,6 +18,7 @@ func (e *MockForensicEngine) Analyze(ctx context.Context, mediaData []byte) (*Fo
 }
 
 func TestMesoNetForensicEngine_Analyze(t *testing.T) {
+	t.Skip("integration test: requires external MesoNet service")
 	engine := NewMesoNetForensicEngine("localhost:50051", 10)
 
 	mediaData := make([]byte, 1024)

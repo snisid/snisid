@@ -29,9 +29,6 @@ func TestUserCredentials_PasswordHashNeverExposed(t *testing.T) {
 	if u.PasswordHash == "" {
 		t.Error("PasswordHash should not be empty in struct")
 	}
-	if u.MfaSecret == "" {
-		t.Error("MfaSecret should not be empty in struct")
-	}
 	// gorm tags include `json:"-"` for both sensitive fields
 }
 

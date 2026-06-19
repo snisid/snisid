@@ -40,6 +40,11 @@ func (m *mockConsumer) Read(ctx context.Context, handler func(msg kafka.Message)
 }
 
 func (m *mockConsumer) Start(ctx context.Context, handler func(ctx context.Context, payload []byte) error) error {
+	if m.readFn != nil {
+		m.readFn(ctx, func(msg kafka.Message) error {
+			return handler(ctx, msg.Value)
+		})
+	}
 	return nil
 }
 

@@ -53,11 +53,11 @@ func (o *Orchestrator) Assess(ctx context.Context, identity map[string]interface
 
 	score := int(totalWeightedScore)
 	level := "LOW"
-	if score > 80 {
+	if score >= 80 {
 		level = "CRITICAL"
-	} else if score > 50 {
+	} else if score >= 50 {
 		level = "HIGH"
-	} else if score > 20 {
+	} else if score >= 20 {
 		level = "MEDIUM"
 	}
 

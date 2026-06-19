@@ -114,7 +114,12 @@ func TestScoringEngine_AIErrorFallback(t *testing.T) {
 }
 
 func TestScoringEngine_IntelligenceFusion(t *testing.T) {
-	engine, mini := newTestEngine(&mockAIClient{})
+	aiClient := &mockAIClient{
+		predictFn: func(ctx context.Context, features FeatureVector) (float64, error) {
+			return features.GraphRisk, nil
+		},
+	}
+	engine, mini := newTestEngine(aiClient)
 	t.Cleanup(func() { mini.Close() })
 	event := map[string]interface{}{
 		"identityId": "high-graph-risk",
@@ -122,8 +127,8 @@ func TestScoringEngine_IntelligenceFusion(t *testing.T) {
 	}
 
 	score, reasons, riskLevel := engine.CalculateScore(context.Background(), event)
-	if score < 5 {
-		t.Errorf("score = %d, want >= 5", score)
+	if score < 85 {
+		t.Errorf("score = %d, want >= 85", score)
 	}
 	if reasons == "" {
 		t.Error("expected reasons from intelligence fusion")
@@ -134,7 +139,7 @@ func TestScoringEngine_IntelligenceFusion(t *testing.T) {
 }
 
 func TestScoringEngine_VelocityScore(t *testing.T) {
-	engine, mini := newTestEngine(&mockAIClient{})
+	engine, mini := newTestEngine(NewDefaultAIClient(&mockMLModel{}))
 	t.Cleanup(func() { mini.Close() })
 	ctx := context.Background()
 

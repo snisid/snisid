@@ -44,8 +44,8 @@ func TestNewPhoneticMatcher(t *testing.T) {
 	if m == nil {
 		t.Fatal("NewPhoneticMatcher returned nil")
 	}
-	if m.Name() != "phonetic_metaphone" {
-		t.Errorf("Name = %s, want phonetic_metaphone", m.Name())
+	if m.Name() != "phonetic_soundex" {
+		t.Errorf("Name = %s, want phonetic_soundex", m.Name())
 	}
 }
 

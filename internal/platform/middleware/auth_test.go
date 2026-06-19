@@ -1,13 +1,12 @@
 package middleware
 
 import (
-	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestAuth_MissingBearer(t *testing.T) {
@@ -107,13 +106,15 @@ func TestAuth_NoRoleCheck(t *testing.T) {
 	}
 }
 
-// generateTestToken creates a simple JWT for testing (not using real crypto)
+// generateTestToken creates a valid HS256 JWT for testing
 func generateTestToken(subject, role, secret string) string {
-	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256","typ":"JWT"}`))
-	payload := base64.RawURLEncoding.EncodeToString([]byte(
-		`{"sub":"` + subject + `","role":"` + role + `","exp":9999999999}`))
-	sig := base64.RawURLEncoding.EncodeToString([]byte(secret + "." + header + "." + payload))
-	return strings.Join([]string{header, payload, sig}, ".")
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":  subject,
+		"role": role,
+		"exp":  9999999999,
+	})
+	s, _ := token.SignedString([]byte(secret))
+	return s
 }
 
 func TestAuth_EmptySecret(t *testing.T) {

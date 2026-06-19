@@ -34,16 +34,22 @@ func NewScoringEngine(aiClient AIClient, state StateStore, logger *zap.Logger) *
 	}
 }
 
-func (e *ScoringEngine) ScoreTransaction(ctx context.Context, userID string, amount float64) (*ScoringResult, error) {
+func (e *ScoringEngine) ScoreTransaction(ctx context.Context, userID string, amount float64, graphRisk ...float64) (*ScoringResult, error) {
 	velocity, err := e.state.IncrementVelocity(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("increment velocity: %w", err)
 	}
 
+	gr := 0.0
+	if len(graphRisk) > 0 {
+		gr = graphRisk[0]
+	}
+
 	features := FeatureVector{
-		UserID:   userID,
-		Amount:   amount,
-		Velocity: float64(velocity),
+		UserID:    userID,
+		Amount:    amount,
+		Velocity:  float64(velocity),
+		GraphRisk: gr,
 	}
 
 	score, err := e.aiClient.Predict(ctx, features)
@@ -77,7 +83,8 @@ func classifyRisk(score float64) string {
 func (e *ScoringEngine) CalculateScore(ctx context.Context, event map[string]interface{}) (int, string, string) {
 	userID, _ := event["identityId"].(string)
 	amount, _ := event["amount"].(float64)
-	result, err := e.ScoreTransaction(ctx, userID, amount)
+	graphRisk, _ := event["graph_risk"].(float64)
+	result, err := e.ScoreTransaction(ctx, userID, amount, graphRisk)
 	if err != nil || result == nil {
 		return 0, "error", "LOW"
 	}

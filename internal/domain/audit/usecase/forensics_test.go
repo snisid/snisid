@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/snisid/platform/internal/domain/audit/entity"
+	"github.com/snisid/platform/internal/platform/security"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,12 +63,15 @@ func TestVerifyIntegrity_SingleEvent(t *testing.T) {
 }
 
 func TestVerifyIntegrity_ValidChain(t *testing.T) {
+	h1 := security.GenerateHashChain("", "{}")
+	h2 := security.GenerateHashChain(h1, `{"action":"login"}`)
+	h3 := security.GenerateHashChain(h2, `{"action":"update"}`)
 	svc := NewForensicsService(&mockAuditRepo{
 		getEventsBySeqRangeFn: func(ctx context.Context, startSeq, endSeq int64) ([]entity.AuditEvent, error) {
 			return []entity.AuditEvent{
-				{SequenceID: 1, Hash: "h1", PreviousHash: "", Payload: "{}"},
-				{SequenceID: 2, Hash: "h2", PreviousHash: "h1", Payload: `{"action":"login"}`},
-				{SequenceID: 3, Hash: "h3", PreviousHash: "h2", Payload: `{"action":"update"}`},
+				{SequenceID: 1, Hash: h1, PreviousHash: "", Payload: "{}"},
+				{SequenceID: 2, Hash: h2, PreviousHash: h1, Payload: `{"action":"login"}`},
+				{SequenceID: 3, Hash: h3, PreviousHash: h2, Payload: `{"action":"update"}`},
 			}, nil
 		},
 	})

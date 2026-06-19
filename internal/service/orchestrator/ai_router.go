@@ -49,6 +49,7 @@ func (r *AIRouter) DispatchAnalysis(ctx context.Context, mediaData []byte) (*AIV
 		// Mock: Call FraudService.Calculate
 		mu.Lock()
 		verdict.FraudScore = 5
+		verdict.RiskLevel = "LOW"
 		mu.Unlock()
 		return nil
 	})
