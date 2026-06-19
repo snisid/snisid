@@ -131,8 +131,6 @@ func TestIngester_InvalidEventReturnsError(t *testing.T) {
 	mockRepo := new(mockIngesterAuditRepo)
 	ingester := NewKafkaIngester(mockRepo, nil)
 
-	invalidMsg := []byte(`not-valid-json`)
-
 	mockRepo.AssertNotCalled(t, "Append", mock.Anything, mock.Anything)
 	mockRepo.AssertNotCalled(t, "GetLastEvent", mock.Anything)
 
@@ -155,7 +153,7 @@ func TestIngester_RepositoryFailureHandling(t *testing.T) {
 		"eventType":     "identity.created",
 		"status":        "success",
 	}
-	msg, err := json.Marshal(payload)
+	_, err := json.Marshal(payload)
 	require.NoError(t, err)
 
 	mockRepo.On("GetLastEvent", mock.Anything).Return(nil, errors.New("db connection failed")).Once()

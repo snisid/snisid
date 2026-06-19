@@ -8,12 +8,19 @@ import (
 	"go.uber.org/zap"
 )
 
+type BiometricType string
+
+type MilvusBridge interface {
+	InsertBiometric(ctx context.Context, collection, identityID string, vector []float32) error
+	Search(ctx context.Context, collection string, vector []float32) (string, float32, error)
+}
+
 type BiometricService struct {
-	milvus    *MilvusBridge
+	milvus    MilvusBridge
 	inference InferenceEngine
 }
 
-func NewBiometricService(milvus *MilvusBridge, inference InferenceEngine) *BiometricService {
+func NewBiometricService(milvus MilvusBridge, inference InferenceEngine) *BiometricService {
 	return &BiometricService{
 		milvus:    milvus,
 		inference: inference,

@@ -79,7 +79,7 @@ func TestDeepfakeDetector_Detect_EmptyMedia(t *testing.T) {
 	}
 	d := NewDeepfakeDetector(engine)
 
-	prob, anomalies, err := d.Detect(context.Background(), "CITIZEN-004", []byte{})
+	prob, _, err := d.Detect(context.Background(), "CITIZEN-004", []byte{})
 	require.NoError(t, err)
 	assert.Equal(t, float32(0.5), prob)
 }

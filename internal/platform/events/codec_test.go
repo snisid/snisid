@@ -10,7 +10,7 @@ type person struct {
 }
 
 func TestJSONCodec_EncodeDecode(t *testing.T) {
-	codec := &JSONCode{}
+	codec := &JSONCodec{}
 	original := person{Name: "Jean", Age: 30}
 
 	data, err := codec.Encode(original)

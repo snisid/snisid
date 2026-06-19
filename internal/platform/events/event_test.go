@@ -28,12 +28,8 @@ func TestNewEvent_Success(t *testing.T) {
 	if evt.Timestamp.IsZero() {
 		t.Error("Timestamp should not be zero")
 	}
-	actualData, ok := evt.Data.(testData)
-	if !ok {
-		t.Fatal("Data type assertion failed")
-	}
-	if actualData.ID != "evt-001" {
-		t.Errorf("Data.ID = %s, want evt-001", actualData.ID)
+	if evt.Data.ID != "evt-001" {
+		t.Errorf("Data.ID = %s, want evt-001", evt.Data.ID)
 	}
 }
 
@@ -81,12 +77,8 @@ func TestEnvelope_Generic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewEvent with otherData failed: %v", err)
 	}
-	d, ok := evt.Data.(otherData)
-	if !ok {
-		t.Fatal("Data type assertion failed for otherData")
-	}
-	if d.Value != 42 {
-		t.Errorf("Value = %d, want 42", d.Value)
+	if evt.Data.Value != 42 {
+		t.Errorf("Value = %d, want 42", evt.Data.Value)
 	}
 }
 

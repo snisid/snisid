@@ -39,7 +39,7 @@ func TestONNXInferenceEngine_GenerateEmbedding(t *testing.T) {
 		imageData[i] = byte(i % 256)
 	}
 
-	embedding, err := engine.GenerateEmbedding(context.Background(), imageData)
+	embedding, err := engine.GenerateEmbedding(context.Background(), imageData, "face")
 	assert.NoError(t, err)
 	assert.Len(t, embedding, 512)
 

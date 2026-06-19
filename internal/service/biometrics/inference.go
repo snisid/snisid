@@ -17,7 +17,7 @@ import (
 )
 
 type InferenceEngine interface {
-	GenerateEmbedding(ctx context.Context, imageData []byte) ([]float32, error)
+	GenerateEmbedding(ctx context.Context, imageData []byte, bType BiometricType) ([]float32, error)
 }
 
 type ONNXInferenceEngine struct {
@@ -40,7 +40,7 @@ func NewONNXInferenceEngine(modelPath string) (*ONNXInferenceEngine, error) {
 	}, nil
 }
 
-func (e *ONNXInferenceEngine) GenerateEmbedding(ctx context.Context, imageData []byte) ([]float32, error) {
+func (e *ONNXInferenceEngine) GenerateEmbedding(ctx context.Context, imageData []byte, bType BiometricType) ([]float32, error) {
 	if len(imageData) == 0 {
 		return nil, fmt.Errorf("empty image data")
 	}
@@ -130,7 +130,7 @@ func NewTFServingEngine(endpoint string, timeout time.Duration) *TFServingInfere
 	}
 }
 
-func (e *TFServingInferenceEngine) GenerateEmbedding(ctx context.Context, imageData []byte) ([]float32, error) {
+func (e *TFServingInferenceEngine) GenerateEmbedding(ctx context.Context, imageData []byte, bType BiometricType) ([]float32, error) {
 	if len(imageData) == 0 {
 		return nil, fmt.Errorf("empty image data")
 	}

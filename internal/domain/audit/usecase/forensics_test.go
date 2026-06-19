@@ -22,6 +22,10 @@ func (m *mockAuditRepo) GetEventsBySequenceRange(ctx context.Context, startSeq, 
 	return nil, nil
 }
 
+func (m *mockAuditRepo) Append(ctx context.Context, event *entity.AuditEvent) error {
+	return nil
+}
+
 func (m *mockAuditRepo) GetEventsByCorrelationID(ctx context.Context, correlationID string) ([]entity.AuditEvent, error) {
 	if m.getByCorrelationIDFn != nil {
 		return m.getByCorrelationIDFn(ctx, correlationID)

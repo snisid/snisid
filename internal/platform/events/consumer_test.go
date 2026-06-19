@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/segmentio/kafka-go"
 )
 
 type mockHandler struct {

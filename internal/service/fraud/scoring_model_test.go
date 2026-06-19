@@ -13,11 +13,11 @@ func (m *mockHeuristicModel) Score(ctx context.Context, event map[string]interfa
 	return ModelResult{Score: 50, Reason: "matched rule"}, nil
 }
 
-type testModel struct{}
+type scoringTestModel struct{}
 
-func (m *testModel) Name() string { return "ai_inference" }
+func (m *scoringTestModel) Name() string { return "ai_inference" }
 
-func (m *testModel) Score(ctx context.Context, event map[string]interface{}) (ModelResult, error) {
+func (m *scoringTestModel) Score(ctx context.Context, event map[string]interface{}) (ModelResult, error) {
 	id, _ := event["identityId"].(string)
 	switch id {
 	case "test-ai-fraud":
@@ -52,14 +52,14 @@ func TestHeuristicModel_Score(t *testing.T) {
 }
 
 func TestMLModel_Name(t *testing.T) {
-	m := &testModel{}
+	m := &scoringTestModel{}
 	if m.Name() != "ai_inference" {
 		t.Errorf("Name = %s, want ai_inference", m.Name())
 	}
 }
 
 func TestMLModel_Score_Normal(t *testing.T) {
-	m := &testModel{}
+	m := &scoringTestModel{}
 	result, err := m.Score(context.Background(), map[string]interface{}{
 		"identityId": "normal-user",
 	})
@@ -75,7 +75,7 @@ func TestMLModel_Score_Normal(t *testing.T) {
 }
 
 func TestMLModel_Score_FraudDetected(t *testing.T) {
-	m := &testModel{}
+	m := &scoringTestModel{}
 	result, err := m.Score(context.Background(), map[string]interface{}{
 		"identityId": "test-ai-fraud",
 	})

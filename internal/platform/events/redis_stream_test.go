@@ -70,7 +70,7 @@ func TestPublish_MultipleMessages(t *testing.T) {
 	}
 
 	// Verify stream length
-	len, err := s.XLen("multi-stream")
+	len, err := client.XLen(context.Background(), "multi-stream").Result()
 	if err != nil {
 		t.Fatalf("XLen failed: %v", err)
 	}
