@@ -25,7 +25,8 @@ func NewFeatureStore(state StateProvider) *FeatureStore {
 }
 
 func NewFeatureStoreFromAddr(addr string) *FeatureStore {
-	return NewFeatureStore(fraud.NewStateStore(addr))
+	client := redis.NewClient(&redis.Options{Addr: addr})
+	return NewFeatureStore(NewRedisFeatureStore(client))
 }
 
 type RedisFeatureStore struct {

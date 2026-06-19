@@ -30,6 +30,13 @@ func NewRedisStateStore(client *redis.Client) *RedisStateStore {
 	return &RedisStateStore{client: client}
 }
 
+func NewStateStore(addr string) *RedisStateStore {
+	client := redis.NewClient(&redis.Options{
+		Addr: addr,
+	})
+	return NewRedisStateStore(client)
+}
+
 func (s *RedisStateStore) IncrementVelocity(ctx context.Context, userID string) (int64, error) {
 	key := fmt.Sprintf("snisid:fraud:%s:velocity", userID)
 	val, err := s.client.Incr(ctx, key).Result()
