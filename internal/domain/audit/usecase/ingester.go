@@ -19,10 +19,10 @@ type AuditIngester interface {
 
 type kafkaIngester struct {
 	repo     repository.AuditRepository
-	consumer *events.Consumer
+	consumer events.ConsumerInterface
 }
 
-func NewKafkaIngester(repo repository.AuditRepository, consumer *events.Consumer) AuditIngester {
+func NewKafkaIngester(repo repository.AuditRepository, consumer events.ConsumerInterface) AuditIngester {
 	return &kafkaIngester{
 		repo:     repo,
 		consumer: consumer,
@@ -30,11 +30,11 @@ func NewKafkaIngester(repo repository.AuditRepository, consumer *events.Consumer
 }
 
 func (i *kafkaIngester) Start(ctx context.Context) {
-	handler := func(msg []byte) error {
+	handler := func(handlerCtx context.Context, msg []byte) error {
 		// Assuming payload structure is generic for auditing
 		var payload map[string]interface{}
 		if err := json.Unmarshal(msg, &payload); err != nil {
-			logger.Error(ctx, "failed to unmarshal audit message", err)
+			logger.Error(handlerCtx, "failed to unmarshal audit message", err)
 			return err
 		}
 
@@ -42,7 +42,7 @@ func (i *kafkaIngester) Start(ctx context.Context) {
 		stablePayload, _ := json.Marshal(payload)
 
 		// Fetch previous hash (critical section, assumes singleton consumer)
-		lastEvent, err := i.repo.GetLastEvent(ctx)
+		lastEvent, err := i.repo.GetLastEvent(handlerCtx)
 		if err != nil {
 			return err
 		}
@@ -81,8 +81,8 @@ func (i *kafkaIngester) Start(ctx context.Context) {
 			Timestamp:     time.Now().UTC(),
 		}
 
-		if err := i.repo.Append(ctx, event); err != nil {
-			logger.Error(ctx, "failed to append audit event to ledger", err)
+		if err := i.repo.Append(handlerCtx, event); err != nil {
+			logger.Error(handlerCtx, "failed to append audit event to ledger", err)
 			return err
 		}
 

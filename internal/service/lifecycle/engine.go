@@ -11,10 +11,10 @@ import (
 
 type Engine struct {
 	validator *Validator
-	producer  *events.Producer
+	producer  events.ProducerInterface
 }
 
-func NewEngine(v *Validator, p *events.Producer) *Engine {
+func NewEngine(v *Validator, p events.ProducerInterface) *Engine {
 	return &Engine{
 		validator: v,
 		producer:  p,

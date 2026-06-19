@@ -27,10 +27,10 @@ type IdentityService interface {
 
 type service struct {
 	repo     repository.IdentityRepository
-	producer *events.Producer
+	producer events.ProducerInterface
 }
 
-func NewIdentityService(repo repository.IdentityRepository, producer *events.Producer) IdentityService {
+func NewIdentityService(repo repository.IdentityRepository, producer events.ProducerInterface) IdentityService {
 	return &service{
 		repo:     repo,
 		producer: producer,

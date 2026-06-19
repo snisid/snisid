@@ -22,15 +22,15 @@ func (d *DeepfakeDetector) Detect(ctx context.Context, identityID string, mediaD
 	// 1. Preprocessing (Mock: in prod use OpenCV/ffmpeg to extract faces)
 	
 	// 2. Inference
-	prob, anomalies, err := d.engine.Analyze(ctx, mediaData)
+	result, err := d.engine.Analyze(ctx, mediaData)
 	if err != nil {
 		return 0, nil, fmt.Errorf("forensic inference failed: %w", err)
 	}
 
 	logger.Info(ctx, "Deepfake analysis complete", 
 		zap.String("identity_id", identityID), 
-		zap.Float32("probability", prob),
+		zap.Float64("probability", result.DeepfakeProbability),
 	)
 
-	return prob, anomalies, nil
+	return float32(result.DeepfakeProbability), result.Anomalies, nil
 }

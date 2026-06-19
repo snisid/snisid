@@ -8,7 +8,7 @@ import (
 )
 
 type EventSender struct {
-	producer *events.Producer
+	producer events.ProducerInterface
 }
 
 func NewEventSender(brokers []string) *EventSender {

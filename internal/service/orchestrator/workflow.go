@@ -11,10 +11,10 @@ import (
 
 type WorkflowEngine struct {
 	router   *AIRouter
-	producer *events.Producer
+	producer events.ProducerInterface
 }
 
-func NewWorkflowEngine(router *AIRouter, producer *events.Producer) *WorkflowEngine {
+func NewWorkflowEngine(router *AIRouter, producer events.ProducerInterface) *WorkflowEngine {
 	return &WorkflowEngine{
 		router:   router,
 		producer: producer,

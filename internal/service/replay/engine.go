@@ -20,7 +20,7 @@ type ReplayJob struct {
 }
 
 type Engine struct {
-	producer *events.Producer
+	producer events.ProducerInterface
 	brokers  []string
 }
 

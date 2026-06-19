@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,18 +14,18 @@ import (
 )
 
 type mockEngine struct {
-	enforceFn  func(ctx interface{}, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error)
-	refreshFn  func(ctx interface{}) error
+	enforceFn  func(ctx context.Context, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error)
+	refreshFn  func(ctx context.Context) error
 }
 
-func (m *mockEngine) Enforce(ctx interface{}, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error) {
+func (m *mockEngine) Enforce(ctx context.Context, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error) {
 	if m.enforceFn != nil {
 		return m.enforceFn(ctx, req)
 	}
 	return &entity.AuthorizationDecision{Allowed: true}, nil
 }
 
-func (m *mockEngine) RefreshPolicies(ctx interface{}) error {
+func (m *mockEngine) RefreshPolicies(ctx context.Context) error {
 	if m.refreshFn != nil {
 		return m.refreshFn(ctx)
 	}
@@ -38,7 +39,7 @@ func setupRouter() *gin.Engine {
 
 func TestEnforce_Allowed(t *testing.T) {
 	engine := &mockEngine{
-		enforceFn: func(ctx interface{}, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error) {
+		enforceFn: func(ctx context.Context, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error) {
 			return &entity.AuthorizationDecision{Allowed: true, PolicyName: "test"}, nil
 		},
 	}
@@ -71,7 +72,7 @@ func TestEnforce_Allowed(t *testing.T) {
 
 func TestEnforce_Denied(t *testing.T) {
 	engine := &mockEngine{
-		enforceFn: func(ctx interface{}, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error) {
+		enforceFn: func(ctx context.Context, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error) {
 			return &entity.AuthorizationDecision{Allowed: false, Reason: "Insufficient role"}, nil
 		},
 	}
@@ -120,7 +121,7 @@ func TestEnforce_InvalidBody(t *testing.T) {
 
 func TestEnforce_EngineError(t *testing.T) {
 	engine := &mockEngine{
-		enforceFn: func(ctx interface{}, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error) {
+		enforceFn: func(ctx context.Context, req *entity.AuthorizationRequest) (*entity.AuthorizationDecision, error) {
 			return nil, errors.New("engine failure")
 		},
 	}
@@ -146,7 +147,7 @@ func TestEnforce_EngineError(t *testing.T) {
 func TestRefresh_Success(t *testing.T) {
 	refreshed := false
 	engine := &mockEngine{
-		refreshFn: func(ctx interface{}) error {
+		refreshFn: func(ctx context.Context) error {
 			refreshed = true
 			return nil
 		},
@@ -170,7 +171,7 @@ func TestRefresh_Success(t *testing.T) {
 
 func TestRefresh_Error(t *testing.T) {
 	engine := &mockEngine{
-		refreshFn: func(ctx interface{}) error {
+		refreshFn: func(ctx context.Context) error {
 			return errors.New("refresh failed")
 		},
 	}

@@ -19,10 +19,10 @@ type AuditEvent struct {
 }
 
 type Auditor struct {
-	producer *events.Producer
+	producer events.ProducerInterface
 }
 
-func NewAuditor(producer *events.Producer) *Auditor {
+func NewAuditor(producer events.ProducerInterface) *Auditor {
 	return &Auditor{producer: producer}
 }
 

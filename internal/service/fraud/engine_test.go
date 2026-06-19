@@ -7,17 +7,31 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/snisid/platform/internal/service/router"
+	"go.uber.org/zap"
 )
 
-type mockAIClient struct {
-	predictFn func(ctx context.Context, event map[string]interface{}) (int, error)
+type mockMLModel struct{}
+
+func (m *mockMLModel) Predict(ctx context.Context, features FeatureVector) (float64, error) {
+	score := features.Velocity*0.4 + features.Amount*0.001*0.3 + features.GraphRisk*0.3
+	if score > 1.0 {
+		score = 1.0
+	}
+	if score < 0.0 {
+		score = 0.0
+	}
+	return score, nil
 }
 
-func (m *mockAIClient) Predict(ctx context.Context, event map[string]interface{}) (int, error) {
+type mockAIClient struct {
+	predictFn func(ctx context.Context, features FeatureVector) (float64, error)
+}
+
+func (m *mockAIClient) Predict(ctx context.Context, features FeatureVector) (float64, error) {
 	if m.predictFn != nil {
-		return m.predictFn(ctx, event)
+		return m.predictFn(ctx, features)
 	}
-	return 5, nil // match DefaultAIClient baseline
+	return 0.05, nil // match DefaultAIClient baseline
 }
 
 func newTestEngine(aiClient AIClient) (*ScoringEngine, *miniredis.Miniredis) {
@@ -42,9 +56,9 @@ func TestScoringEngine_CalculateScore_NoTriggers(t *testing.T) {
 		"action":     "view",
 	}
 
-	score, _, riskLevel := engine.CalculateScore(context.Background(), event)
+		score, _, riskLevel := engine.CalculateScore(context.Background(), event)
 	if score != 5 {
-		t.Errorf("score = %d, want 5 (only AI default)", score)
+		t.Errorf("score = %d, want 5 (only AI default, 0.05*100=5)", score)
 	}
 	if riskLevel == "" {
 		t.Error("expected non-empty risk level")
@@ -53,8 +67,8 @@ func TestScoringEngine_CalculateScore_NoTriggers(t *testing.T) {
 
 func TestScoringEngine_AIHighRisk(t *testing.T) {
 	aiClient := &mockAIClient{
-		predictFn: func(ctx context.Context, event map[string]interface{}) (int, error) {
-			return 60, nil
+		predictFn: func(ctx context.Context, features FeatureVector) (float64, error) {
+			return 0.60, nil
 		},
 	}
 
@@ -79,8 +93,8 @@ func TestScoringEngine_AIHighRisk(t *testing.T) {
 
 func TestScoringEngine_AIErrorFallback(t *testing.T) {
 	aiClient := &mockAIClient{
-		predictFn: func(ctx context.Context, event map[string]interface{}) (int, error) {
-			return 0, nil
+		predictFn: func(ctx context.Context, features FeatureVector) (float64, error) {
+			return 0.0, nil
 		},
 	}
 
@@ -143,33 +157,34 @@ func TestScoringEngine_VelocityScore(t *testing.T) {
 }
 
 func TestDefaultAIClient_Predict(t *testing.T) {
-	client := NewDefaultAIClient("http://localhost:8501")
+	client := NewDefaultAIClient(&mockMLModel{})
 
 	tests := []struct {
-		name    string
-		event   map[string]interface{}
-		wantMin int
+		name     string
+		features FeatureVector
+		wantMin  float64
 	}{
-		{"fraud pattern", map[string]interface{}{"identityId": "test-fraud"}, 60},
-		{"normal user", map[string]interface{}{"identityId": "normal-user"}, 0},
-		{"missing identityId", map[string]interface{}{}, 0},
+		{"fraud pattern", FeatureVector{UserID: "test-fraud", Velocity: 100, Amount: 50000, GraphRisk: 0.9}, 60},
+		{"normal user", FeatureVector{UserID: "normal-user"}, 0},
+		{"missing identityId", FeatureVector{}, 0},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			score, err := client.Predict(context.Background(), tt.event)
+			score, err := client.Predict(context.Background(), tt.features)
 			if err != nil {
 				t.Fatalf("Predict failed: %v", err)
 			}
-			if score < tt.wantMin {
-				t.Errorf("score = %d, want >= %d", score, tt.wantMin)
+			if score*100 < tt.wantMin {
+				t.Errorf("score = %f, want >= %f", score*100, tt.wantMin)
 			}
 		})
 	}
 }
 
 func TestNewScoringEngine(t *testing.T) {
-	engine, err := NewScoringEngine("localhost:6379", &mockAIClient{})
+	logger, _ := zap.NewDevelopment()
+	engine, err := NewScoringEngine(&mockAIClient{}, NewRedisStateStore("localhost:6379"), logger)
 	if err != nil {
 		t.Fatalf("NewScoringEngine failed: %v", err)
 	}

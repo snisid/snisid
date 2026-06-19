@@ -20,6 +20,11 @@ type ProducerConfig struct {
 	Codec        Codec
 }
 
+type ProducerInterface interface {
+	Publish(ctx context.Context, key string, event any) error
+	Close() error
+}
+
 type Producer struct {
 	config ProducerConfig
 	writer *kafka.Writer

@@ -23,10 +23,10 @@ type IdentityState struct {
 
 type WorkflowManager struct {
 	stateStore sync.Map // Simple in-memory state store for the initial batch
-	producer   *events.Producer
+	producer   events.ProducerInterface
 }
 
-func NewWorkflowManager(producer *events.Producer) *WorkflowManager {
+func NewWorkflowManager(producer events.ProducerInterface) *WorkflowManager {
 	return &WorkflowManager{
 		producer: producer,
 	}

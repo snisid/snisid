@@ -21,6 +21,12 @@ type ConsumerConfig struct {
 	Codec      Codec
 }
 
+type ConsumerInterface interface {
+	Start(ctx context.Context, handler func(ctx context.Context, msg []byte) error) error
+	Decode(data []byte, v interface{}) error
+	Close() error
+}
+
 type Consumer struct {
 	config  ConsumerConfig
 	reader  *kafka.Reader

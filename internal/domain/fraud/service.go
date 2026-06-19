@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/segmentio/kafka-go"
 	"github.com/snisid/platform/internal/platform/events"
 	"github.com/snisid/platform/internal/platform/logger"
 )
@@ -32,11 +31,11 @@ type Service interface {
 
 type service struct {
 	graphRepo GraphRepository
-	consumer  *events.Consumer
-	producer  *events.Producer
+	consumer  events.ConsumerInterface
+	producer  events.ProducerInterface
 }
 
-func NewService(graphRepo GraphRepository, consumer *events.Consumer, producer *events.Producer) Service {
+func NewService(graphRepo GraphRepository, consumer events.ConsumerInterface, producer events.ProducerInterface) Service {
 	return &service{
 		graphRepo: graphRepo,
 		consumer:  consumer,
@@ -45,9 +44,9 @@ func NewService(graphRepo GraphRepository, consumer *events.Consumer, producer *
 }
 
 func (s *service) Start(ctx context.Context) error {
-	return s.consumer.Read(ctx, func(msg kafka.Message) error {
+	return s.consumer.Start(ctx, func(ctx context.Context, msg []byte) error {
 		var evt IdentityCreatedEvent
-		if err := json.Unmarshal(msg.Value, &evt); err != nil {
+		if err := json.Unmarshal(msg, &evt); err != nil {
 			logger.Error(ctx, "failed to unmarshal event", err)
 			return nil // Skip invalid messages
 		}

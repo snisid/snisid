@@ -13,7 +13,7 @@ import (
 )
 
 type Aggregator struct {
-	consumer   *events.Consumer
+	consumer   events.ConsumerInterface
 	bridge     *ClickHouseBridge
 	windows    map[string]*MetricWindow
 	mu         sync.RWMutex

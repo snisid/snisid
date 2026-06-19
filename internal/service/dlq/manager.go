@@ -12,8 +12,8 @@ import (
 )
 
 type Manager struct {
-	consumer  *events.Consumer
-	producers map[string]*events.Producer
+	consumer  events.ConsumerInterface
+	producers map[string]events.ProducerInterface
 	brokers   []string
 	mu        sync.RWMutex
 }
@@ -23,7 +23,7 @@ func NewManager(brokers []string, dlqTopic string) *Manager {
 	
 	return &Manager{
 		consumer:  consumer,
-		producers: make(map[string]*events.Producer),
+		producers: make(map[string]events.ProducerInterface),
 		brokers:   brokers,
 	}
 }
@@ -62,7 +62,7 @@ func (m *Manager) handleDLQEvent(ctx context.Context, payload []byte) error {
 	return m.saveToQuarantine(ctx, dlqEvt)
 }
 
-func (m *Manager) getOrCreateProducer(topic string) *events.Producer {
+func (m *Manager) getOrCreateProducer(topic string) events.ProducerInterface {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

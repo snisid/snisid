@@ -20,12 +20,12 @@ type AuthorizationEngine interface {
 
 type opaEngine struct {
 	repo         repository.PolicyRepository
-	producer     *events.Producer
+	producer     events.ProducerInterface
 	compiledQuery *rego.PreparedEvalQuery
 	mu           sync.RWMutex
 }
 
-func NewOPAEngine(repo repository.PolicyRepository, producer *events.Producer) AuthorizationEngine {
+func NewOPAEngine(repo repository.PolicyRepository, producer events.ProducerInterface) AuthorizationEngine {
 	engine := &opaEngine{
 		repo:     repo,
 		producer: producer,

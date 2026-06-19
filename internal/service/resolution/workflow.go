@@ -11,10 +11,10 @@ import (
 
 type Workflow struct {
 	arbitrator *Arbitrator
-	producer   *events.Producer
+	producer   events.ProducerInterface
 }
 
-func NewWorkflow(arb *Arbitrator, prod *events.Producer) *Workflow {
+func NewWorkflow(arb *Arbitrator, prod events.ProducerInterface) *Workflow {
 	return &Workflow{
 		arbitrator: arb,
 		producer:   prod,

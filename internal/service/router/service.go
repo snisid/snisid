@@ -12,9 +12,9 @@ import (
 )
 
 type RouterService struct {
-	consumer  *events.Consumer
+	consumer  events.ConsumerInterface
 	engine    *Engine
-	producers map[string]*events.Producer
+	producers map[string]events.ProducerInterface
 	brokers   []string
 	mu        sync.RWMutex
 }
@@ -30,7 +30,7 @@ func NewRouterService(brokers []string, ingressTopic string, groupID string) (*R
 	return &RouterService{
 		consumer:  consumer,
 		engine:    engine,
-		producers: make(map[string]*events.Producer),
+		producers: make(map[string]events.ProducerInterface),
 		brokers:   brokers,
 	}, nil
 }
@@ -63,7 +63,7 @@ func (s *RouterService) handleEvent(ctx context.Context, payload []byte) error {
 	return nil
 }
 
-func (s *RouterService) getOrCreateProducer(topic string) *events.Producer {
+func (s *RouterService) getOrCreateProducer(topic string) events.ProducerInterface {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
