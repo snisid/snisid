@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,7 +11,28 @@ import (
 	"github.com/snisid/platform/internal/service/fraud"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
+
+type mockMLModel struct{}
+
+func (m *mockMLModel) Predict(ctx context.Context, features fraud.FeatureVector) (float64, error) {
+	return 0.5, nil
+}
+
+type mockStateStore struct{}
+
+func (s *mockStateStore) IncrementVelocity(ctx context.Context, userID string) (int64, error) {
+	return 1, nil
+}
+
+func (s *mockStateStore) GetState(ctx context.Context, userID string) (*fraud.FraudState, error) {
+	return &fraud.FraudState{Velocity: 1}, nil
+}
+
+func (s *mockStateStore) SetState(ctx context.Context, userID string, state *fraud.FraudState) error {
+	return nil
+}
 
 func TestGetEnv_Default(t *testing.T) {
 	assert.Equal(t, "default", getEnv("NONEXISTENT_VAR_12345", "default"))
@@ -35,9 +57,8 @@ func TestFraudEngine_HealthEndpoint(t *testing.T) {
 }
 
 func TestFraudEngine_MetricsEndpoint(t *testing.T) {
-	aiClient := fraud.NewDefaultAIClient("http://test-ai:8000/predict")
-	engine, err := fraud.NewScoringEngine("localhost:6379", aiClient)
-	require.NoError(t, err)
+	aiClient := fraud.NewDefaultAIClient(&mockMLModel{})
+	engine := fraud.NewScoringEngine(aiClient, &mockStateStore{}, zap.NewNop())
 
 	r := setupTestRouter()
 	// Register metrics endpoint manually for testing
@@ -57,9 +78,8 @@ func TestFraudEngine_MetricsEndpoint(t *testing.T) {
 }
 
 func TestFraudEngine_ScoreEndpoint(t *testing.T) {
-	aiClient := fraud.NewDefaultAIClient("http://test-ai:8000/predict")
-	engine, err := fraud.NewScoringEngine("localhost:6379", aiClient)
-	require.NoError(t, err)
+	aiClient := fraud.NewDefaultAIClient(&mockMLModel{})
+	engine := fraud.NewScoringEngine(aiClient, &mockStateStore{}, zap.NewNop())
 
 	r := setupTestRouter()
 	r.POST("/v1/score", func(c *gin.Context) {
