@@ -16,16 +16,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type mockAuditRepo struct {
+type mockIngesterAuditRepo struct {
 	mock.Mock
 }
 
-func (m *mockAuditRepo) Append(ctx context.Context, event *entity.AuditEvent) error {
+func (m *mockIngesterAuditRepo) Append(ctx context.Context, event *entity.AuditEvent) error {
 	args := m.Called(ctx, event)
 	return args.Error(0)
 }
 
-func (m *mockAuditRepo) GetLastEvent(ctx context.Context) (*entity.AuditEvent, error) {
+func (m *mockIngesterAuditRepo) GetLastEvent(ctx context.Context) (*entity.AuditEvent, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -33,22 +33,22 @@ func (m *mockAuditRepo) GetLastEvent(ctx context.Context) (*entity.AuditEvent, e
 	return args.Get(0).(*entity.AuditEvent), args.Error(1)
 }
 
-func (m *mockAuditRepo) GetEventsByCorrelationID(ctx context.Context, correlationID string) ([]entity.AuditEvent, error) {
+func (m *mockIngesterAuditRepo) GetEventsByCorrelationID(ctx context.Context, correlationID string) ([]entity.AuditEvent, error) {
 	args := m.Called(ctx, correlationID)
 	return args.Get(0).([]entity.AuditEvent), args.Error(1)
 }
 
-func (m *mockAuditRepo) GetEventsBySequenceRange(ctx context.Context, start, end int64) ([]entity.AuditEvent, error) {
+func (m *mockIngesterAuditRepo) GetEventsBySequenceRange(ctx context.Context, start, end int64) ([]entity.AuditEvent, error) {
 	args := m.Called(ctx, start, end)
 	return args.Get(0).([]entity.AuditEvent), args.Error(1)
 }
 
-var _ repository.AuditRepository = (*mockAuditRepo)(nil)
+var _ repository.AuditRepository = (*mockIngesterAuditRepo)(nil)
 
 func TestIngester_IngestSingleEvent(t *testing.T) {
 	t.Parallel()
 
-	mockRepo := new(mockAuditRepo)
+	mockRepo := new(mockIngesterAuditRepo)
 	ingester := NewKafkaIngester(mockRepo, nil)
 	require.NotNil(t, ingester)
 
@@ -92,7 +92,7 @@ func TestIngester_IngestSingleEvent(t *testing.T) {
 func TestIngester_BatchIngestMultipleEvents(t *testing.T) {
 	t.Parallel()
 
-	mockRepo := new(mockAuditRepo)
+	mockRepo := new(mockIngesterAuditRepo)
 	ingester := NewKafkaIngester(mockRepo, nil)
 
 	events := []map[string]interface{}{
@@ -128,7 +128,7 @@ func TestIngester_BatchIngestMultipleEvents(t *testing.T) {
 func TestIngester_InvalidEventReturnsError(t *testing.T) {
 	t.Parallel()
 
-	mockRepo := new(mockAuditRepo)
+	mockRepo := new(mockIngesterAuditRepo)
 	ingester := NewKafkaIngester(mockRepo, nil)
 
 	invalidMsg := []byte(`not-valid-json`)
@@ -144,7 +144,7 @@ func TestIngester_InvalidEventReturnsError(t *testing.T) {
 func TestIngester_RepositoryFailureHandling(t *testing.T) {
 	t.Parallel()
 
-	mockRepo := new(mockAuditRepo)
+	mockRepo := new(mockIngesterAuditRepo)
 	ingester := NewKafkaIngester(mockRepo, nil)
 
 	payload := map[string]interface{}{
@@ -168,7 +168,7 @@ func TestIngester_RepositoryFailureHandling(t *testing.T) {
 func TestIngester_AppendFailure(t *testing.T) {
 	t.Parallel()
 
-	mockRepo := new(mockAuditRepo)
+	mockRepo := new(mockIngesterAuditRepo)
 	ingester := NewKafkaIngester(mockRepo, nil)
 
 	payload := map[string]interface{}{
@@ -230,24 +230,24 @@ func TestIngester_StatusMapping(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		payload  map[string]interface{}
-		want     string
+		name    string
+		payload map[string]interface{}
+		want    string
 	}{
 		{
-			name:     "explicit success",
-			payload:  map[string]interface{}{"status": "success"},
-			want:     "success",
+			name:    "explicit success",
+			payload: map[string]interface{}{"status": "success"},
+			want:    "success",
 		},
 		{
-			name:     "explicit failed",
-			payload:  map[string]interface{}{"status": "failed"},
-			want:     "failed",
+			name:    "explicit failed",
+			payload: map[string]interface{}{"status": "failed"},
+			want:    "failed",
 		},
 		{
-			name:     "explicit denied",
-			payload:  map[string]interface{}{"status": "denied"},
-			want:     "denied",
+			name:    "explicit denied",
+			payload: map[string]interface{}{"status": "denied"},
+			want:    "denied",
 		},
 	}
 

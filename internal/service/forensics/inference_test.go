@@ -7,6 +7,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type MockForensicEngine struct{}
+
+func (e *MockForensicEngine) Analyze(ctx context.Context, mediaData []byte) (*ForensicResult, error) {
+	return &ForensicResult{
+		DeepfakeProbability: 0.1,
+		Anomalies:           []string{},
+		ModelVersion:        "test",
+	}, nil
+}
+
 func TestMesoNetForensicEngine_Analyze(t *testing.T) {
 	engine := NewMesoNetForensicEngine("localhost:50051", 10)
 

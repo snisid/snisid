@@ -7,6 +7,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type MockBiometricConnector struct{}
+
+func (m *MockBiometricConnector) Name() string { return "biometric" }
+
+func (m *MockBiometricConnector) Verify(ctx context.Context, data map[string]interface{}) (Result, error) {
+	biometricData, ok := data["biometricData"].(string)
+	if !ok || biometricData == "" {
+		return Result{Status: StatusFailed, Reason: "No biometric data provided", Score: 0}, nil
+	}
+	return Result{Status: StatusSuccess, Reason: "Face match confirmed", Score: 98}, nil
+}
+
+type MockAgencyConnector struct {
+	AgencyName string
+}
+
+func (m *MockAgencyConnector) Name() string { return m.AgencyName }
+
+func (m *MockAgencyConnector) Verify(ctx context.Context, data map[string]interface{}) (Result, error) {
+	identityID, _ := data["identityId"].(string)
+	if identityID == "revoked-id" {
+		return Result{Status: StatusFailed, Reason: "Identity revoked", Score: 0}, nil
+	}
+	if identityID == "" {
+		// Agency always succeeds for empty data in test
+		return Result{Status: StatusSuccess, Reason: "Agency record verified", Score: 100}, nil
+	}
+	return Result{Status: StatusSuccess, Reason: "Agency record verified", Score: 100}, nil
+}
+
 func TestMockBiometricConnector_Name(t *testing.T) {
 	c := &MockBiometricConnector{}
 	assert.Equal(t, "biometric", c.Name())

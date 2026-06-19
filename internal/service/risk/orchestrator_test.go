@@ -74,7 +74,7 @@ func TestAssess_MultiModelWeighted(t *testing.T) {
 		WeightedModel{Model: m2, Weight: 0.3},
 	)
 
-	score, level, _, _ := o.Assess(context.Background(), map[string]interface{}{"identityId": "ID-002"})
+	score, level, _, _, _ := o.Assess(context.Background(), map[string]interface{}{"identityId": "ID-002"})
 	expected := int(100*0.7 + 0*0.3) // 70
 	if score != expected {
 		t.Errorf("Score = %d, want %d", score, expected)

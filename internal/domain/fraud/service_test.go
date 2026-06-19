@@ -43,6 +43,10 @@ func (m *mockConsumer) Start(ctx context.Context, handler func(ctx context.Conte
 	return nil
 }
 
+func (m *mockConsumer) Decode(data []byte, v interface{}) error {
+	return nil
+}
+
 func (m *mockConsumer) Close() error { return nil }
 
 type mockProducer struct {

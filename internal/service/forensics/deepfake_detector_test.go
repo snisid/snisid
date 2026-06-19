@@ -10,13 +10,19 @@ import (
 )
 
 type mockForensicEngine struct {
-	prob      float32
+	prob      float64
 	anomalies []string
 	err       error
 }
 
-func (e *mockForensicEngine) Analyze(ctx context.Context, mediaData []byte) (float32, []string, error) {
-	return e.prob, e.anomalies, e.err
+func (e *mockForensicEngine) Analyze(ctx context.Context, mediaData []byte) (*ForensicResult, error) {
+	if e.err != nil {
+		return nil, e.err
+	}
+	return &ForensicResult{
+		DeepfakeProbability: e.prob,
+		Anomalies:           e.anomalies,
+	}, nil
 }
 
 func TestNewDeepfakeDetector(t *testing.T) {
@@ -89,13 +95,4 @@ func TestDeepfakeDetector_Detect_NilMedia(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float32(0.1), prob)
 	assert.Nil(t, anomalies)
-}
-
-func TestMockForensicEngine_Analyze(t *testing.T) {
-	engine := &MockForensicEngine{}
-	prob, anomalies, err := engine.Analyze(context.Background(), []byte("test-media"))
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, prob, float32(0))
-	assert.LessOrEqual(t, prob, float32(1))
-	assert.NotNil(t, anomalies)
 }
