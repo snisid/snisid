@@ -16,6 +16,8 @@ func (m *mockLifecycleProducer) Publish(ctx context.Context, key string, event i
 	return nil
 }
 
+func (m *mockLifecycleProducer) Close() error { return nil }
+
 func TestNewEngine(t *testing.T) {
 	v := NewValidator()
 	p := &mockLifecycleProducer{}

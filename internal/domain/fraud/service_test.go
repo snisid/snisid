@@ -43,6 +43,8 @@ func (m *mockConsumer) Start(ctx context.Context, handler func(ctx context.Conte
 	return nil
 }
 
+func (m *mockConsumer) Close() error { return nil }
+
 type mockProducer struct {
 	publishFn func(ctx context.Context, key string, event interface{}) error
 }
@@ -53,6 +55,8 @@ func (m *mockProducer) Publish(ctx context.Context, key string, event interface{
 	}
 	return nil
 }
+
+func (m *mockProducer) Close() error { return nil }
 
 func TestNewService(t *testing.T) {
 	svc := NewService(&mockGraphRepo{}, &mockConsumer{}, &mockProducer{})

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"encoding/json"
 	"net/http"
 	"sync"
 	"github.com/gorilla/websocket"

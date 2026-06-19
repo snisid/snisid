@@ -36,6 +36,18 @@ func NewRedisFeatureStore(client *redis.Client) *RedisFeatureStore {
 	return &RedisFeatureStore{client: client}
 }
 
+func (s *RedisFeatureStore) GetState(ctx context.Context, key string) (string, error) {
+	return s.client.Get(ctx, key).Result()
+}
+
+func (s *RedisFeatureStore) IncrementVelocity(ctx context.Context, key string, window time.Duration) (int64, error) {
+	val, err := s.client.Incr(ctx, key).Result()
+	if err == nil {
+		s.client.Expire(ctx, key, window)
+	}
+	return val, err
+}
+
 func (s *RedisFeatureStore) GetTransactionVelocity(ctx context.Context, userID string) (float64, error) {
 	val, err := s.client.Get(ctx, fmt.Sprintf("snisid:features:%s:velocity", userID)).Float64()
 	if errors.Is(err, redis.Nil) {

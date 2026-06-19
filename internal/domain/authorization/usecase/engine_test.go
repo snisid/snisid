@@ -38,6 +38,8 @@ func (m *mockProducer) Publish(ctx context.Context, key string, event interface{
 	return nil
 }
 
+func (m *mockProducer) Close() error { return nil }
+
 func TestNewOPAEngine(t *testing.T) {
 	repo := &mockPolicyRepo{}
 	engine := NewOPAEngine(repo, nil)

@@ -42,8 +42,8 @@ func newTestEngine(aiClient AIClient) (*ScoringEngine, *miniredis.Miniredis) {
 	client := redis.NewClient(&redis.Options{Addr: s.Addr()})
 	eng, _ := router.NewEngine()
 	return &ScoringEngine{
-		rules:    eng,
-		state:    &StateStore{client: client},
+		rules:    eng.Rules(),
+		state:    NewRedisStateStore(client),
 		aiClient: aiClient,
 	}, s
 }
@@ -184,10 +184,7 @@ func TestDefaultAIClient_Predict(t *testing.T) {
 
 func TestNewScoringEngine(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	engine, err := NewScoringEngine(&mockAIClient{}, NewRedisStateStore("localhost:6379"), logger)
-	if err != nil {
-		t.Fatalf("NewScoringEngine failed: %v", err)
-	}
+	engine := NewScoringEngine(&mockAIClient{}, NewStateStore("localhost:6379"), logger)
 	if engine == nil {
 		t.Fatal("Expected non-nil engine")
 	}

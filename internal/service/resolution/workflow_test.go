@@ -16,6 +16,8 @@ func (m *mockWorkflowProducer) Publish(ctx context.Context, key string, event in
 	return nil
 }
 
+func (m *mockWorkflowProducer) Close() error { return nil }
+
 func TestNewWorkflow(t *testing.T) {
 	arb := NewArbitrator()
 	prod := &mockWorkflowProducer{}

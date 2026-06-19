@@ -3,6 +3,7 @@ package security
 import (
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -82,7 +83,7 @@ func TestArgon2_HashFormatContainsExpectedFields(t *testing.T) {
 
 	assert.Equal(t, "", parts[0])
 	assert.Equal(t, "argon2id", parts[1])
-	assert.Equal(t, "v="+itoa(argon2.Version), parts[2])
+	assert.Equal(t, "v="+strconv.Itoa(argon2.Version), parts[2])
 
 	expectedParams := fmt.Sprintf("m=%d,t=%d,p=%d", p.Memory, p.Iterations, p.Parallelism)
 	assert.Equal(t, expectedParams, parts[3])
