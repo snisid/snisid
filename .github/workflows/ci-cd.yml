@@ -19,7 +19,7 @@ jobs:
         run: |
           cd services/fraud-engine
           go mod tidy
-          go build ./cmd/
+          go build -o fraud-engine ./cmd/
           go test ./... -v -count=1
 
   backend-test:
@@ -51,7 +51,7 @@ jobs:
         run: |
           pip install torch pytest
       - name: Run PyTest
-        run: pytest services/ai-face/
+        run: pytest services/planes/ai/ai-face/
 
   frontend-test:
     runs-on: ubuntu-latest
@@ -63,7 +63,7 @@ jobs:
           node-version: '20'
       - name: Install & Build
         run: |
-          cd web
+          cd frontend
           npm install
           npm run build
 
@@ -82,6 +82,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: cmd/identity-api/Dockerfile
+          file: services/identity-api/Dockerfile
           push: true
           tags: snisid/identity-api:latest
