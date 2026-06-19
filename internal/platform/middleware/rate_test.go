@@ -96,7 +96,7 @@ func TestRateLimit_VisitorCleanup(t *testing.T) {
 }
 
 func TestGetVisitor_Limiter(t *testing.T) {
-	limiter := getVisitor("10.0.0.1", rate.Limit(10), 5)
+	limiter := getVisitor("10.0.0.99", rate.Limit(10), 5)
 	if limiter == nil {
 		t.Fatal("getVisitor returned nil")
 	}
@@ -107,8 +107,8 @@ func TestGetVisitor_Limiter(t *testing.T) {
 
 func TestGetVisitor_SameIP(t *testing.T) {
 	// Same IP should return the same limiter
-	l1 := getVisitor("10.0.0.1", rate.Limit(10), 5)
-	l2 := getVisitor("10.0.0.1", rate.Limit(10), 5)
+	l1 := getVisitor("10.0.0.99", rate.Limit(10), 5)
+	l2 := getVisitor("10.0.0.99", rate.Limit(10), 5)
 	if l1 != l2 {
 		t.Error("Same IP should return same limiter instance")
 	}

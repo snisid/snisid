@@ -40,9 +40,9 @@ func (s *AdaptiveTrustScorer) CalculateScore(ctx context.Context, principal stri
 
 	scoreInt := int(totalScore)
 	level := "LOW"
-	if scoreInt > 80 {
+	if scoreInt >= 70 {
 		level = "HIGH"
-	} else if scoreInt > 50 {
+	} else if scoreInt >= 50 {
 		level = "MEDIUM"
 	}
 

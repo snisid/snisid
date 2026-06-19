@@ -33,7 +33,7 @@ func TestAssess_SingleModel(t *testing.T) {
 	m := &testRiskModel{
 		name: "simple_check",
 		evaluateFn: func(ctx context.Context, data map[string]interface{}) (RiskResult, error) {
-			return RiskResult{Score: 50, Reason: "Medium risk"}, nil
+			return RiskResult{Score: 30, Reason: "Medium risk"}, nil
 		},
 	}
 	o := NewOrchestrator(WeightedModel{Model: m, Weight: 1.0})
@@ -42,8 +42,8 @@ func TestAssess_SingleModel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Assess failed: %v", err)
 	}
-	if score != 50 {
-		t.Errorf("Score = %d, want 50", score)
+	if score != 30 {
+		t.Errorf("Score = %d, want 30", score)
 	}
 	if level != "MEDIUM" {
 		t.Errorf("Level = %s, want MEDIUM", level)
