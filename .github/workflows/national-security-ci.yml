@@ -1,0 +1,80 @@
+name: National Security CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/sigint-ht/**'
+      - 'services/humint-ht/**'
+      - 'services/air-defense-ht/**'
+      - 'services/mil-c2-ht/**'
+      - 'services/bio-surveillance-ht/**'
+      - 'services/executive-protection-ht/**'
+      - 'services/transport-security-ht/**'
+      - 'services/radiation-safety-svc/**'
+      - 'services/all-source-fusion-ht/**'
+      - 'services/counterintel-ht/**'
+      - 'services/critical-infra-protection-ht/**'
+      - 'services/fisa-court-svc/**'
+      - 'services/classification-mgmt-ht/**'
+
+jobs:
+  detect-ns:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            sigint-ht: services/sigint-ht/**
+            humint-ht: services/humint-ht/**
+            air-defense-ht: services/air-defense-ht/**
+            mil-c2-ht: services/mil-c2-ht/**
+            bio-surveillance-ht: services/bio-surveillance-ht/**
+            executive-protection-ht: services/executive-protection-ht/**
+            transport-security-ht: services/transport-security-ht/**
+            radiation-safety-svc: services/radiation-safety-svc/**
+            all-source-fusion-ht: services/all-source-fusion-ht/**
+            counterintel-ht: services/counterintel-ht/**
+            critical-infra-protection-ht: services/critical-infra-protection-ht/**
+            fisa-court-svc: services/fisa-court-svc/**
+            classification-mgmt-ht: services/classification-mgmt-ht/**
+
+  build-test-push:
+    needs: detect-ns
+    if: ${{ needs.detect-ns.outputs.matrix != '[]' && needs.detect-ns.outputs.matrix != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.detect-ns.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: Build ${{ matrix.service }}
+        run: |
+          cd services/${{ matrix.service }}
+          go mod tidy
+          go build -o /dev/null ./cmd
+      - name: Test ${{ matrix.service }}
+        run: |
+          cd services/${{ matrix.service }}
+          go test ./internal/... -v -count=1 -cover
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest

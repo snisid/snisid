@@ -1,0 +1,80 @@
+{
+  "title": "HUMINT — Source Management Dashboard",
+  "uid": "ns-humint",
+  "tags": ["ns", "humint", "intelligence"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Active Sources by Risk Level",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(humint_active_sources) by (risk_level)",
+          "legendFormat": "{{risk_level}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Source Credibility Distribution (A–F)",
+      "type": "barchart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(humint_source_credibility) by (grade)",
+          "legendFormat": "Grade {{grade}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "title": "Reports Submitted",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(humint_reports_submitted_total[1d]))",
+          "legendFormat": "Daily"
+        },
+        {
+          "expr": "sum(rate(humint_reports_submitted_total[7d])) / 7",
+          "legendFormat": "Weekly Avg"
+        },
+        {
+          "expr": "sum(rate(humint_reports_submitted_total[30d])) / 30",
+          "legendFormat": "Monthly Avg"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 }
+    },
+    {
+      "title": "Debriefing Frequency (Last 30 Days)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(humint_debriefings_total[1d]))",
+          "legendFormat": "Debriefings/day"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Payment Tracking — Disbursed vs Pending",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(humint_payments_disbursed_total) by (currency)",
+          "legendFormat": "{{currency}} Disbursed"
+        },
+        {
+          "expr": "sum(humint_payments_pending_total) by (currency)",
+          "legendFormat": "{{currency}} Pending"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

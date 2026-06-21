@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rvin-svc
+  namespace: snisid-core
+  labels:
+    app: rvin-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8120
+    targetPort: 8120
+    protocol: TCP
+    name: http
+  selector:
+    app: rvin-svc

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: offline-ht
+  namespace: snisid-core
+  labels:
+    app: offline-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8211
+    targetPort: 8211
+    protocol: TCP
+    name: http
+  selector:
+    app: offline-ht

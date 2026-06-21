@@ -1,0 +1,104 @@
+openapi: "3.0.3"
+info:
+  title: "BIO-HT API"
+  description: "HT National ID Platform - Biometrics"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8203/api/v1/bio"
+paths:
+  /enroll:
+    post:
+      summary: "Enroll a biometric template"
+      operationId: enrollBiometric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                citizen_id:
+                  type: string
+                modality:
+                  type: string
+                  enum: ["FINGERPRINT","FACE","IRIS","VOICE"]
+                image_data:
+                  type: string
+                  format: byte
+                capture_device:
+                  type: string
+                capture_location:
+                  type: string
+                captured_by:
+                  type: string
+      responses:
+        '201':
+          description: "Template enrolled"
+        '400':
+          description: "Invalid request"
+  /verify:
+    post:
+      summary: "Verify a biometric sample"
+      operationId: verifyBiometric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                citizen_id:
+                  type: string
+                modality:
+                  type: string
+                sample_data:
+                  type: string
+                  format: byte
+      responses:
+        '200':
+          description: "Verification result"
+        '400':
+          description: "Invalid request"
+  /identify:
+    post:
+      summary: "Identify from biometric sample"
+      operationId: identifyBiometric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                modality:
+                  type: string
+                sample_data:
+                  type: string
+                  format: byte
+                threshold:
+                  type: number
+                  format: float
+      responses:
+        '200':
+          description: "Identification candidates"
+        '400':
+          description: "Invalid request"
+  /quality/{template_id}:
+    get:
+      summary: "Get template quality score"
+      operationId: getTemplateQuality
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Quality score"
+        '404':
+          description: "Template not found"
+components:
+  schemas: {}

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: id-core
+  namespace: snisid-core
+  labels:
+    app: id-core
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: id-core
+  template:
+    metadata:
+      labels:
+        app: id-core
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8201"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: id-core
+        image: snisid/id-core:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8201
+        env:
+        - name: IDCORE_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: IDCORE_DB_PORT
+          value: "26257"
+        - name: IDCORE_DB_NAME
+          value: "snisid_idcore"
+        - name: IDCORE_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: IDCORE_DB_SSLMODE
+          value: "disable"
+        - name: IDCORE_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: IDCORE_SERVICE_PORT
+          value: "8201"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8201
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8201
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

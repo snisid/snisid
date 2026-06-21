@@ -1,0 +1,191 @@
+openapi: "3.0.3"
+info:
+  title: "CIVIL-HT API"
+  description: "HT National ID Platform - Civil Registration"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8202/api/v1/civil"
+paths:
+  /births:
+    post:
+      summary: "Declare a birth"
+      operationId: declareBirth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - child_full_name
+                - event_date
+                - registering_office
+                - dept_code
+                - commune
+              properties:
+                child_full_name:
+                  type: string
+                child_gender:
+                  type: string
+                mother_citizen_id:
+                  type: string
+                  format: uuid
+                father_citizen_id:
+                  type: string
+                  format: uuid
+                birth_weight_g:
+                  type: integer
+                birth_facility:
+                  type: string
+                attending_professional:
+                  type: string
+                event_date:
+                  type: string
+                  format: date
+                registering_office:
+                  type: string
+                dept_code:
+                  type: string
+                commune:
+                  type: string
+                officer_name:
+                  type: string
+                officer_id:
+                  type: string
+                is_late_declaration:
+                  type: boolean
+                is_reconstructed:
+                  type: boolean
+      responses:
+        '201':
+          description: "Birth declared"
+        '400':
+          description: "Invalid request"
+  /deaths:
+    post:
+      summary: "Declare a death"
+      operationId: declareDeath
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - deceased_citizen_id
+                - event_date
+                - registering_office
+                - dept_code
+                - commune
+              properties:
+                deceased_citizen_id:
+                  type: string
+                  format: uuid
+                cause_of_death:
+                  type: string
+                death_location:
+                  type: string
+                medical_certifier:
+                  type: string
+                is_violent_death:
+                  type: boolean
+                fir_case_reference:
+                  type: string
+                event_date:
+                  type: string
+                  format: date
+                registering_office:
+                  type: string
+                dept_code:
+                  type: string
+                commune:
+                  type: string
+                officer_name:
+                  type: string
+                officer_id:
+                  type: string
+      responses:
+        '201':
+          description: "Death declared"
+        '400':
+          description: "Invalid request"
+  /marriages:
+    post:
+      summary: "Register a marriage"
+      operationId: registerMarriage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - spouse_a_citizen_id
+                - spouse_b_citizen_id
+                - event_date
+                - registering_office
+                - dept_code
+                - commune
+              properties:
+                spouse_a_citizen_id:
+                  type: string
+                  format: uuid
+                spouse_b_citizen_id:
+                  type: string
+                  format: uuid
+                marriage_regime:
+                  type: string
+                prenuptial_agreement:
+                  type: boolean
+                event_date:
+                  type: string
+                  format: date
+                registering_office:
+                  type: string
+                dept_code:
+                  type: string
+                commune:
+                  type: string
+                officer_name:
+                  type: string
+                officer_id:
+                  type: string
+      responses:
+        '201':
+          description: "Marriage registered"
+        '400':
+          description: "Invalid request"
+  /acts/{number}:
+    get:
+      summary: "Get a civil act by number"
+      operationId: getAct
+      parameters:
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Act found"
+        '404':
+          description: "Act not found"
+  /acts/citizen/{nin}:
+    get:
+      summary: "Get civil acts by citizen"
+      operationId: getCitizenActs
+      parameters:
+        - name: nin
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Citizen acts"
+        '404':
+          description: "Citizen not found"
+components:
+  schemas: {}

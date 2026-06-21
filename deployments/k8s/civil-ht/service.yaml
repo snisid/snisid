@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: civil-ht
+  namespace: snisid-core
+  labels:
+    app: civil-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8202
+    targetPort: 8202
+    protocol: TCP
+    name: http
+  selector:
+    app: civil-ht

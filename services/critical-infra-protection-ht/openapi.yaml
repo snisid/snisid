@@ -1,0 +1,189 @@
+openapi: "3.0.3"
+info:
+  title: "INFRAPROT-HT API"
+  description: "HT National ID Platform - Critical Infrastructure Protection"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8311/api/v1/infraprot"
+paths:
+  /assets:
+    post:
+      summary: "Register a critical asset"
+      operationId: createAsset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetRequest"
+      responses:
+        '201':
+          description: "Asset created"
+        '400':
+          description: "Invalid request"
+  /assets/{sector}:
+    get:
+      summary: "Get assets by sector"
+      operationId: getAssetsBySector
+      parameters:
+        - name: sector
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Assets list"
+  /incidents:
+    post:
+      summary: "Report an infrastructure incident"
+      operationId: reportIncident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportIncidentRequest"
+      responses:
+        '201':
+          description: "Incident reported"
+        '400':
+          description: "Invalid request"
+  /incidents/active:
+    get:
+      summary: "Get active incidents"
+      operationId: getActiveIncidents
+      responses:
+        '200':
+          description: "Active incidents list"
+  /incidents/asset/{asset_id}:
+    get:
+      summary: "Get incidents by asset"
+      operationId: getIncidentsByAsset
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Incidents for asset"
+  /assessments:
+    post:
+      summary: "Create sector risk assessment"
+      operationId: createAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssessmentRequest"
+      responses:
+        '201':
+          description: "Assessment created"
+        '400':
+          description: "Invalid request"
+  /dashboard/national:
+    get:
+      summary: "Get national infrastructure dashboard"
+      operationId: getNationalDashboard
+      responses:
+        '200':
+          description: "Dashboard data"
+components:
+  schemas:
+    CreateAssetRequest:
+      type: object
+      required:
+        - asset_name
+        - sector
+        - owner_entity
+        - location_lat
+        - location_lng
+        - region
+        - dept_code
+        - criticality
+        - contact_name
+        - contact_phone
+      properties:
+        asset_name:
+          type: string
+        sector:
+          type: string
+          enum: ["ENERGY","TELECOM","WATER","BANKING","TRANSPORT","HEALTH","GOVERNMENT","FOOD"]
+        owner_entity:
+          type: string
+        location_lat:
+          type: number
+          format: float
+        location_lng:
+          type: number
+          format: float
+        region:
+          type: string
+        dept_code:
+          type: string
+        criticality:
+          type: string
+          enum: ["CRITICAL","HIGH","MEDIUM","LOW"]
+        cyber_maturity_score:
+          type: number
+        physical_security_score:
+          type: number
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+        has_backup_generator:
+          type: boolean
+        has_cyber_insurance:
+          type: boolean
+    ReportIncidentRequest:
+      type: object
+      required:
+        - asset_id
+        - incident_type
+        - severity
+        - description
+      properties:
+        asset_id:
+          type: string
+          format: uuid
+        incident_type:
+          type: string
+          enum: ["CYBER_ATTACK","PHYSICAL_BREACH","NATURAL_DISASTER","SABOTAGE","OUTAGE"]
+        severity:
+          type: string
+        description:
+          type: string
+    CreateAssessmentRequest:
+      type: object
+      required:
+        - sector
+        - overall_risk_score
+        - assessor_agency
+      properties:
+        sector:
+          type: string
+        overall_risk_score:
+          type: integer
+          minimum: 1
+          maximum: 10
+        top_threats:
+          type: array
+          items:
+            type: string
+        vulnerabilities:
+          type: array
+          items:
+            type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+        assessor_agency:
+          type: string

@@ -1,0 +1,183 @@
+openapi: "3.0.3"
+info:
+  title: "CLASSIFICATION-MGMT-HT API"
+  description: "HT National ID Platform - Data Classification"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8313/api/v1/classification"
+paths:
+  /rules:
+    post:
+      summary: "Create a classification rule"
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRuleRequest"
+      responses:
+        '201':
+          description: "Rule created"
+        '400':
+          description: "Invalid request"
+  /rules/{data_type}:
+    get:
+      summary: "Get rules by data type"
+      operationId: getRulesByDataType
+      parameters:
+        - name: data_type
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Rules list"
+  /tags:
+    post:
+      summary: "Tag a resource with classification"
+      operationId: tagResource
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagResourceRequest"
+      responses:
+        '201':
+          description: "Resource tagged"
+        '400':
+          description: "Invalid request"
+  /tags/check:
+    get:
+      summary: "Get classification of a resource"
+      operationId: getClassificationByURI
+      parameters:
+        - name: uri
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Classification tag"
+        '400':
+          description: "Missing uri parameter"
+        '404':
+          description: "Tag not found"
+  /audit:
+    post:
+      summary: "Log a classification change"
+      operationId: logAudit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogAuditRequest"
+      responses:
+        '201':
+          description: "Audit logged"
+        '400':
+          description: "Invalid request"
+  /audit/recent:
+    get:
+      summary: "Get recent audit logs"
+      operationId: getRecentAuditLogs
+      responses:
+        '200':
+          description: "Audit logs list"
+  /dashboard:
+    get:
+      summary: "Get classification dashboard stats"
+      operationId: getDashboard
+      responses:
+        '200':
+          description: "Dashboard statistics"
+components:
+  schemas:
+    CreateRuleRequest:
+      type: object
+      required:
+        - data_type
+        - sensitivity_level
+        - created_by
+      properties:
+        data_type:
+          type: string
+        sensitivity_level:
+          type: string
+          enum: ["PUBLIC","INTERNAL","CONFIDENTIAL","SECRET","TOP_SECRET"]
+        handling_caveats:
+          type: array
+          items:
+            type: string
+        dissemination_limit:
+          type: string
+        encryption_required:
+          type: boolean
+        access_control_mfa:
+          type: boolean
+        audit_logging:
+          type: boolean
+        retention_days:
+          type: integer
+        destruction_required:
+          type: boolean
+        created_by:
+          type: string
+          format: uuid
+    TagResourceRequest:
+      type: object
+      required:
+        - resource_uri
+        - classification_top_level
+        - owner_agency
+        - tagged_by
+      properties:
+        resource_uri:
+          type: string
+        classification_top_level:
+          type: string
+          enum: ["PUBLIC","INTERNAL","CONFIDENTIAL","SECRET","TOP_SECRET"]
+        classification_atomic:
+          type: string
+        handling_caveats:
+          type: array
+          items:
+            type: string
+        owner_agency:
+          type: string
+        tagged_by:
+          type: string
+          format: uuid
+    LogAuditRequest:
+      type: object
+      required:
+        - resource_uri
+        - action
+        - authorized_by
+        - classification_authority
+        - ip_address
+      properties:
+        resource_uri:
+          type: string
+        action:
+          type: string
+          enum: ["CLASSIFY","DOWNGRADE","UPGRADE","DECLASSIFY","DESTROY"]
+        from_level:
+          type: string
+        to_level:
+          type: string
+        rationale:
+          type: string
+        authorized_by:
+          type: string
+          format: uuid
+        classification_authority:
+          type: string
+        ip_address:
+          type: string

@@ -1,0 +1,68 @@
+{
+  "title": "Air Defense — Common Operating Picture",
+  "uid": "ns-air-defense-cop",
+  "tags": ["ns", "air-defense", "military", "cop"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Active Radar Contacts by Type",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(air_defense_radar_contacts_active) by (type)",
+          "legendFormat": "{{type}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Current Threats by Severity",
+      "type": "barchart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(air_defense_threats_active) by (severity)",
+          "legendFormat": "{{severity}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "title": "No-Fly List Size",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "air_defense_no_fly_list_size",
+          "legendFormat": "Entries"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 }
+    },
+    {
+      "title": "Incidents by Status",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(air_defense_incidents) by (status)",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 4 }
+    },
+    {
+      "title": "Radar Contact Positions (Lat/Lng Scatter)",
+      "type": "geomap",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "air_defense_radar_contact_position",
+          "legendFormat": "Contact {{$labels.contact_id}}"
+        }
+      ],
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 12 }
+    }
+  ]
+}

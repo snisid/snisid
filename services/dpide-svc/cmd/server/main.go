@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/snisid/platform/services/dpide-svc/internal/api/rest"
+	"github.com/snisid/platform/services/dpide-svc/internal/handler"
+	"github.com/snisid/platform/services/dpide-svc/internal/kafka"
 	"github.com/snisid/platform/services/dpide-svc/internal/repository/postgres"
 	"github.com/snisid/platform/services/dpide-svc/internal/service"
 )
@@ -24,7 +27,7 @@ func main() {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://postgres:postgres@localhost:5432/snisid?sslmode=disable"
+		dbURL = "postgresql://root@localhost:26257/snisid_dpide?sslmode=disable"
 	}
 
 	pool, err := pgxpool.New(context.Background(), dbURL)
@@ -37,20 +40,38 @@ func main() {
 		logger.Fatal("failed to ping database", zap.Error(err))
 	}
 
+	brokersStr := os.Getenv("KAFKA_BROKERS")
+	if brokersStr == "" {
+		brokersStr = "kafka:9092"
+	}
+	brokers := strings.Split(brokersStr, ",")
+
+	kafkaProducer, err := kafka.NewProducer(brokers, logger)
+	if err != nil {
+		logger.Warn("kafka producer not available, continuing without it", zap.Error(err))
+	}
+	if kafkaProducer != nil {
+		defer kafkaProducer.Close()
+	}
+
 	repo := postgres.NewIDPRepo(pool)
 	svc := service.NewIDPService(repo, logger)
-	handler := rest.NewIDPHandler(svc, logger)
+	handlerAPI := rest.NewIDPHandler(svc, logger)
+	healthHandler := handler.NewHealthHandler(pool, logger)
 
 	r := gin.Default()
 
 	api := r.Group("/api/v1/dpide")
 	{
-		api.POST("/idps", handler.RegisterIDP)
-		api.GET("/idps/:id", handler.GetIDP)
-		api.GET("/camps", handler.ListCamps)
-		api.GET("/stats/overview", handler.GetStats)
-		api.PATCH("/idps/:id/status", handler.UpdateStatus)
+		api.POST("/idps", handlerAPI.RegisterIDP)
+		api.GET("/idps/:id", handlerAPI.GetIDP)
+		api.GET("/camps", handlerAPI.ListCamps)
+		api.GET("/stats/overview", handlerAPI.GetStats)
+		api.PATCH("/idps/:id/status", handlerAPI.UpdateStatus)
 	}
+
+	r.GET("/healthz", healthHandler.Healthz)
+	r.GET("/metrics", handler.MetricsHandler())
 
 	port := os.Getenv("DPIDE_SERVICE_PORT")
 	if port == "" {
@@ -66,6 +87,7 @@ func main() {
 
 	go func() {
 		logger.Info("starting dpide-svc", zap.String("addr", port))
+		fmt.Printf("dpide-svc listening on %s\n", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("server failed", zap.Error(err))
 		}
@@ -75,7 +97,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("shutting down server...")
+	fmt.Println("shutting down dpide-svc...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

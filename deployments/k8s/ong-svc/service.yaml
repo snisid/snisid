@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ong-svc
+  namespace: snisid-core
+  labels:
+    app: ong-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8133
+    targetPort: 8133
+    protocol: TCP
+    name: http
+  selector:
+    app: ong-svc

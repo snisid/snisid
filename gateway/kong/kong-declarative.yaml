@@ -61,6 +61,953 @@ services:
           minute: 20
           policy: local
 
+  # ──────────────────────────────────────────────
+  # HT Services (16)
+  # ──────────────────────────────────────────────
+  - name: id-core-ht
+    url: http://id-core-ht.snisid-core.svc.cluster.local:8201
+    routes:
+      - name: id-core-ht-route
+        paths:
+          - /api/v1/idcore
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: civil-ht
+    url: http://civil-ht.snisid-core.svc.cluster.local:8202
+    routes:
+      - name: civil-ht-route
+        paths:
+          - /api/v1/civil
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: bio-ht
+    url: http://bio-ht.snisid-core.svc.cluster.local:8203
+    routes:
+      - name: bio-ht-route
+        paths:
+          - /api/v1/bio
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: card-ht
+    url: http://card-ht.snisid-core.svc.cluster.local:8204
+    routes:
+      - name: card-ht-route
+        paths:
+          - /api/v1/card
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: pki-ht
+    url: http://pki-ht.snisid-core.svc.cluster.local:8206
+    routes:
+      - name: pki-ht-route
+        paths:
+          - /api/v1/pki
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: iam-ht
+    url: http://iam-ht.snisid-core.svc.cluster.local:8207
+    routes:
+      - name: iam-ht-route
+        paths:
+          - /api/v1/iam
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: interop-ht
+    url: http://interop-ht.snisid-core.svc.cluster.local:8208
+    routes:
+      - name: interop-ht-route
+        paths:
+          - /api/v1/interop
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: infra-ht
+    url: http://infra-ht.snisid-core.svc.cluster.local:8209
+    routes:
+      - name: infra-ht-route
+        paths:
+          - /api/v1/infra
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: cyber-ht
+    url: http://cyber-ht.snisid-core.svc.cluster.local:8210
+    routes:
+      - name: cyber-ht-route
+        paths:
+          - /api/v1/cyber
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: offline-ht
+    url: http://offline-ht.snisid-core.svc.cluster.local:8211
+    routes:
+      - name: offline-ht-route
+        paths:
+          - /api/v1/offline
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: field-ht
+    url: http://field-ht.snisid-core.svc.cluster.local:8212
+    routes:
+      - name: field-ht-route
+        paths:
+          - /api/v1/field
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: data-ht
+    url: http://data-ht.snisid-core.svc.cluster.local:8213
+    routes:
+      - name: data-ht-route
+        paths:
+          - /api/v1/data
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: api-ht
+    url: http://api-ht.snisid-core.svc.cluster.local:8214
+    routes:
+      - name: api-ht-route
+        paths:
+          - /api/v1/api
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: foves-ht
+    url: http://foves-ht.snisid-core.svc.cluster.local:8215
+    routes:
+      - name: foves-ht-route
+        paths:
+          - /api/v1/foves
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: lapi-ht
+    url: http://lapi-ht.snisid-core.svc.cluster.local:8216
+    routes:
+      - name: lapi-ht-route
+        paths:
+          - /api/v1/lapi
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: fpr-ht
+    url: http://fpr-ht.snisid-core.svc.cluster.local:8205
+    routes:
+      - name: fpr-ht-route
+        paths:
+          - /api/v1/fpr
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  # ──────────────────────────────────────────────
+  # National Security Services (13)
+  # ──────────────────────────────────────────────
+  - name: sigint-ht
+    url: http://sigint-ht.snisid-national-security.svc.cluster.local:8301
+    routes:
+      - name: sigint-ht-route
+        paths:
+          - /api/v1/sigint
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: humint-ht
+    url: http://humint-ht.snisid-national-security.svc.cluster.local:8302
+    routes:
+      - name: humint-ht-route
+        paths:
+          - /api/v1/humint
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: air-defense-ht
+    url: http://air-defense-ht.snisid-national-security.svc.cluster.local:8303
+    routes:
+      - name: air-defense-ht-route
+        paths:
+          - /api/v1/air-defense
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: mil-c2-ht
+    url: http://mil-c2-ht.snisid-national-security.svc.cluster.local:8304
+    routes:
+      - name: mil-c2-ht-route
+        paths:
+          - /api/v1/mil-c2
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: bio-surveillance-ht
+    url: http://bio-surveillance-ht.snisid-national-security.svc.cluster.local:8305
+    routes:
+      - name: bio-surveillance-ht-route
+        paths:
+          - /api/v1/bio-surveillance
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: executive-protection-ht
+    url: http://executive-protection-ht.snisid-national-security.svc.cluster.local:8306
+    routes:
+      - name: executive-protection-ht-route
+        paths:
+          - /api/v1/executive-protection
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: transport-security-ht
+    url: http://transport-security-ht.snisid-national-security.svc.cluster.local:8307
+    routes:
+      - name: transport-security-ht-route
+        paths:
+          - /api/v1/transport-security
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: radiation-safety-svc
+    url: http://radiation-safety-svc.snisid-national-security.svc.cluster.local:8308
+    routes:
+      - name: radiation-safety-svc-route
+        paths:
+          - /api/v1/radiation-safety
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: all-source-fusion-ht
+    url: http://all-source-fusion-ht.snisid-national-security.svc.cluster.local:8309
+    routes:
+      - name: all-source-fusion-ht-route
+        paths:
+          - /api/v1/all-source-fusion
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: counterintel-ht
+    url: http://counterintel-ht.snisid-national-security.svc.cluster.local:8310
+    routes:
+      - name: counterintel-ht-route
+        paths:
+          - /api/v1/counterintel
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: critical-infra-protection-ht
+    url: http://critical-infra-protection-ht.snisid-national-security.svc.cluster.local:8311
+    routes:
+      - name: critical-infra-protection-ht-route
+        paths:
+          - /api/v1/critical-infra-protection
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: fisa-court-svc
+    url: http://fisa-court-svc.snisid-national-security.svc.cluster.local:8312
+    routes:
+      - name: fisa-court-svc-route
+        paths:
+          - /api/v1/fisa-court
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: classification-mgmt-ht
+    url: http://classification-mgmt-ht.snisid-national-security.svc.cluster.local:8313
+    routes:
+      - name: classification-mgmt-ht-route
+        paths:
+          - /api/v1/classification-mgmt
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  # ──────────────────────────────────────────────
+  # MP19-MP56 Services (38)
+  # ──────────────────────────────────────────────
+  - name: afis-svc
+    url: http://afis-svc.snisid-core.svc.cluster.local:8091
+    routes:
+      - name: afis-svc-route
+        paths:
+          - /api/v1/afis
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: fir-svc
+    url: http://fir-svc.snisid-core.svc.cluster.local:8093
+    routes:
+      - name: fir-svc-route
+        paths:
+          - /api/v1/fir
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: sipep-svc
+    url: http://sipep-svc.snisid-core.svc.cluster.local:8092
+    routes:
+      - name: sipep-svc-route
+        paths:
+          - /api/v1/sipep
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: rdep-svc
+    url: http://rdep-svc.snisid-core.svc.cluster.local:8094
+    routes:
+      - name: rdep-svc-route
+        paths:
+          - /api/v1/rdep
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: opr-svc
+    url: http://opr-svc.snisid-core.svc.cluster.local:8096
+    routes:
+      - name: opr-svc-route
+        paths:
+          - /api/v1/opr
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: gang-svc
+    url: http://gang-svc.snisid-core.svc.cluster.local:8095
+    routes:
+      - name: gang-svc-route
+        paths:
+          - /api/v1/gang
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: chef-svc
+    url: http://chef-svc.snisid-core.svc.cluster.local:8097
+    routes:
+      - name: chef-svc-route
+        paths:
+          - /api/v1/chef
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: terr-svc
+    url: http://terr-svc.snisid-core.svc.cluster.local:8098
+    routes:
+      - name: terr-svc-route
+        paths:
+          - /api/v1/terr
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: sanc-svc
+    url: http://sanc-svc.snisid-core.svc.cluster.local:8100
+    routes:
+      - name: sanc-svc-route
+        paths:
+          - /api/v1/sanc
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: reso-svc
+    url: http://reso-svc.snisid-core.svc.cluster.local:8101
+    routes:
+      - name: reso-svc-route
+        paths:
+          - /api/v1/reso
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: siar-svc
+    url: http://siar-svc.snisid-core.svc.cluster.local:8102
+    routes:
+      - name: siar-svc-route
+        paths:
+          - /api/v1/siar
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: biar-svc
+    url: http://biar-svc.snisid-core.svc.cluster.local:8103
+    routes:
+      - name: biar-svc-route
+        paths:
+          - /api/v1/biar
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: expl-svc
+    url: http://expl-svc.snisid-core.svc.cluster.local:8104
+    routes:
+      - name: expl-svc-route
+        paths:
+          - /api/v1/expl
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: trafar-svc
+    url: http://trafar-svc.snisid-core.svc.cluster.local:8105
+    routes:
+      - name: trafar-svc-route
+        paths:
+          - /api/v1/trafar
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: sifr-svc
+    url: http://sifr-svc.snisid-core.svc.cluster.local:8106
+    routes:
+      - name: sifr-svc-route
+        paths:
+          - /api/v1/sifr
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: mar-svc
+    url: http://mar-svc.snisid-core.svc.cluster.local:8107
+    routes:
+      - name: mar-svc-route
+        paths:
+          - /api/v1/mar
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: sltd-svc
+    url: http://sltd-svc.snisid-core.svc.cluster.local:8108
+    routes:
+      - name: sltd-svc-route
+        paths:
+          - /api/v1/sltd
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: blkl-svc
+    url: http://blkl-svc.snisid-core.svc.cluster.local:8110
+    routes:
+      - name: blkl-svc-route
+        paths:
+          - /api/v1/blkl
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: aero-svc
+    url: http://aero-svc.snisid-core.svc.cluster.local:8109
+    routes:
+      - name: aero-svc-route
+        paths:
+          - /api/v1/aero
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: port-svc
+    url: http://port-svc.snisid-core.svc.cluster.local:8111
+    routes:
+      - name: port-svc-route
+        paths:
+          - /api/v1/port
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: ucref-svc
+    url: http://ucref-svc.snisid-core.svc.cluster.local:8112
+    routes:
+      - name: ucref-svc-route
+        paths:
+          - /api/v1/ucref
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: blan-svc
+    url: http://blan-svc.snisid-core.svc.cluster.local:8115
+    routes:
+      - name: blan-svc-route
+        paths:
+          - /api/v1/blan
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: extors-svc
+    url: http://extors-svc.snisid-core.svc.cluster.local:8116
+    routes:
+      - name: extors-svc-route
+        paths:
+          - /api/v1/extors
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: crypt-svc
+    url: http://crypt-svc.snisid-core.svc.cluster.local:8117
+    routes:
+      - name: crypt-svc-route
+        paths:
+          - /api/v1/crypt
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: dipe-svc
+    url: http://dipe-svc.snisid-core.svc.cluster.local:8118
+    routes:
+      - name: dipe-svc-route
+        paths:
+          - /api/v1/dipe
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: trait-svc
+    url: http://trait-svc.snisid-core.svc.cluster.local:8122
+    routes:
+      - name: trait-svc-route
+        paths:
+          - /api/v1/trait
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: enfl-svc
+    url: http://enfl-svc.snisid-core.svc.cluster.local:8119
+    routes:
+      - name: enfl-svc-route
+        paths:
+          - /api/v1/enfl
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: dpide-svc
+    url: http://dpide-svc.snisid-core.svc.cluster.local:8121
+    routes:
+      - name: dpide-svc-route
+        paths:
+          - /api/v1/dpide
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: vict-svc
+    url: http://vict-svc.snisid-core.svc.cluster.local:8123
+    routes:
+      - name: vict-svc-route
+        paths:
+          - /api/v1/vict
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: sigeo-svc
+    url: http://sigeo-svc.snisid-core.svc.cluster.local:8125
+    routes:
+      - name: sigeo-svc-route
+        paths:
+          - /api/v1/sigeo
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: sigdc-svc
+    url: http://sigdc-svc.snisid-core.svc.cluster.local:8126
+    routes:
+      - name: sigdc-svc-route
+        paths:
+          - /api/v1/sigdc
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: rvin-svc
+    url: http://rvin-svc.snisid-core.svc.cluster.local:8120
+    routes:
+      - name: rvin-svc-route
+        paths:
+          - /api/v1/rvin
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: mvsm-svc
+    url: http://mvsm-svc.snisid-core.svc.cluster.local:8127
+    routes:
+      - name: mvsm-svc-route
+        paths:
+          - /api/v1/mvsm
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: sisal-svc
+    url: http://sisal-svc.snisid-core.svc.cluster.local:8128
+    routes:
+      - name: sisal-svc-route
+        paths:
+          - /api/v1/sisal
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: corr-svc
+    url: http://corr-svc.snisid-core.svc.cluster.local:8130
+    routes:
+      - name: corr-svc-route
+        paths:
+          - /api/v1/corr
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: sipci-svc
+    url: http://sipci-svc.snisid-core.svc.cluster.local:8131
+    routes:
+      - name: sipci-svc-route
+        paths:
+          - /api/v1/sipci
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: cybre-svc
+    url: http://cybre-svc.snisid-core.svc.cluster.local:8132
+    routes:
+      - name: cybre-svc-route
+        paths:
+          - /api/v1/cybre
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
+  - name: ong-svc
+    url: http://ong-svc.snisid-core.svc.cluster.local:8133
+    routes:
+      - name: ong-svc-route
+        paths:
+          - /api/v1/ong
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+
 # --- CONSUMERS & JWT SECRETS ---
 # In a real environment, the public keys for the JWT plugin are synced via an ingress controller
 # pulling from Keycloak's JWKS endpoint, avoiding hardcoded consumers here.

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-ht
+  namespace: snisid-core
+  labels:
+    app: infra-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: infra-ht
+  template:
+    metadata:
+      labels:
+        app: infra-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8209"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: infra-ht
+        image: snisid/infra-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8209
+        env:
+        - name: INFRA_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: INFRA_DB_PORT
+          value: "26257"
+        - name: INFRA_DB_NAME
+          value: "snisid_infra"
+        - name: INFRA_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: INFRA_DB_SSLMODE
+          value: "disable"
+        - name: INFRA_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: INFRA_SERVICE_PORT
+          value: "8209"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8209
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8209
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

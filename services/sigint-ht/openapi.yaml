@@ -1,0 +1,328 @@
+openapi: 3.0.3
+info:
+  title: SIGINT-HT Lawful Interception API
+  version: 1.0.0
+  description: SIGINT/COMINT lawful interception microservice for SNISID
+
+servers:
+  - url: http://localhost:8301/api/v1/sigint
+
+paths:
+  /targets:
+    post:
+      tags: [Targets]
+      summary: Create interception target with warrant reference
+      operationId: createTarget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTargetRequest'
+      responses:
+        '201':
+          description: Target created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /targets/active:
+    get:
+      tags: [Targets]
+      summary: List active interception targets
+      operationId: getActiveTargets
+      responses:
+        '200':
+          description: Active targets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetsResponse'
+
+  /targets/{id}/intercept:
+    post:
+      tags: [Interceptions]
+      summary: Record intercepted communication
+      operationId: recordInterception
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InterceptRequest'
+      responses:
+        '201':
+          description: Communication recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunicationResponse'
+
+  /targets/{id}/communications:
+    get:
+      tags: [Interceptions]
+      summary: Get communications for a target
+      operationId: getCommunications
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Communications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunicationsResponse'
+
+  /cdr/analysis:
+    get:
+      tags: [CDR]
+      summary: Analyze call detail records by phone number
+      operationId: analyzeCDR
+      parameters:
+        - name: phone
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CDR analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CDRAnalysisResponse'
+
+  /emergency:
+    post:
+      tags: [Emergency]
+      summary: Emergency authorization bypass
+      operationId: emergencyAuthorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyRequest'
+      responses:
+        '201':
+          description: Emergency target created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyResponse'
+
+components:
+  schemas:
+    CreateTargetRequest:
+      type: object
+      required: [target_type, authorization_ref, judge_name, issuing_court, start_date, end_date, target_identifier]
+      properties:
+        target_type:
+          type: string
+          enum: [PHONE_NUMBER, EMAIL, SOCIAL_MEDIA, RADIO_FREQUENCY, IP_ADDRESS]
+        authorization_ref:
+          type: string
+          format: uuid
+        judge_name:
+          type: string
+        issuing_court:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        target_identifier:
+          type: string
+
+    InterceptRequest:
+      type: object
+      required: [comm_type, content_ref, intercepted_at, collector_node]
+      properties:
+        comm_type:
+          type: string
+          enum: [CALL, SMS, EMAIL, RADIO, SOCIAL_MEDIA]
+        metadata:
+          type: object
+        content_ref:
+          type: string
+        intercepted_at:
+          type: string
+          format: date-time
+        collector_node:
+          type: string
+        case_number:
+          type: string
+
+    EmergencyRequest:
+      type: object
+      required: [target_identifier, target_type, reason, authorizing_officer]
+      properties:
+        target_identifier:
+          type: string
+        target_type:
+          type: string
+        reason:
+          type: string
+        authorizing_officer:
+          type: string
+
+    InterceptionTarget:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        target_type:
+          type: string
+        status:
+          type: string
+        authorization_ref:
+          type: string
+          format: uuid
+        judge_name:
+          type: string
+        issuing_court:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        target_identifier:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    InterceptedCommunication:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_target_id:
+          type: string
+          format: uuid
+        comm_type:
+          type: string
+        metadata:
+          type: object
+        content_ref:
+          type: string
+        intercepted_at:
+          type: string
+          format: date-time
+        collector_node:
+          type: string
+        case_number:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CDRAnalysis:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        caller:
+          type: string
+        callee:
+          type: string
+        duration:
+          type: integer
+        tower_location:
+          type: string
+        imsi:
+          type: string
+        imei:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    TargetResponse:
+      type: object
+      properties:
+        target:
+          $ref: '#/components/schemas/InterceptionTarget'
+
+    TargetsResponse:
+      type: object
+      properties:
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/InterceptionTarget'
+        total:
+          type: integer
+
+    CommunicationResponse:
+      type: object
+      properties:
+        communication:
+          $ref: '#/components/schemas/InterceptedCommunication'
+
+    CommunicationsResponse:
+      type: object
+      properties:
+        communications:
+          type: array
+          items:
+            $ref: '#/components/schemas/InterceptedCommunication'
+        total:
+          type: integer
+
+    CDRAnalysisResponse:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/CDRAnalysis'
+        total:
+          type: integer
+
+    EmergencyResponse:
+      type: object
+      properties:
+        target:
+          $ref: '#/components/schemas/InterceptionTarget'
+        approved:
+          type: boolean
+        authorization_ref:
+          type: string
+          format: uuid
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string

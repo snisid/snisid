@@ -1,0 +1,198 @@
+openapi: "3.0.3"
+info:
+  title: "BIO-SURVEILLANCE-HT API"
+  description: "HT National ID Platform - Health Security / Biosurveillance"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8305/api/v1/biosurv"
+paths:
+  /alerts:
+    post:
+      summary: "Report a disease outbreak"
+      operationId: createDiseaseAlert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiseaseAlertRequest"
+      responses:
+        '201':
+          description: "Alert created"
+        '400':
+          description: "Invalid request"
+  /alerts/active:
+    get:
+      summary: "Get active disease alerts"
+      operationId: getActiveAlerts
+      responses:
+        '200':
+          description: "Active alerts list"
+  /alerts/region/{region}:
+    get:
+      summary: "Get alerts by region"
+      operationId: getAlertsByRegion
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Region alerts list"
+  /campaigns:
+    post:
+      summary: "Create a vaccination campaign"
+      operationId: createCampaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVaccinationCampaignRequest"
+      responses:
+        '201':
+          description: "Campaign created"
+        '400':
+          description: "Invalid request"
+  /campaigns/{id}/coverage:
+    get:
+      summary: "Get campaign coverage"
+      operationId: getCampaignCoverage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Campaign coverage"
+  /facilities/{id}/stock:
+    patch:
+      summary: "Update facility stock status"
+      operationId: updateFacilityStock
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFacilityStockRequest"
+      responses:
+        '200':
+          description: "Stock updated"
+        '400':
+          description: "Invalid request"
+  /dashboard/national:
+    get:
+      summary: "Get national health dashboard"
+      operationId: getDashboardNational
+      responses:
+        '200':
+          description: "Dashboard data"
+components:
+  schemas:
+    CreateDiseaseAlertRequest:
+      type: object
+      required:
+        - disease_name
+        - pathogen_type
+        - icd10_code
+        - alert_level
+        - transmission_mode
+      properties:
+        disease_name:
+          type: string
+        pathogen_type:
+          type: string
+          enum: [VIRUS, BACTERIA, PARASITE, FUNGUS, UNKNOWN]
+        icd10_code:
+          type: string
+        alert_level:
+          type: string
+          enum: [GREEN, YELLOW, ORANGE, RED]
+        symptoms_hallmark:
+          type: string
+        transmission_mode:
+          type: string
+          enum: [AIRBORNE, FOODBORNE, WATERBORNE, VECTOR, CONTACT, UNKNOWN]
+        incubation_days:
+          type: integer
+        fatality_rate:
+          type: number
+          format: float
+        cases_confirmed:
+          type: integer
+        cases_suspected:
+          type: integer
+        cases_deaths:
+          type: integer
+        affected_regions:
+          type: array
+          items:
+            type: string
+        source_lab:
+          type: string
+        who_alert_ref:
+          type: string
+        containment_measures:
+          type: string
+    CreateVaccinationCampaignRequest:
+      type: object
+      required:
+        - campaign_name
+        - target_disease
+        - vaccine_type
+        - target_population
+        - doses_administered
+        - coverage_pct
+        - start_date
+        - coordinator_agency
+      properties:
+        campaign_name:
+          type: string
+        target_disease:
+          type: string
+        vaccine_type:
+          type: string
+        target_population:
+          type: integer
+        doses_administered:
+          type: integer
+        coverage_pct:
+          type: number
+          format: float
+        regions_active:
+          type: array
+          items:
+            type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        coordinator_agency:
+          type: string
+    UpdateFacilityStockRequest:
+      type: object
+      required:
+        - stock_status
+        - beds_available
+      properties:
+        stock_status:
+          type: string
+          enum: [ADEQUATE, LOW, CRITICAL, OUT_OF_STOCK]
+        beds_available:
+          type: integer

@@ -1,0 +1,84 @@
+{
+  "title": "Military C2 — Command & Control Operations",
+  "uid": "ns-mil-c2",
+  "tags": ["ns", "military", "c2", "operations"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Active Operations by Type",
+      "type": "barchart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(mil_c2_active_operations) by (type)",
+          "legendFormat": "{{type}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Units: Deployed vs Standby",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(mil_c2_units_deployed)",
+          "legendFormat": "Deployed"
+        },
+        {
+          "expr": "sum(mil_c2_units_standby)",
+          "legendFormat": "Standby"
+        }
+      ],
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 }
+    },
+    {
+      "title": "SITREPs per Operation",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(mil_c2_sitrep_total[1h])) by (operation)",
+          "legendFormat": "{{operation}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Total Personnel Deployed",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(mil_c2_personnel_deployed)",
+          "legendFormat": "Personnel"
+        }
+      ],
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 6 }
+    },
+    {
+      "title": "Equipment Status",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(mil_c2_equipment) by (status)",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+    },
+    {
+      "title": "Operations Timeline (Gantt-style)",
+      "type": "state-timeline",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "mil_c2_operation_phase",
+          "legendFormat": "{{operation}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 }
+    }
+  ]
+}

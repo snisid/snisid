@@ -1,0 +1,56 @@
+name: Docker Build All Services
+
+on:
+  workflow_dispatch:
+
+jobs:
+  docker-build-all:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - id-core
+          - civil-ht
+          - bio-ht
+          - card-ht
+          - pki-ht
+          - iam-ht
+          - interop-ht
+          - infra-ht
+          - cyber-ht
+          - offline-ht
+          - field-ht
+          - data-ht
+          - api-ht
+          - foves-ht
+          - lapi-ht
+          - fpr-ht
+          - sigint-ht
+          - humint-ht
+          - air-defense-ht
+          - mil-c2-ht
+          - bio-surveillance-ht
+          - executive-protection-ht
+          - transport-security-ht
+          - radiation-safety-svc
+          - all-source-fusion-ht
+          - counterintel-ht
+          - critical-infra-protection-ht
+          - fisa-court-svc
+          - classification-mgmt-ht
+      max-parallel: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest

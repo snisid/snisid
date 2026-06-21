@@ -1,0 +1,89 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ns-service-alerts
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-alerts
+spec:
+  groups:
+    - name: NS.Microservices
+      interval: 30s
+      rules:
+        - alert: ServiceDown
+          expr: up{namespace="ns-core", service=~"ns-(vc|pki|sd-jwt|did|vp|status-list|didcomm|credential-flow|siopv2|wallet|chapi|credential-manifest|revocation)"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: ns-platform
+          annotations:
+            summary: "{{ $labels.service }} is down in {{ $labels.namespace }}"
+            description: "Service {{ $labels.service }} has been unreachable for more than 1 minute."
+            runbook_url: "https://ops.snisid.internal/runbooks/ns-service-down"
+
+        - alert: HighLatency
+          expr: histogram_quantile(0.95, sum(rate(ns_request_duration_seconds_bucket{service=~"ns-(vc|pki|sd-jwt|did|vp|status-list|didcomm|credential-flow|siopv2|wallet|chapi|credential-manifest|revocation"}[5m])) by (le, service)) > 2
+          for: 5m
+          labels:
+            severity: warning
+            team: ns-platform
+          annotations:
+            summary: "{{ $labels.service }} P95 latency > 2s"
+            description: "Service {{ $labels.service }} P95 latency is {{ $value }}s, exceeding the 2s threshold."
+
+        - alert: HighErrorRate
+          expr: sum(rate(ns_http_requests_total{service=~"ns-(vc|pki|sd-jwt|did|vp|status-list|didcomm|credential-flow|siopv2|wallet|chapi|credential-manifest|revocation)", status=~"5.."}[5m])) by (service) / sum(rate(ns_http_requests_total{service=~"ns-(vc|pki|sd-jwt|did|vp|status-list|didcomm|credential-flow|siopv2|wallet|chapi|credential-manifest|revocation)"}[5m])) by (service) * 100 > 5
+          for: 5m
+          labels:
+            severity: critical
+            team: ns-platform
+          annotations:
+            summary: "{{ $labels.service }} error rate > 5%"
+            description: "Service {{ $labels.service }} 5xx error rate is {{ $value }}%, exceeding the 5% threshold."
+
+    - name: NS.Kafka
+      interval: 30s
+      rules:
+        - alert: ConsumerLag
+          expr: sum(ns_kafka_consumer_lag{service=~"ns-(vc|pki|sd-jwt|did|vp|status-list|didcomm|credential-flow|siopv2|wallet|chapi|credential-manifest|revocation)"}) by (service, topic) > 1000
+          for: 2m
+          labels:
+            severity: warning
+            team: ns-platform
+          annotations:
+            summary: "Kafka consumer lag > 1000 for {{ $labels.service }}"
+            description: "Service {{ $labels.service }} on topic {{ $labels.topic }} has {{ $value }} messages lag."
+
+        - alert: ProducerErrors
+          expr: rate(ns_kafka_producer_errors_total{service=~"ns-(vc|pki|sd-jwt|did|vp|status-list|didcomm|credential-flow|siopv2|wallet|chapi|credential-manifest|revocation"}[5m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            team: ns-platform
+          annotations:
+            summary: "Kafka producer errors for {{ $labels.service }}"
+            description: "Service {{ $labels.service }} is experiencing Kafka producer errors at {{ $value }} errors/sec."
+
+    - name: NS.Database
+      interval: 30s
+      rules:
+        - alert: ConnectionPoolExhausted
+          expr: ns_db_connection_pool_available{service=~"ns-(vc|pki|sd-jwt|did|vp|status-list|didcomm|credential-flow|siopv2|wallet|chapi|credential-manifest|revocation)"} < 2
+          for: 1m
+          labels:
+            severity: critical
+            team: ns-platform
+          annotations:
+            summary: "Database connection pool exhausted for {{ $labels.service }}"
+            description: "Service {{ $labels.service }} has fewer than 2 available database connections."
+
+        - alert: QueryLatency
+          expr: histogram_quantile(0.95, sum(rate(ns_db_query_duration_seconds_bucket{service=~"ns-(vc|pki|sd-jwt|did|vp|status-list|didcomm|credential-flow|siopv2|wallet|chapi|credential-manifest|revocation"}[5m])) by (le, service, query)) > 1
+          for: 5m
+          labels:
+            severity: warning
+            team: ns-platform
+          annotations:
+            summary: "High database query latency for {{ $labels.service }}"
+            description: "P95 query latency for service {{ $labels.service }} (query: {{ $labels.query }}) is {{ $value }}s."

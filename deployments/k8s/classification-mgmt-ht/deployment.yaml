@@ -1,0 +1,63 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: classification-mgmt-ht
+  namespace: snisid-national-security
+  labels:
+    app: classification-mgmt-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: classification-mgmt-ht
+  template:
+    metadata:
+      labels:
+        app: classification-mgmt-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8313"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: classification-mgmt-ht
+        image: snisid/classification-mgmt-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8313
+        env:
+        - name: PORT
+          value: "8313"
+        - name: ENV
+          value: "prod"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: snisid-secrets
+              key: jwt-secret
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        - name: CLASS_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: snisid_classification-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8313
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8313
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

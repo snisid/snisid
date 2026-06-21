@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fpr-ht
+  namespace: snisid-core
+  labels:
+    app: fpr-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fpr-ht
+  template:
+    metadata:
+      labels:
+        app: fpr-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8205"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: fpr-ht
+        image: snisid/fpr-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8205
+        env:
+        - name: FPR_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: FPR_DB_PORT
+          value: "26257"
+        - name: FPR_DB_NAME
+          value: "snisid_fpr"
+        - name: FPR_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: FPR_DB_SSLMODE
+          value: "disable"
+        - name: FPR_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: FPR_SERVICE_PORT
+          value: "8205"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8205
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8205
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

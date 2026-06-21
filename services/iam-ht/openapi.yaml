@@ -1,0 +1,59 @@
+openapi: "3.0.3"
+info:
+  title: "IAM-HT API"
+  description: "HT National ID Platform - IAM"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8207/api/v1/iam"
+paths:
+  /.well-known/openid-config:
+    get:
+      summary: "OpenID Connect discovery"
+      operationId: openidDiscovery
+      responses:
+        '200':
+          description: "OpenID configuration"
+  /authorize:
+    post:
+      summary: "Authorize a user"
+      operationId: authorizeUser
+      parameters:
+        - name: citizen_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Authorization result"
+        '401':
+          description: "Unauthorized"
+  /token:
+    post:
+      summary: "Get access token"
+      operationId: getToken
+      responses:
+        '200':
+          description: "Token response"
+  /step-up:
+    post:
+      summary: "Step up assurance level"
+      operationId: stepUpAssurance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                citizen_id:
+                  type: string
+      responses:
+        '200':
+          description: "Assurance level updated"
+        '400':
+          description: "Invalid request"
+components:
+  schemas: {}

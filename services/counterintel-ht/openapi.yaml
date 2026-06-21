@@ -1,0 +1,211 @@
+openapi: "3.0.3"
+info:
+  title: "COUNTERINTEL-HT API"
+  description: "HT National ID Platform - Counterintelligence"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8310/api/v1/counterintel"
+paths:
+  /investigations:
+    post:
+      summary: "Create a background investigation"
+      operationId: createInvestigation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvestigationRequest"
+      responses:
+        '201':
+          description: "Investigation created"
+        '400':
+          description: "Invalid request"
+  /investigations/pending:
+    get:
+      summary: "Get pending investigations"
+      operationId: getPendingInvestigations
+      responses:
+        '200':
+          description: "Pending investigations list"
+  /investigations/{id}:
+    get:
+      summary: "Get investigation by ID"
+      operationId: getInvestigation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Investigation details"
+        '404':
+          description: "Not found"
+  /investigations/{id}/adjudicate:
+    patch:
+      summary: "Adjudicate an investigation"
+      operationId: adjudicateInvestigation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdjudicateRequest"
+      responses:
+        '200':
+          description: "Investigation adjudicated"
+        '400':
+          description: "Invalid request"
+  /threats:
+    post:
+      summary: "Report an insider threat"
+      operationId: reportThreat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportThreatRequest"
+      responses:
+        '201':
+          description: "Threat reported"
+        '400':
+          description: "Invalid request"
+  /threats/active:
+    get:
+      summary: "Get active threats"
+      operationId: getActiveThreats
+      responses:
+        '200':
+          description: "Active threats list"
+  /contacts:
+    post:
+      summary: "Report a foreign contact"
+      operationId: reportContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportContactRequest"
+      responses:
+        '201':
+          description: "Contact reported"
+        '400':
+          description: "Invalid request"
+  /contacts/{subject_id}:
+    get:
+      summary: "Get contacts by subject ID"
+      operationId: getContactsBySubject
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Contacts list"
+components:
+  schemas:
+    CreateInvestigationRequest:
+      type: object
+      required:
+        - subject_identity_ref
+        - investigation_type
+      properties:
+        subject_identity_ref:
+          type: string
+        investigation_type:
+          type: string
+          enum: ["STANDARD", "ENHANCED", "TOP_SECRET", "REINVESTIGATION"]
+        criminal_record_check:
+          type: boolean
+        financial_check:
+          type: boolean
+        foreign_contacts_check:
+          type: boolean
+        social_media_check:
+          type: boolean
+        drug_test:
+          type: boolean
+        psych_eval:
+          type: boolean
+    AdjudicateRequest:
+      type: object
+      required:
+        - adjudicator
+        - clearance_level_granted
+      properties:
+        adjudicator:
+          type: string
+          format: uuid
+        adjudication_notes:
+          type: string
+        clearance_level_granted:
+          type: string
+          enum: ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
+    ReportThreatRequest:
+      type: object
+      required:
+        - subject_id
+        - alert_type
+        - severity
+        - description
+        - detected_by
+      properties:
+        subject_id:
+          type: string
+        alert_type:
+          type: string
+          enum: ["UNAUTHORIZED_ACCESS", "DATA_EXFIL", "PRIVILEGE_ESCALATION", "BEHAVIORAL", "COLLUSION"]
+        severity:
+          type: string
+          enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+        description:
+          type: string
+        evidence_refs:
+          type: array
+          items:
+            type: string
+        detected_by:
+          type: string
+    ReportContactRequest:
+      type: object
+      required:
+        - subject_id
+        - contact_name
+        - foreign_government
+        - relationship_type
+      properties:
+        subject_id:
+          type: string
+        contact_name:
+          type: string
+        foreign_government:
+          type: string
+        relationship_type:
+          type: string
+          enum: ["DIPLOMATIC", "BUSINESS", "ACADEMIC", "FAMILY", "PERSONAL"]
+        last_contact_at:
+          type: string
+          format: date-time
+        frequency:
+          type: string
+        approved_by:
+          type: string
+          format: uuid
+        notes:
+          type: string

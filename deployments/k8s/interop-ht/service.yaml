@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: interop-ht
+  namespace: snisid-core
+  labels:
+    app: interop-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8208
+    targetPort: 8208
+    protocol: TCP
+    name: http
+  selector:
+    app: interop-ht

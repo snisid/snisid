@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-ht
+  namespace: snisid-core
+  labels:
+    app: api-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8214
+    targetPort: 8214
+    protocol: TCP
+    name: http
+  selector:
+    app: api-ht

@@ -1,0 +1,187 @@
+openapi: "3.0.3"
+info:
+  title: "FOVES-HT API"
+  description: "HT National ID Platform - Vehicle & Driver Registry"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8215/api/v1/foves"
+paths:
+  /vehicles:
+    post:
+      summary: "Register a vehicle"
+      operationId: registerVehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterVehicleRequest"
+      responses:
+        '201':
+          description: "Vehicle registered"
+        '400':
+          description: "Invalid request"
+  /vehicles/plate/{number}:
+    get:
+      summary: "Get vehicle by plate number"
+      operationId: getVehicleByPlate
+      parameters:
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Vehicle found"
+        '404':
+          description: "Vehicle not found"
+  /vehicles/vin/{vin}:
+    get:
+      summary: "Get vehicle by VIN"
+      operationId: getVehicleByVIN
+      parameters:
+        - name: vin
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Vehicle found"
+        '404':
+          description: "Vehicle not found"
+  /vehicles/owner/{citizen_id}:
+    get:
+      summary: "Get vehicles by owner"
+      operationId: getVehiclesByOwner
+      parameters:
+        - name: citizen_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Owner's vehicles"
+        '400':
+          description: "Invalid citizen_id"
+  /transfers:
+    post:
+      summary: "Transfer vehicle ownership"
+      operationId: transferOwnership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferOwnershipRequest"
+      responses:
+        '201':
+          description: "Ownership transferred"
+        '400':
+          description: "Invalid request"
+  /licenses:
+    post:
+      summary: "Issue a driver license"
+      operationId: issueLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueLicenseRequest"
+      responses:
+        '201':
+          description: "License issued"
+        '400':
+          description: "Invalid request"
+  /licenses/{citizen_id}:
+    get:
+      summary: "Get driver license by citizen"
+      operationId: getLicense
+      parameters:
+        - name: citizen_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "License found"
+        '404':
+          description: "License not found"
+components:
+  schemas:
+    RegisterVehicleRequest:
+      type: object
+      required:
+        - plate_number
+        - vin
+        - make
+        - model
+        - year
+        - category
+        - owner_citizen_id
+      properties:
+        plate_number:
+          type: string
+        vin:
+          type: string
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        color:
+          type: string
+        category:
+          type: string
+        owner_citizen_id:
+          type: string
+    TransferOwnershipRequest:
+      type: object
+      required:
+        - vehicle_id
+        - from_citizen_id
+        - to_citizen_id
+      properties:
+        vehicle_id:
+          type: string
+        from_citizen_id:
+          type: string
+        to_citizen_id:
+          type: string
+        contract_ref:
+          type: string
+    IssueLicenseRequest:
+      type: object
+      required:
+        - citizen_id
+        - license_number
+        - expiry_date
+      properties:
+        citizen_id:
+          type: string
+        license_number:
+          type: string
+        category_a:
+          type: boolean
+        category_b:
+          type: boolean
+        category_c:
+          type: boolean
+        category_d:
+          type: boolean
+        category_e:
+          type: boolean
+        category_f:
+          type: boolean
+        expiry_date:
+          type: string
+          format: date
+        points_balance:
+          type: integer

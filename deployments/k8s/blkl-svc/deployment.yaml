@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blkl-svc
+  namespace: snisid-core
+  labels:
+    app: blkl-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: blkl-svc
+  template:
+    metadata:
+      labels:
+        app: blkl-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8110"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: blkl-svc
+        image: snisid/blkl-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8110
+        env:
+        - name: PORT
+          value: "8110"
+        - name: ENV
+          value: "prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: postgres-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8110
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8110
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

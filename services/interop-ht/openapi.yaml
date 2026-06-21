@@ -1,0 +1,62 @@
+openapi: "3.0.3"
+info:
+  title: "INTEROP-HT API"
+  description: "HT National ID Platform - Interoperability"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8208/api/v1/interop"
+paths:
+  /exchange:
+    post:
+      summary: "Exchange data between agencies"
+      operationId: exchangeData
+      responses:
+        '200':
+          description: "Data exchanged"
+  /agreements:
+    post:
+      summary: "Create a data exchange agreement"
+      operationId: createAgreement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider_agency_id:
+                  type: string
+                consumer_agency_id:
+                  type: string
+                service_name:
+                  type: string
+                allowed_fields:
+                  type: array
+                  items:
+                    type: string
+                legal_basis:
+                  type: string
+      responses:
+        '201':
+          description: "Agreement created"
+        '400':
+          description: "Invalid request"
+  /logs/{agreement_id}:
+    get:
+      summary: "Get exchange logs for an agreement"
+      operationId: getExchangeLogs
+      parameters:
+        - name: agreement_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Exchange logs"
+        '404':
+          description: "Logs not found"
+components:
+  schemas: {}

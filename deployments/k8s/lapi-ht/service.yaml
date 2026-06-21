@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lapi-ht
+  namespace: snisid-core
+  labels:
+    app: lapi-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8216
+    targetPort: 8216
+    protocol: TCP
+    name: http
+  selector:
+    app: lapi-ht

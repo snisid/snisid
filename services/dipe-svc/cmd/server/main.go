@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/snisid/platform/services/dipe-svc/internal/api/rest"
+	"github.com/snisid/platform/services/dipe-svc/internal/handler"
+	"github.com/snisid/platform/services/dipe-svc/internal/kafka"
 	"github.com/snisid/platform/services/dipe-svc/internal/repository/postgres"
 	"github.com/snisid/platform/services/dipe-svc/internal/service"
 )
@@ -28,7 +31,7 @@ func main() {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://postgres:postgres@localhost:5432/snisid?sslmode=disable"
+		dbURL = "postgresql://root@localhost:26257/snisid_dipe?sslmode=disable"
 	}
 
 	pool, err := pgxpool.New(context.Background(), dbURL)
@@ -41,9 +44,27 @@ func main() {
 		logger.Fatal("failed to ping database", zap.Error(err))
 	}
 
+	brokersStr := os.Getenv("KAFKA_BROKERS")
+	if brokersStr == "" {
+		brokersStr = "kafka:9092"
+	}
+	brokers := strings.Split(brokersStr, ",")
+
+	kafkaProducer, err := kafka.NewProducer(brokers, logger)
+	if err != nil {
+		logger.Warn("kafka producer not available, continuing without it", zap.Error(err))
+	}
+	if kafkaProducer != nil {
+		defer kafkaProducer.Close()
+	}
+
 	repo := postgres.NewMissingRepo(pool)
 	svc := service.NewMissingPersonService(repo, logger)
 	r := rest.NewRouter(svc, logger)
+	healthHandler := handler.NewHealthHandler(pool, logger)
+
+	r.GET("/healthz", healthHandler.Healthz)
+	r.GET("/metrics", handler.MetricsHandler())
 
 	srv := &http.Server{
 		Addr:         port,
@@ -54,6 +75,7 @@ func main() {
 
 	go func() {
 		logger.Info("starting dipe-svc", zap.String("addr", port))
+		fmt.Printf("dipe-svc listening on %s\n", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("server failed", zap.Error(err))
 		}

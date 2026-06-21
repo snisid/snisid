@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fpr-ht
+  namespace: snisid-core
+  labels:
+    app: fpr-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8205
+    targetPort: 8205
+    protocol: TCP
+    name: http
+  selector:
+    app: fpr-ht

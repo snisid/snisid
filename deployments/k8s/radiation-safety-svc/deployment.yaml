@@ -1,0 +1,63 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radiation-safety-svc
+  namespace: snisid-national-security
+  labels:
+    app: radiation-safety-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: radiation-safety-svc
+  template:
+    metadata:
+      labels:
+        app: radiation-safety-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8308"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: radiation-safety-svc
+        image: snisid/radiation-safety-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8308
+        env:
+        - name: PORT
+          value: "8308"
+        - name: ENV
+          value: "prod"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: snisid-secrets
+              key: jwt-secret
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        - name: RADIATION_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: snisid_radiation-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8308
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8308
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

@@ -1,0 +1,177 @@
+openapi: 3.0.3
+info:
+  title: All-Source Intelligence Fusion Service
+  version: 1.0.0
+  description: SNISID All-Source Intelligence Fusion & National Estimates
+paths:
+  /api/v1/fusion/products:
+    post:
+      summary: Create intelligence product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntelProduct'
+      responses:
+        '201':
+          description: Product created
+  /api/v1/fusion/products/recent:
+    get:
+      summary: Get recent intelligence products
+      responses:
+        '200':
+          description: List of products
+  /api/v1/fusion/products/{id}/source-map:
+    get:
+      summary: Full source traceability for a product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product with source references
+  /api/v1/fusion/threat-actors:
+    post:
+      summary: Register threat actor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThreatActor'
+      responses:
+        '201':
+          description: Actor created
+  /api/v1/fusion/threat-actors/high-risk:
+    get:
+      summary: Get high-risk threat actors
+      responses:
+        '200':
+          description: List of high-risk actors
+  /api/v1/fusion/correlations:
+    post:
+      summary: Create cross-discipline correlation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrossDisciplineCorrelation'
+      responses:
+        '201':
+          description: Correlation created
+  /api/v1/fusion/estimates/national:
+    get:
+      summary: Get National Intelligence Estimates
+      responses:
+        '200':
+          description: List of NIE products
+components:
+  schemas:
+    IntelProduct:
+      type: object
+      properties:
+        title:
+          type: string
+        classification:
+          type: string
+          enum: [UNCLASSIFIED, CONFIDENTIAL, SECRET, TOP_SECRET]
+        source_disciplines:
+          type: array
+          items:
+            type: string
+        sigint_refs:
+          type: array
+          items:
+            type: string
+        humint_refs:
+          type: array
+          items:
+            type: string
+        geoint_refs:
+          type: array
+          items:
+            type: string
+        osint_refs:
+          type: array
+          items:
+            type: string
+        analyst_assessment:
+          type: string
+        confidence_level:
+          type: string
+          enum: [LOW, MODERATE, HIGH, CERTAIN]
+        related_threat_actors:
+          type: array
+          items:
+            type: string
+        related_regions:
+          type: array
+          items:
+            type: string
+        nie_ref:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+    ThreatActor:
+      type: object
+      properties:
+        name:
+          type: string
+        aliases:
+          type: array
+          items:
+            type: string
+        type:
+          type: string
+          enum: [STATE, NON_STATE, CRIMINAL, TERRORIST, INSURGENT]
+        cap_level:
+          type: integer
+          minimum: 1
+          maximum: 5
+        intent_level:
+          type: integer
+          minimum: 1
+          maximum: 5
+        opportunity_level:
+          type: integer
+          minimum: 1
+          maximum: 5
+        overall_risk:
+          type: integer
+          minimum: 1
+          maximum: 5
+        primary_region:
+          type: string
+        associated_groups:
+          type: array
+          items:
+            type: string
+        ofac_designated:
+          type: boolean
+        notes:
+          type: string
+    CrossDisciplineCorrelation:
+      type: object
+      properties:
+        discipline_a:
+          type: string
+        reference_a:
+          type: string
+        discipline_b:
+          type: string
+        reference_b:
+          type: string
+        correlation_type:
+          type: string
+          enum: [SUPPORTS, CONTRADICTS, INDEPENDENT]
+        analyst_notes:
+          type: string
+        score:
+          type: number

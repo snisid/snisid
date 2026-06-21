@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/snisid/platform/services/ucref-svc/internal/api/rest"
+	"github.com/snisid/platform/services/ucref-svc/internal/handler"
+	"github.com/snisid/platform/services/ucref-svc/internal/kafka"
 	"github.com/snisid/platform/services/ucref-svc/internal/repository/postgres"
 	"github.com/snisid/platform/services/ucref-svc/internal/service"
 )
@@ -24,7 +27,7 @@ func main() {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://postgres:postgres@localhost:5432/snisid?sslmode=disable"
+		dbURL = "postgresql://root@localhost:26257/snisid_ucref?sslmode=disable"
 	}
 
 	pool, err := pgxpool.New(context.Background(), dbURL)
@@ -37,12 +40,29 @@ func main() {
 		logger.Fatal("failed to ping database", zap.Error(err))
 	}
 
+	brokersStr := os.Getenv("KAFKA_BROKERS")
+	if brokersStr == "" {
+		brokersStr = "kafka:9092"
+	}
+	brokers := strings.Split(brokersStr, ",")
+
+	kafkaProducer, err := kafka.NewProducer(brokers, logger)
+	if err != nil {
+		logger.Warn("kafka producer not available, continuing without it", zap.Error(err))
+	}
+	if kafkaProducer != nil {
+		defer kafkaProducer.Close()
+	}
+
 	repo := postgres.NewSTRRepository(pool)
 	svc := service.NewUCREFService(repo, logger)
-	handler := rest.NewUCREFHandler(svc, logger)
+	apiHandler := rest.NewUCREFHandler(svc, logger)
+	healthHandler := handler.NewHealthHandler(pool, logger)
 
 	r := gin.Default()
-	rest.RegisterRoutes(r, handler)
+	rest.RegisterRoutes(r, apiHandler)
+	r.GET("/healthz", healthHandler.Healthz)
+	r.GET("/metrics", handler.MetricsHandler())
 
 	port := os.Getenv("UCREF_SERVICE_PORT")
 	if port == "" {

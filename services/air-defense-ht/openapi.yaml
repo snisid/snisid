@@ -1,0 +1,260 @@
+openapi: 3.0.3
+info:
+  title: Air Defense Radar Surveillance API
+  version: 1.0.0
+  description: Air defense and radar contact management for SNISID
+servers:
+  - url: http://localhost:8303/api/v1/airdef
+paths:
+  /tracks:
+    post:
+      summary: Ingest radar contact
+      tags: [Tracks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestTrackRequest'
+      responses:
+        '201':
+          description: Contact created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contact_id:
+                    type: string
+                    format: uuid
+  /tracks/active:
+    get:
+      summary: Get current air picture
+      tags: [Tracks]
+      responses:
+        '200':
+          description: Active radar contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RadarContact'
+  /tracks/{track_id}:
+    get:
+      summary: Get radar contact by ID
+      tags: [Tracks]
+      parameters:
+        - name: track_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Radar contact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RadarContact'
+        '404':
+          description: Not found
+  /incidents:
+    post:
+      summary: Open air defense incident
+      tags: [Incidents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenIncidentRequest'
+      responses:
+        '201':
+          description: Incident created
+  /incidents/{id}/resolve:
+    patch:
+      summary: Resolve incident
+      tags: [Incidents]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Incident resolved
+  /no-fly:
+    post:
+      summary: Add to no-fly list
+      tags: [NoFly]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddNoFlyRequest'
+      responses:
+        '201':
+          description: Entry created
+  /no-fly/check:
+    get:
+      summary: Check if identity is on no-fly list
+      tags: [NoFly]
+      parameters:
+        - name: identity
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: No-fly status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restricted:
+                    type: boolean
+                  entry:
+                    $ref: '#/components/schemas/NoFlyListEntry'
+components:
+  schemas:
+    RadarContact:
+      type: object
+      properties:
+        contact_id:
+          type: string
+          format: uuid
+        track_number:
+          type: string
+        contact_type:
+          type: string
+          enum: [COMMERCIAL, PRIVATE, MILITARY, DRONE, UNKNOWN]
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        altitude_m:
+          type: integer
+        speed_kmh:
+          type: number
+        heading_deg:
+          type: integer
+        source_radar:
+          type: string
+        identified:
+          type: boolean
+        squawk_code:
+          type: string
+        flight_plan_ref:
+          type: string
+        threat_assessment:
+          type: string
+          enum: [SAFE, SUSPICIOUS, HOSTILE, UNKNOWN]
+        operator_notes:
+          type: string
+        first_detected_at:
+          type: string
+          format: date-time
+        last_updated_at:
+          type: string
+          format: date-time
+    IngestTrackRequest:
+      type: object
+      required: [track_number, latitude, longitude, source_radar]
+      properties:
+        track_number:
+          type: string
+        contact_type:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        altitude_m:
+          type: integer
+        speed_kmh:
+          type: number
+        heading_deg:
+          type: integer
+        source_radar:
+          type: string
+        identified:
+          type: boolean
+        squawk_code:
+          type: string
+        flight_plan_ref:
+          type: string
+        threat_assessment:
+          type: string
+        operator_notes:
+          type: string
+    OpenIncidentRequest:
+      type: object
+      required: [aircraft_id]
+      properties:
+        aircraft_id:
+          type: string
+          format: uuid
+        severity:
+          type: string
+          enum: [INFO, LOW, MEDIUM, HIGH, CRITICAL]
+        interception_asset:
+          type: string
+        pilot_response:
+          type: string
+          enum: [COMPLIANT, NON_COMPLIANT, HOSTILE]
+        engagement_rules_applied:
+          type: boolean
+        duration_minutes:
+          type: integer
+    NoFlyListEntry:
+      type: object
+      properties:
+        entry_id:
+          type: string
+          format: uuid
+        identity_ref:
+          type: string
+        full_name:
+          type: string
+        document_number:
+          type: string
+        reason:
+          type: string
+        added_by:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        interpol_notice_ref:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    AddNoFlyRequest:
+      type: object
+      required: [identity_ref, full_name, reason, added_by, expires_at]
+      properties:
+        identity_ref:
+          type: string
+        full_name:
+          type: string
+        document_number:
+          type: string
+        reason:
+          type: string
+        added_by:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        interpol_notice_ref:
+          type: string

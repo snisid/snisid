@@ -1,0 +1,55 @@
+openapi: "3.0.3"
+info:
+  title: "INFRA-HT API"
+  description: "HT National ID Platform - Infrastructure"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8209/api/v1/infra"
+paths:
+  /health:
+    get:
+      summary: "Infrastructure health check"
+      operationId: infraHealth
+      responses:
+        '200':
+          description: "Health status"
+  /clusters:
+    get:
+      summary: "List Kubernetes clusters"
+      operationId: listClusters
+      responses:
+        '200':
+          description: "Cluster list"
+  /dr/drill:
+    post:
+      summary: "Record a disaster recovery drill"
+      operationId: recordDRDrill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                drill_date:
+                  type: string
+                  format: date
+                scenario:
+                  type: string
+                rto_actual_min:
+                  type: integer
+                rpo_actual_min:
+                  type: integer
+                success:
+                  type: boolean
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: "Drill recorded"
+        '400':
+          description: "Invalid request"
+components:
+  schemas: {}

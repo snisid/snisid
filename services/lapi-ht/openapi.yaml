@@ -1,0 +1,97 @@
+openapi: "3.0.3"
+info:
+  title: "LAPI-HT API"
+  description: "HT National ID Platform - LAPI / ALPR"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8216/api/v1/lapi"
+paths:
+  /reads:
+    post:
+      summary: "Record a plate read"
+      operationId: createPlateRead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - camera_id
+                - plate_number_raw
+              properties:
+                camera_id:
+                  type: string
+                  format: uuid
+                plate_number_raw:
+                  type: string
+                plate_number_normalized:
+                  type: string
+                ocr_confidence:
+                  type: number
+                  format: float
+                latitude:
+                  type: number
+                  format: float
+                longitude:
+                  type: number
+                  format: float
+                speed_estimate_kmh:
+                  type: number
+                  format: float
+                alert_triggered:
+                  type: boolean
+                captured_at:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: "Plate read recorded"
+        '400':
+          description: "Invalid request"
+  /reads/recent:
+    get:
+      summary: "Get recent plate reads"
+      operationId: getRecentReads
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: "Recent reads"
+  /reads/plate/{number}:
+    get:
+      summary: "Get reads by plate number"
+      operationId: getReadsByPlate
+      parameters:
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Plate reads"
+        '400':
+          description: "Plate number required"
+  /alerts/active:
+    get:
+      summary: "Get active alerts"
+      operationId: getActiveAlerts
+      responses:
+        '200':
+          description: "Active alerts"
+  /cameras/status:
+    get:
+      summary: "Get camera statuses"
+      operationId: getCameraStatus
+      responses:
+        '200':
+          description: "Camera statuses"
+components:
+  schemas: {}

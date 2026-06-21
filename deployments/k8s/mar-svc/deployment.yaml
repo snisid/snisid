@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mar-svc
+  namespace: snisid-core
+  labels:
+    app: mar-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mar-svc
+  template:
+    metadata:
+      labels:
+        app: mar-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8107"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: mar-svc
+        image: snisid/mar-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8107
+        env:
+        - name: PORT
+          value: "8107"
+        - name: ENV
+          value: "prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: postgres-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8107
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8107
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

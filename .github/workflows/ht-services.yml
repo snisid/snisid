@@ -1,0 +1,273 @@
+name: HT Services CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/id-core/**'
+      - 'services/civil-ht/**'
+      - 'services/bio-ht/**'
+      - 'services/card-ht/**'
+      - 'services/pki-ht/**'
+      - 'services/iam-ht/**'
+      - 'services/interop-ht/**'
+      - 'services/infra-ht/**'
+      - 'services/cyber-ht/**'
+      - 'services/offline-ht/**'
+      - 'services/field-ht/**'
+      - 'services/data-ht/**'
+      - 'services/api-ht/**'
+      - 'services/foves-ht/**'
+      - 'services/lapi-ht/**'
+      - 'services/fpr-ht/**'
+      - 'services/sigint-ht/**'
+      - 'services/humint-ht/**'
+      - 'services/air-defense-ht/**'
+      - 'services/mil-c2-ht/**'
+      - 'services/bio-surveillance-ht/**'
+      - 'services/executive-protection-ht/**'
+      - 'services/transport-security-ht/**'
+      - 'services/radiation-safety-svc/**'
+      - 'services/all-source-fusion-ht/**'
+      - 'services/counterintel-ht/**'
+      - 'services/critical-infra-protection-ht/**'
+      - 'services/fisa-court-svc/**'
+      - 'services/classification-mgmt-ht/**'
+      - 'services/afis-svc/**'
+      - 'services/fir-svc/**'
+      - 'services/sipep-svc/**'
+      - 'services/rdep-svc/**'
+      - 'services/opr-svc/**'
+      - 'services/gang-svc/**'
+      - 'services/chef-svc/**'
+      - 'services/terr-svc/**'
+      - 'services/sanc-svc/**'
+      - 'services/reso-svc/**'
+      - 'services/siar-svc/**'
+      - 'services/biar-svc/**'
+      - 'services/expl-svc/**'
+      - 'services/trafar-svc/**'
+      - 'services/sifr-svc/**'
+      - 'services/mar-svc/**'
+      - 'services/sltd-svc/**'
+      - 'services/blkl-svc/**'
+      - 'services/aero-svc/**'
+      - 'services/port-svc/**'
+      - 'services/ucref-svc/**'
+      - 'services/blan-svc/**'
+      - 'services/extors-svc/**'
+      - 'services/crypt-svc/**'
+      - 'services/dipe-svc/**'
+      - 'services/trait-svc/**'
+      - 'services/enfl-svc/**'
+      - 'services/dpide-svc/**'
+      - 'services/vict-svc/**'
+      - 'services/sigeo-svc/**'
+      - 'services/sigdc-svc/**'
+      - 'services/rvin-svc/**'
+      - 'services/mvsm-svc/**'
+      - 'services/sisal-svc/**'
+      - 'services/corr-svc/**'
+      - 'services/sipci-svc/**'
+      - 'services/cybre-svc/**'
+      - 'services/ong-svc/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/id-core/**'
+      - 'services/civil-ht/**'
+      - 'services/bio-ht/**'
+      - 'services/card-ht/**'
+      - 'services/pki-ht/**'
+      - 'services/iam-ht/**'
+      - 'services/interop-ht/**'
+      - 'services/infra-ht/**'
+      - 'services/cyber-ht/**'
+      - 'services/offline-ht/**'
+      - 'services/field-ht/**'
+      - 'services/data-ht/**'
+      - 'services/api-ht/**'
+      - 'services/foves-ht/**'
+      - 'services/lapi-ht/**'
+      - 'services/fpr-ht/**'
+      - 'services/sigint-ht/**'
+      - 'services/humint-ht/**'
+      - 'services/air-defense-ht/**'
+      - 'services/mil-c2-ht/**'
+      - 'services/bio-surveillance-ht/**'
+      - 'services/executive-protection-ht/**'
+      - 'services/transport-security-ht/**'
+      - 'services/radiation-safety-svc/**'
+      - 'services/all-source-fusion-ht/**'
+      - 'services/counterintel-ht/**'
+      - 'services/critical-infra-protection-ht/**'
+      - 'services/fisa-court-svc/**'
+      - 'services/classification-mgmt-ht/**'
+      - 'services/afis-svc/**'
+      - 'services/fir-svc/**'
+      - 'services/sipep-svc/**'
+      - 'services/rdep-svc/**'
+      - 'services/opr-svc/**'
+      - 'services/gang-svc/**'
+      - 'services/chef-svc/**'
+      - 'services/terr-svc/**'
+      - 'services/sanc-svc/**'
+      - 'services/reso-svc/**'
+      - 'services/siar-svc/**'
+      - 'services/biar-svc/**'
+      - 'services/expl-svc/**'
+      - 'services/trafar-svc/**'
+      - 'services/sifr-svc/**'
+      - 'services/mar-svc/**'
+      - 'services/sltd-svc/**'
+      - 'services/blkl-svc/**'
+      - 'services/aero-svc/**'
+      - 'services/port-svc/**'
+      - 'services/ucref-svc/**'
+      - 'services/blan-svc/**'
+      - 'services/extors-svc/**'
+      - 'services/crypt-svc/**'
+      - 'services/dipe-svc/**'
+      - 'services/trait-svc/**'
+      - 'services/enfl-svc/**'
+      - 'services/dpide-svc/**'
+      - 'services/vict-svc/**'
+      - 'services/sigeo-svc/**'
+      - 'services/sigdc-svc/**'
+      - 'services/rvin-svc/**'
+      - 'services/mvsm-svc/**'
+      - 'services/sisal-svc/**'
+      - 'services/corr-svc/**'
+      - 'services/sipci-svc/**'
+      - 'services/cybre-svc/**'
+      - 'services/ong-svc/**'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.filter.outputs.changes }}
+      ht-matrix: ${{ steps.ht-filter.outputs.ht-matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            id-core: services/id-core/**
+            civil-ht: services/civil-ht/**
+            bio-ht: services/bio-ht/**
+            card-ht: services/card-ht/**
+            pki-ht: services/pki-ht/**
+            iam-ht: services/iam-ht/**
+            interop-ht: services/interop-ht/**
+            infra-ht: services/infra-ht/**
+            cyber-ht: services/cyber-ht/**
+            offline-ht: services/offline-ht/**
+            field-ht: services/field-ht/**
+            data-ht: services/data-ht/**
+            api-ht: services/api-ht/**
+            foves-ht: services/foves-ht/**
+            lapi-ht: services/lapi-ht/**
+            fpr-ht: services/fpr-ht/**
+            sigint-ht: services/sigint-ht/**
+            humint-ht: services/humint-ht/**
+            air-defense-ht: services/air-defense-ht/**
+            mil-c2-ht: services/mil-c2-ht/**
+            bio-surveillance-ht: services/bio-surveillance-ht/**
+            executive-protection-ht: services/executive-protection-ht/**
+            transport-security-ht: services/transport-security-ht/**
+            radiation-safety-svc: services/radiation-safety-svc/**
+            all-source-fusion-ht: services/all-source-fusion-ht/**
+            counterintel-ht: services/counterintel-ht/**
+            critical-infra-protection-ht: services/critical-infra-protection-ht/**
+            fisa-court-svc: services/fisa-court-svc/**
+            classification-mgmt-ht: services/classification-mgmt-ht/**
+            afis-svc: services/afis-svc/**
+            fir-svc: services/fir-svc/**
+            sipep-svc: services/sipep-svc/**
+            rdep-svc: services/rdep-svc/**
+            opr-svc: services/opr-svc/**
+            gang-svc: services/gang-svc/**
+            chef-svc: services/chef-svc/**
+            terr-svc: services/terr-svc/**
+            sanc-svc: services/sanc-svc/**
+            reso-svc: services/reso-svc/**
+            siar-svc: services/siar-svc/**
+            biar-svc: services/biar-svc/**
+            expl-svc: services/expl-svc/**
+            trafar-svc: services/trafar-svc/**
+            sifr-svc: services/sifr-svc/**
+            mar-svc: services/mar-svc/**
+            sltd-svc: services/sltd-svc/**
+            blkl-svc: services/blkl-svc/**
+            aero-svc: services/aero-svc/**
+            port-svc: services/port-svc/**
+            ucref-svc: services/ucref-svc/**
+            blan-svc: services/blan-svc/**
+            extors-svc: services/extors-svc/**
+            crypt-svc: services/crypt-svc/**
+            dipe-svc: services/dipe-svc/**
+            trait-svc: services/trait-svc/**
+            enfl-svc: services/enfl-svc/**
+            dpide-svc: services/dpide-svc/**
+            vict-svc: services/vict-svc/**
+            sigeo-svc: services/sigeo-svc/**
+            sigdc-svc: services/sigdc-svc/**
+            rvin-svc: services/rvin-svc/**
+            mvsm-svc: services/mvsm-svc/**
+            sisal-svc: services/sisal-svc/**
+            corr-svc: services/corr-svc/**
+            sipci-svc: services/sipci-svc/**
+            cybre-svc: services/cybre-svc/**
+            ong-svc: services/ong-svc/**
+      - name: Filter HT services
+        id: ht-filter
+        run: |
+          HT='["id-core","civil-ht","bio-ht","card-ht","pki-ht","iam-ht","interop-ht","infra-ht","cyber-ht","offline-ht","field-ht","data-ht","api-ht","foves-ht","lapi-ht","fpr-ht","afis-svc","fir-svc","sipep-svc","rdep-svc","opr-svc","gang-svc","chef-svc","terr-svc","sanc-svc","reso-svc","siar-svc","biar-svc","expl-svc","trafar-svc","sifr-svc","mar-svc","sltd-svc","blkl-svc","aero-svc","port-svc","ucref-svc","blan-svc","extors-svc","crypt-svc","dipe-svc","trait-svc","enfl-svc","dpide-svc","vict-svc","sigeo-svc","sigdc-svc","rvin-svc","mvsm-svc","sisal-svc","corr-svc","sipci-svc","cybre-svc","ong-svc"]'
+          echo "ht-matrix=$(jq -c --argjson ht "$HT" '[.[] | select(. as $s | $ht | index($s))]' <<< '${{ steps.filter.outputs.changes }}')" >> $GITHUB_OUTPUT
+
+  build-test:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.matrix != '[]' && needs.detect-changes.outputs.matrix != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: Build ${{ matrix.service }}
+        run: |
+          cd services/${{ matrix.service }}
+          go mod tidy
+          go build -o /dev/null ./cmd
+      - name: Test ${{ matrix.service }}
+        run: |
+          cd services/${{ matrix.service }}
+          go test ./internal/... -v -count=1 -cover
+
+  build-and-push:
+    needs: [detect-changes, build-test]
+    if: ${{ needs.detect-changes.outputs.ht-matrix != '[]' && needs.detect-changes.outputs.ht-matrix != '' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.detect-changes.outputs.ht-matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: snisid/${{ matrix.service }}:latest

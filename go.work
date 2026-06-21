@@ -47,4 +47,34 @@ use (
 	./services/sipep-svc
 	./services/rdep-svc
 	./services/opr-svc
+	./services/gang-svc
+	./services/id-core
+	./services/civil-ht
+	./services/bio-ht
+	./services/card-ht
+	./services/pki-ht
+	./services/iam-ht
+	./services/interop-ht
+	./services/infra-ht
+	./services/cyber-ht
+	./services/offline-ht
+	./services/field-ht
+	./services/data-ht
+	./services/api-ht
+	./services/foves-ht
+	./services/lapi-ht
+	./services/fpr-ht
+	./services/sigint-ht
+	./services/humint-ht
+	./services/air-defense-ht
+	./services/mil-c2-ht
+	./services/bio-surveillance-ht
+	./services/executive-protection-ht
+	./services/transport-security-ht
+	./services/radiation-safety-svc
+	./services/all-source-fusion-ht
+	./services/counterintel-ht
+	./services/critical-infra-protection-ht
+	./services/fisa-court-svc
+	./services/classification-mgmt-ht
 )

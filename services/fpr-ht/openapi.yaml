@@ -1,0 +1,165 @@
+openapi: "3.0.3"
+info:
+  title: "FPR-HT API"
+  description: "HT National ID Platform - FPR / Warrants"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8205/api/v1/fpr"
+paths:
+  /warrants:
+    post:
+      summary: "Create a new warrant"
+      operationId: createWarrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWarrantRequest"
+      responses:
+        '201':
+          description: "Warrant created"
+        '400':
+          description: "Invalid request"
+  /check/{citizen_id}:
+    get:
+      summary: "Check citizen for active warrants"
+      operationId: checkCitizenWarrants
+      parameters:
+        - name: citizen_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Warrant check result"
+  /check/name:
+    get:
+      summary: "Check by name for active warrants"
+      operationId: checkByName
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Warrant check result"
+        '400':
+          description: "Missing name parameter"
+  /warrants/{id}/sightings:
+    post:
+      summary: "Report a sighting"
+      operationId: reportSighting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSightingRequest"
+      responses:
+        '201':
+          description: "Sighting recorded"
+        '400':
+          description: "Invalid request"
+  /warrants/{id}/execute:
+    patch:
+      summary: "Execute a warrant"
+      operationId: executeWarrant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Warrant executed"
+        '400':
+          description: "Invalid warrant id"
+  /warrants/armed-dangerous:
+    get:
+      summary: "Get armed and dangerous warrants"
+      operationId: getArmedDangerous
+      responses:
+        '200':
+          description: "List of armed dangerous warrants"
+  /stats/dashboard:
+    get:
+      summary: "Get dashboard statistics"
+      operationId: getDashboardStats
+      responses:
+        '200':
+          description: "Dashboard statistics"
+components:
+  schemas:
+    CreateWarrantRequest:
+      type: object
+      required:
+        - full_name
+        - warrant_type
+        - issuing_court
+      properties:
+        full_name:
+          type: string
+        aliases:
+          type: array
+          items:
+            type: string
+        afis_subject_id:
+          type: string
+        warrant_type:
+          type: string
+          enum: ["ARREST_WARRANT", "BENCH_WARRANT", "SEARCH_WARRANT_PERSON", "PROBATION_VIOLATION", "INTERPOL_RED_NOTICE", "CONTEMPT_OF_COURT"]
+        charges:
+          type: array
+          items:
+            type: string
+        issuing_court:
+          type: string
+        danger_level:
+          type: string
+        photo_refs:
+          type: array
+          items:
+            type: string
+        vehicle_plates_known:
+          type: array
+          items:
+            type: string
+        interpol_notice_ref:
+          type: string
+        issued_at:
+          type: string
+          format: date-time
+    CreateSightingRequest:
+      type: object
+      required:
+        - citizen_id
+        - reported_by
+      properties:
+        citizen_id:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        description:
+          type: string
+        reported_by:
+          type: string
+        sighted_at:
+          type: string
+          format: date-time

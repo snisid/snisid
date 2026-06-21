@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/snisid/platform/services/vict-svc/internal/api/rest"
+	"github.com/snisid/platform/services/vict-svc/internal/handler"
+	"github.com/snisid/platform/services/vict-svc/internal/kafka"
 	"github.com/snisid/platform/services/vict-svc/internal/repository/postgres"
 	"github.com/snisid/platform/services/vict-svc/internal/service"
 )
@@ -24,7 +27,7 @@ func main() {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://postgres:postgres@localhost:5432/snisid?sslmode=disable"
+		dbURL = "postgresql://root@localhost:26257/snisid_vict?sslmode=disable"
 	}
 
 	pool, err := pgxpool.New(context.Background(), dbURL)
@@ -37,22 +40,40 @@ func main() {
 		logger.Fatal("failed to ping database", zap.Error(err))
 	}
 
+	brokersStr := os.Getenv("KAFKA_BROKERS")
+	if brokersStr == "" {
+		brokersStr = "kafka:9092"
+	}
+	brokers := strings.Split(brokersStr, ",")
+
+	kafkaProducer, err := kafka.NewProducer(brokers, logger)
+	if err != nil {
+		logger.Warn("kafka producer not available, continuing without it", zap.Error(err))
+	}
+	if kafkaProducer != nil {
+		defer kafkaProducer.Close()
+	}
+
 	repo := postgres.NewVictimRepo(pool)
 	svc := service.NewVictimService(repo, logger)
-	handler := rest.NewVictimHandler(svc, logger)
+	handlerAPI := rest.NewVictimHandler(svc, logger)
+	healthHandler := handler.NewHealthHandler(pool, logger)
 
 	r := gin.Default()
 
 	api := r.Group("/api/v1/vict")
 	{
-		api.POST("/victims", handler.RegisterVictim)
-		api.GET("/victims/:id", handler.GetVictim)
-		api.POST("/mass-incidents", handler.CreateMassIncident)
-		api.GET("/mass-incidents", handler.ListMassIncidents)
-		api.GET("/by-gang/:id", handler.ListByGang)
-		api.GET("/stats/by-type", handler.GetStatsByType)
-		api.GET("/reparation-list", handler.GetReparationList)
+		api.POST("/victims", handlerAPI.RegisterVictim)
+		api.GET("/victims/:id", handlerAPI.GetVictim)
+		api.POST("/mass-incidents", handlerAPI.CreateMassIncident)
+		api.GET("/mass-incidents", handlerAPI.ListMassIncidents)
+		api.GET("/by-gang/:id", handlerAPI.ListByGang)
+		api.GET("/stats/by-type", handlerAPI.GetStatsByType)
+		api.GET("/reparation-list", handlerAPI.GetReparationList)
 	}
+
+	r.GET("/healthz", healthHandler.Healthz)
+	r.GET("/metrics", handler.MetricsHandler())
 
 	port := os.Getenv("VICT_SERVICE_PORT")
 	if port == "" {
@@ -68,6 +89,7 @@ func main() {
 
 	go func() {
 		logger.Info("starting vict-svc", zap.String("addr", port))
+		fmt.Printf("vict-svc listening on %s\n", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("server failed", zap.Error(err))
 		}
@@ -77,7 +99,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("shutting down server...")
+	fmt.Println("shutting down vict-svc...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

@@ -1,0 +1,90 @@
+openapi: "3.0.3"
+info:
+  title: "CARD-HT API"
+  description: "HT National ID Platform - Document Management"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8204/api/v1/card"
+paths:
+  /issue:
+    post:
+      summary: "Issue a new document"
+      operationId: issueDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueRequest"
+      responses:
+        '201':
+          description: "Document issued"
+        '400':
+          description: "Invalid request"
+  /verify/{doc_number}:
+    get:
+      summary: "Verify a document"
+      operationId: verifyDocument
+      parameters:
+        - name: doc_number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Document found"
+        '404':
+          description: "Document not found"
+  /{id}/report-lost:
+    post:
+      summary: "Report document as lost"
+      operationId: reportLost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Reported as lost"
+  /{id}/revoke:
+    post:
+      summary: "Revoke a document"
+      operationId: revokeDocument
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Document revoked"
+components:
+  schemas:
+    IssueRequest:
+      type: object
+      required:
+        - doc_type
+        - citizen_id
+        - created_by
+      properties:
+        doc_type:
+          type: string
+          enum: ["NATIONAL_ID", "PASSPORT", "RESIDENCE_PERMIT", "REFUGEE_DOC"]
+        citizen_id:
+          type: string
+          format: uuid
+        issuing_office:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        photo_ref:
+          type: string
+        signature_ref:
+          type: string

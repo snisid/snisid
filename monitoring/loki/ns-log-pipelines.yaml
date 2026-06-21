@@ -1,0 +1,260 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ns-log-pipelines
+  namespace: snisid-monitoring
+  labels:
+    app: ns-log-pipelines
+data:
+  ns-vc.yaml: |
+    scrape_configs:
+      - job_name: ns-vc
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                did: did
+                credential_type: credential_type
+                issuer: issuer
+                subject: subject
+                duration_ms: duration_ms
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              credential_type: ""
+
+  ns-pki.yaml: |
+    scrape_configs:
+      - job_name: ns-pki
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                ca_id: ca_id
+                certificate_type: certificate_type
+                subject_dn: subject_dn
+                validity_days: validity_days
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              certificate_type: ""
+
+  ns-sd-jwt.yaml: |
+    scrape_configs:
+      - job_name: ns-sd-jwt
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                disclosure_count: disclosure_count
+                holder: holder
+                key_binding: key_binding
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+
+  ns-did.yaml: |
+    scrape_configs:
+      - job_name: ns-did
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                method: method
+                did: did
+                document_version: document_version
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              method: ""
+
+  ns-vp.yaml: |
+    scrape_configs:
+      - job_name: ns-vp
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                verifier: verifier
+                presentation_type: presentation_type
+                credential_count: credential_count
+                verified: verified
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              verified: ""
+
+  ns-status-list.yaml: |
+    scrape_configs:
+      - job_name: ns-status-list
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                status_type: status_type
+                credential_id: credential_id
+                bitset_size: bitset_size
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              status_type: ""
+
+  ns-didcomm.yaml: |
+    scrape_configs:
+      - job_name: ns-didcomm
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                msg_type: msg_type
+                from_did: from_did
+                to_did: to_did
+                encrypted: encrypted
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              msg_type: ""
+
+  ns-credential-flow.yaml: |
+    scrape_configs:
+      - job_name: ns-credential-flow
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                flow_id: flow_id
+                step: step
+                credential_type: credential_type
+                issuer: issuer
+                holder: holder
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              step: ""
+
+  ns-siopv2.yaml: |
+    scrape_configs:
+      - job_name: ns-siopv2
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                op_type: op_type
+                client_id: client_id
+                id_token_type: id_token_type
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              op_type: ""
+
+  ns-wallet.yaml: |
+    scrape_configs:
+      - job_name: ns-wallet
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                wallet_id: wallet_id
+                user_id: user_id
+                credential_count: credential_count
+                action: action
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+              action: ""
+
+  ns-chapi.yaml: |
+    scrape_configs:
+      - job_name: ns-chapi
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                query_type: query_type
+                credential_type: credential_type
+                requester: requester
+          - labels:
+                service: ""
+                level: ""
+                operation: ""
+                query_type: ""
+
+  ns-credential-manifest.yaml: |
+    scrape_configs:
+      - job_name: ns-credential-manifest
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                manifest_id: manifest_id
+                issuer: issuer
+                credential_type: credential_type
+                version: version
+          - labels:
+              service: ""
+              level: ""
+              operation: ""
+
+  ns-revocation.yaml: |
+    scrape_configs:
+      - job_name: ns-revocation
+        pipeline_stages:
+          - json:
+              expressions:
+                service: service
+                level: level
+                trace_id: trace_id
+                operation: operation
+                credential_id: credential_id
+                reason: reason
+                revoked_by: revoked_by
+          - labels:
+              service: ""
+              level: ""
+              operation: ""

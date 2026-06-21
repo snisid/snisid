@@ -1,0 +1,148 @@
+openapi: 3.0.3
+info:
+  title: Radiation Safety Service
+  version: 1.0.0
+  description: SNISID Non-Proliferation & Radiation Safety Management
+paths:
+  /api/v1/radiation/sources:
+    post:
+      summary: Register radioactive source
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RadioactiveSource'
+      responses:
+        '201':
+          description: Source registered
+  /api/v1/radiation/sources/{id}/status:
+    patch:
+      summary: Update source status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [REGISTERED, MOVING, LOST, STOLEN, RECOVERED, DISPOSED]
+      responses:
+        '200':
+          description: Status updated
+  /api/v1/radiation/alerts:
+    post:
+      summary: Create radiation alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RadiationAlert'
+      responses:
+        '201':
+          description: Alert created
+  /api/v1/radiation/alerts/unresponded:
+    get:
+      summary: Get unresponded alerts
+      responses:
+        '200':
+          description: List of alerts
+  /api/v1/radiation/chemicals:
+    post:
+      summary: Register chemical precursor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChemicalPrecursor'
+      responses:
+        '201':
+          description: Chemical registered
+  /api/v1/radiation/chemicals/suspicious:
+    get:
+      summary: Get suspicious chemical shipments
+      responses:
+        '200':
+          description: List of suspicious chemicals
+  /api/v1/radiation/dashboard:
+    get:
+      summary: Get radiation safety dashboard stats
+      responses:
+        '200':
+          description: Dashboard statistics
+components:
+  schemas:
+    RadioactiveSource:
+      type: object
+      properties:
+        source_type:
+          type: string
+          enum: [MEDICAL, INDUSTRIAL, SCRAP_METAL, RESEARCH, ORPHAN]
+        isotope:
+          type: string
+        activity_curie:
+          type: number
+        location_building:
+          type: string
+        location_lat:
+          type: number
+        location_lng:
+          type: number
+        custodian_org:
+          type: string
+        license_ref:
+          type: string
+        status:
+          type: string
+          enum: [REGISTERED, MOVING, LOST, STOLEN, RECOVERED, DISPOSED]
+    ChemicalPrecursor:
+      type: object
+      properties:
+        substance_name:
+          type: string
+        cas_number:
+          type: string
+        category:
+          type: string
+          enum: [PRECURSOR, DUAL_USE, TOXIC_INDUSTRIAL]
+        quantity_kg:
+          type: number
+        storage_location:
+          type: string
+        importer_entity:
+          type: string
+        end_user:
+          type: string
+        end_use:
+          type: string
+        permit_ref:
+          type: string
+        reported_suspicious:
+          type: boolean
+    RadiationAlert:
+      type: object
+      properties:
+        detector_id:
+          type: string
+        detector_location:
+          type: string
+        detected_isotope:
+          type: string
+        dose_rate_usv:
+          type: number
+        alert_level:
+          type: string
+          enum: [YELLOW, ORANGE, RED]
+        response_notes:
+          type: string

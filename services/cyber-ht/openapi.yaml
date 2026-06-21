@@ -1,0 +1,111 @@
+openapi: "3.0.3"
+info:
+  title: "CYBER-HT API"
+  description: "HT National ID Platform - Cybersecurity"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8210/api/v1/cyber"
+paths:
+  /incidents:
+    post:
+      summary: "Create a security incident"
+      operationId: createIncident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIncidentRequest"
+      responses:
+        '201':
+          description: "Incident created"
+        '400':
+          description: "Invalid request"
+  /incidents/active:
+    get:
+      summary: "Get active incidents"
+      operationId: getActiveIncidents
+      responses:
+        '200':
+          description: "Active incidents list"
+  /policies:
+    post:
+      summary: "Create a zero-trust policy"
+      operationId: createPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePolicyRequest"
+      responses:
+        '201':
+          description: "Policy created"
+        '400':
+          description: "Invalid request"
+  /threat-intel/check:
+    get:
+      summary: "Check a threat indicator"
+      operationId: checkThreatIndicator
+      parameters:
+        - name: indicator
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Threat indicator status"
+        '400':
+          description: "Missing indicator parameter"
+        '404':
+          description: "Indicator not found"
+components:
+  schemas:
+    CreateIncidentRequest:
+      type: object
+      required:
+        - title
+        - severity
+        - detected_by
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+        source_ip:
+          type: string
+        target_asset:
+          type: string
+        detected_by:
+          type: string
+        assigned_to:
+          type: string
+    CreatePolicyRequest:
+      type: object
+      required:
+        - name
+        - description
+        - policy_type
+        - rules
+        - created_by
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        policy_type:
+          type: string
+        rules:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+        created_by:
+          type: string

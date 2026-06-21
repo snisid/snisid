@@ -1,0 +1,97 @@
+openapi: "3.0.3"
+info:
+  title: "PKI-HT API"
+  description: "HT National ID Platform - PKI"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8206/api/v1/pki"
+paths:
+  /issue:
+    post:
+      summary: "Issue a new certificate"
+      operationId: issueCertificate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueRequest"
+      responses:
+        '201':
+          description: "Certificate issued"
+        '400':
+          description: "Invalid request"
+  /revoke:
+    post:
+      summary: "Revoke a certificate"
+      operationId: revokeCertificate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeRequest"
+      responses:
+        '200':
+          description: "Certificate revoked"
+        '400':
+          description: "Invalid request"
+  /ocsp:
+    get:
+      summary: "Check certificate status (OCSP)"
+      operationId: checkOCSP
+      parameters:
+        - name: serial
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Certificate status"
+        '400':
+          description: "Missing serial parameter"
+        '404':
+          description: "Certificate not found"
+  /crl/{ca_id}:
+    get:
+      summary: "Get Certificate Revocation List"
+      operationId: getCRL
+      parameters:
+        - name: ca_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "CRL found"
+        '404':
+          description: "CRL not found"
+components:
+  schemas:
+    IssueRequest:
+      type: object
+      required:
+        - subject_type
+        - common_name
+      properties:
+        subject_type:
+          type: string
+          enum: ["CITIZEN", "SERVICE", "AGENCY"]
+        subject_ref:
+          type: string
+        common_name:
+          type: string
+    RevokeRequest:
+      type: object
+      required:
+        - serial_number
+        - reason
+      properties:
+        serial_number:
+          type: string
+        reason:
+          type: string

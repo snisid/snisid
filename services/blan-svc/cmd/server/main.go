@@ -6,14 +6,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 
 	"github.com/snisid/platform/services/blan-svc/internal/api/rest"
+	"github.com/snisid/platform/services/blan-svc/internal/handler"
+	"github.com/snisid/platform/services/blan-svc/internal/kafka"
 	"github.com/snisid/platform/services/blan-svc/internal/repository/postgres"
 	"github.com/snisid/platform/services/blan-svc/internal/service"
 )
@@ -24,7 +26,7 @@ func main() {
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://postgres:postgres@localhost:5432/snisid?sslmode=disable"
+		dbURL = "postgresql://root@localhost:26257/snisid_blan?sslmode=disable"
 	}
 
 	pool, err := pgxpool.New(context.Background(), dbURL)
@@ -37,22 +39,28 @@ func main() {
 		logger.Fatal("failed to ping database", zap.Error(err))
 	}
 
+	brokersStr := os.Getenv("KAFKA_BROKERS")
+	if brokersStr == "" {
+		brokersStr = "kafka:9092"
+	}
+	brokers := strings.Split(brokersStr, ",")
+
+	kafkaProducer, err := kafka.NewProducer(brokers, logger)
+	if err != nil {
+		logger.Warn("kafka producer not available, continuing without it", zap.Error(err))
+	}
+	if kafkaProducer != nil {
+		defer kafkaProducer.Close()
+	}
+
 	repo := postgres.NewCaseRepo(pool)
 	svc := service.NewBLANService(repo, logger)
-	handler := rest.NewBLANHandler(svc, logger)
+	apiHandler := rest.NewBLANHandler(svc, logger)
+	healthHandler := handler.NewHealthHandler(pool, logger)
 
-	r := gin.Default()
-
-	api := r.Group("/api/v1/blan")
-	{
-		api.POST("/cases", handler.OpenCase)
-		api.GET("/cases/:id", handler.GetCaseDetail)
-		api.POST("/cases/:id/assets", handler.AddSuspiciousAsset)
-		api.POST("/cases/:id/chain", handler.DocumentTransactionChain)
-		api.GET("/real-estate/flagged", handler.GetFlaggedRealEstate)
-		api.GET("/assets/frozen", handler.GetFrozenAssets)
-		api.GET("/stats/by-typology", handler.GetStatsByTypology)
-	}
+	r := rest.SetupRouter(apiHandler)
+	r.GET("/healthz", healthHandler.Healthz)
+	r.GET("/metrics", handler.MetricsHandler())
 
 	port := os.Getenv("BLAN_SERVICE_PORT")
 	if port == "" {
@@ -68,6 +76,7 @@ func main() {
 
 	go func() {
 		logger.Info("starting blan-svc", zap.String("addr", port))
+		fmt.Printf("blan-svc listening on %s\n", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("server failed", zap.Error(err))
 		}
@@ -77,7 +86,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("shutting down server...")
+	fmt.Println("shutting down blan-svc...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

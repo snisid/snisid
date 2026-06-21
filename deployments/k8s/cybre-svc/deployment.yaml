@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cybre-svc
+  namespace: snisid-core
+  labels:
+    app: cybre-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cybre-svc
+  template:
+    metadata:
+      labels:
+        app: cybre-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8132"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: cybre-svc
+        image: snisid/cybre-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8132
+        env:
+        - name: PORT
+          value: "8132"
+        - name: ENV
+          value: "prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: postgres-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8132
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8132
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

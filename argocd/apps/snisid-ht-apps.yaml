@@ -1,0 +1,532 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-id-core-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/id-core
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-civil-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/civil-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-bio-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/bio-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-card-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/card-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-pki-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/pki-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-iam-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/iam-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-interop-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/interop-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-infra-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/infra-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-cyber-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/cyber-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-offline-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/offline-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-field-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/field-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-data-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/data-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-api-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/api-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-foves-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/foves-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-lapi-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/lapi-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-fpr-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: ht-services
+spec:
+  project: snisid-ht
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/fpr-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-core
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
