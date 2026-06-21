@@ -23,6 +23,9 @@ func NewProducer(brokers []string, topic string) *Producer {
 }
 
 func (p *Producer) Publish(key string, value string) {
+	if p.writer == nil {
+		return
+	}
 	msg := kafkago.Message{
 		Key:   []byte(key),
 		Value: []byte(value),
