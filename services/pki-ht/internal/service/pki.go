@@ -39,6 +39,9 @@ func (s *PKIService) InitCA(ctx context.Context) error {
 }
 
 func (s *PKIService) Issue(ctx context.Context, req domain.IssueRequest) (*domain.IssuedCertificate, error) {
+	if s.ca == nil {
+		return nil, fmt.Errorf("CA not initialized")
+	}
 	serial, err := generateSerial()
 	if err != nil {
 		return nil, err
