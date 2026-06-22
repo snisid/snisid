@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Radioactive, AlertTriangle, FlaskRound, Clock, Shield, Search, Ban, CheckCircle2 } from 'lucide-react';
+import { Radiation, AlertTriangle, FlaskRound, Clock, Shield, Search, Ban, CheckCircle2 } from 'lucide-react';
 
 const statCards = [
-  { label: 'Registered Sources', value: '3,247', color: 'text-blue-400', icon: Radioactive },
+  { label: 'Registered Sources', value: '3,247', color: 'text-blue-400', icon: Radiation },
   { label: 'Recent Alerts', value: '12', color: 'text-orange-400', icon: AlertTriangle },
   { label: 'Precursors Tracked', value: '891', color: 'text-green-400', icon: FlaskRound },
   { label: 'Unresponded Alerts', value: '2', color: 'text-red-400', icon: Clock },
@@ -56,7 +56,7 @@ const RadiationSafetyDashboard = () => {
       <div className="grid grid-cols-2 gap-6">
         <div className="bg-[#0f1218] rounded-[2rem] border border-white/5 p-8">
           <div className="flex items-center gap-3 mb-6">
-            <Radioactive className="w-5 h-5 text-gray-400" />
+            <Radiation className="w-5 h-5 text-gray-400" />
             <h3 className="text-xl font-bold">Source Status</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">

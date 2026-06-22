@@ -107,9 +107,9 @@ const MilC2Dashboard = () => {
                   const y1 = 50 + 38 * Math.sin((prev * Math.PI) / 180);
                   const x2 = 50 + 38 * Math.cos((end * Math.PI) / 180);
                   const y2 = 50 + 38 * Math.sin((end * Math.PI) / 180);
-                  acc.push({ d: `M 50 50 L ${x1} ${y1} A 38 38 0 ${angle > 180 ? 1 : 0} 1 ${x2} ${y2} Z`, color: d.label === 'Deployed' ? '#3b82f6' : d.label === 'Standby' ? '#eab308' : '#6b7280' });
+                  acc.push({ d: `M 50 50 L ${x1} ${y1} A 38 38 0 ${angle > 180 ? 1 : 0} 1 ${x2} ${y2} Z`, color: d.label === 'Deployed' ? '#3b82f6' : d.label === 'Standby' ? '#eab308' : '#6b7280', endAngle: end });
                   return acc;
-                }, [] as { d: string; color: string }[]).map((s, i) => (
+                }, [] as { d: string; color: string; endAngle: number }[]).map((s, i) => (
                   <motion.path
                     key={i}
                     d={s.d}

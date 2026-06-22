@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Vaccine, Pill, AlertTriangle, Heart, Map, Thermometer, Droplets } from 'lucide-react';
+import { Activity, Syringe, Pill, AlertTriangle, Heart, Map, Thermometer, Droplets } from 'lucide-react';
 
 const statCards = [
   { label: 'Active Alerts', value: '9', color: 'text-red-400', icon: Activity },
-  { label: 'Vaccination Coverage', value: '74%', color: 'text-green-400', icon: Vaccine },
+  { label: 'Vaccination Coverage', value: '74%', color: 'text-green-400', icon: Syringe },
   { label: 'Facilities Stocked', value: '86%', color: 'text-blue-400', icon: Pill },
   { label: 'Regions Monitored', value: '42', color: 'text-cyan-400', icon: Map },
 ];
@@ -81,7 +81,7 @@ const BioSurveillanceDashboard = () => {
 
         <div className="bg-[#0f1218] rounded-[2rem] border border-white/5 p-8">
           <div className="flex items-center gap-3 mb-6">
-            <Vaccine className="w-5 h-5 text-gray-400" />
+            <Syringe className="w-5 h-5 text-gray-400" />
             <h3 className="text-xl font-bold">Vaccination Campaigns</h3>
           </div>
           <div className="space-y-5">
