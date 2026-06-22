@@ -8,7 +8,7 @@ WORKDIR /build
 
 RUN apk add --no-cache git ca-certificates tzdata
 
-COPY go.mod go.sum ./
+COPY go.mod go.sum* ./
 
 RUN go mod download
 

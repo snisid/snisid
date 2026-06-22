@@ -1,0 +1,21 @@
+title = "SNISID Gitleaks Config"
+
+[allowlist]
+description = "Allow known safe patterns"
+
+# Kubernetes ExternalSecret manifests - field names, not actual secrets
+paths = [
+  '''k8s/external-secrets/.*\.yaml''',
+  '''k8s/external-secrets/.*\.yml''',
+]
+
+# Key names in ExternalSecret and similar K8s resources
+regexes = [
+  '''secretKey:\s*''',
+  '''remoteRef:''',
+  '''property:\s*\w+''',
+  '''DB_DSN''',
+  '''GF_SECURITY_ADMIN_PASSWORD''',
+  '''admin_password''',
+  '''grafana-admin-secret''',
+]

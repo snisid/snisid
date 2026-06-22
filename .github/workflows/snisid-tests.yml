@@ -39,7 +39,7 @@ jobs:
           HSM_MODE: "mock"
         run: |
           cd phase13/
-          go test ./... -v -race -coverprofile=coverage13.out -timeout=120s
+          GOWORK=off go test ./... -v -race -coverprofile=coverage13.out -timeout=120s
           COVERAGE=$(go tool cover -func=coverage13.out | grep total | awk '{print $3}' | tr -d '%')
           if (( $(echo "$COVERAGE < 80" | bc -l) )); then
             echo "ERREUR Coverage Phase 13: ${COVERAGE}% < 80%"
@@ -68,7 +68,7 @@ jobs:
           opa test . -v
           echo "Test mode audit - aucune requete legitime ne doit etre bloquee"
           opa eval --data . --input test_data/legitimate_request.json \
-            "data.snisid.zerotrust.allow" | grep -q '"result": true'
+            --format json "data.snisid.zerotrust.allow" | grep -q '"result": true'
           echo "OK - Requetes legitimes non bloquees"
  
   test-phase15-nire:
