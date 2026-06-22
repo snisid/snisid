@@ -10,7 +10,6 @@
 
 # Root-level source dirs not part of this service
 /src/
-/services/
 /phase*/
 
 # OS / IDE
