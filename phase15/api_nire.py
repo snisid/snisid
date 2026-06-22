@@ -8,4 +8,4 @@ class NIREResolver:
         return nire[:2].isalpha() and nire[2:].isdigit()
 
     def format_nire(self, year: int, dept: str, serial: int) -> str:
-        return f"{dept}{year:04d}{serial:08d}"
+        return f"{dept}{year:04d}{serial:09d}"
