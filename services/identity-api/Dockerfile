@@ -14,13 +14,11 @@ RUN go mod download
 
 COPY . .
 
-ARG SERVICE=identity-api
-
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build \
     -ldflags="-w -s" \
     -o /out/service \
-    ./services/${SERVICE}/cmd
+    ./cmd
 
 # =============================================================================
 # DISTROLESS RUNTIME

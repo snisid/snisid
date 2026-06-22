@@ -25,7 +25,7 @@ jobs:
           python -c "import sys; sys.path.insert(0,'.'); from main import app; print('Backend imports OK')" 2>&1 || echo "Backend import check skipped (missing deps)"
 
       - name: Docker Build (Identity Service)
-        run: docker build -t snisid/identity-svc:latest ./backend/cmd/identity-svc
+        run: docker build -t snisid/identity-svc:latest ./backend
 
       - name: Vulnerability Scan (Trivy)
         uses: aquasecurity/trivy-action@master
