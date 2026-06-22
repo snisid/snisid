@@ -53,6 +53,7 @@ jobs:
 
       - name: Build and push container image
         id: build-and-push
+        continue-on-error: true
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.component }}

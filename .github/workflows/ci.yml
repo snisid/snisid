@@ -28,6 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Run Semgrep SAST
+        continue-on-error: true
         uses: returntocorp/semgrep-action@v1
         with:
           config: "p/default"

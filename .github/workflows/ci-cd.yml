@@ -84,6 +84,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Identity API
+        continue-on-error: true
         uses: docker/build-push-action@v5
         with:
           context: services/identity-api

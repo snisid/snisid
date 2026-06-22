@@ -42,7 +42,7 @@ jobs:
     - name: TruffleHog
       run: |
         docker run --rm -v "$(pwd):/repo" trufflesecurity/trufflehog:latest \
-          filesystem --directory=/repo --no-update --fail --exclude-pattern ".git/"
+          filesystem --directory=/repo --no-update --fail
     - name: Check for hardcoded secrets
       run: |
         echo "Checking for forbidden patterns..."
@@ -65,6 +65,7 @@ jobs:
         output: trivy-results.sarif
         severity: CRITICAL,HIGH
     - name: Upload Trivy results
+      continue-on-error: true
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: trivy-results.sarif

@@ -3,6 +3,8 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -11,7 +13,17 @@ import (
 )
 
 func TestKafkaEventFlow(t *testing.T) {
-	broker := "localhost:9092"
+	broker := os.Getenv("KAFKA_BROKER")
+	if broker == "" {
+		broker = "localhost:9092"
+	}
+
+	conn, err := net.DialTimeout("tcp", broker, 2*time.Second)
+	if err != nil {
+		t.Skip("Kafka not available, skipping integration test")
+	}
+	conn.Close()
+
 	topic := "test.topic"
 
 	// 1. Produce
@@ -20,11 +32,11 @@ func TestKafkaEventFlow(t *testing.T) {
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 	}
-	
+
 	msg := map[string]string{"event": "test_occured", "id": "123"}
 	data, _ := json.Marshal(msg)
-	
-	err := writer.WriteMessages(context.Background(), kafka.Message{
+
+	err = writer.WriteMessages(context.Background(), kafka.Message{
 		Key:   []byte("123"),
 		Value: data,
 	})
@@ -36,7 +48,7 @@ func TestKafkaEventFlow(t *testing.T) {
 		Topic:   topic,
 		GroupID: "test-group",
 	})
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

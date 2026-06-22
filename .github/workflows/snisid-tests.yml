@@ -67,9 +67,14 @@ jobs:
           cd phase14/policies/
           opa test . -v
           echo "Test mode audit - aucune requete legitime ne doit etre bloquee"
-          opa eval --data . --input test_data/legitimate_request.json \
-            --format json "data.snisid.zerotrust.allow" | grep -q '"result": true'
-          echo "OK - Requetes legitimes non bloquees"
+          RESULT=$(opa eval --data . --input test_data/legitimate_request.json \
+            --format raw "data.snisid.zerotrust.allow")
+          if [ "$RESULT" = "true" ]; then
+            echo "OK - Requetes legitimes non bloquees"
+          else
+            echo "ERREUR - Requete legitime bloquee"
+            exit 1
+          fi
  
   test-phase15-nire:
     runs-on: ubuntu-latest
