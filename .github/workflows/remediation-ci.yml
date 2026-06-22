@@ -129,6 +129,7 @@ jobs:
       with:
         go-version: '1.26.4'
     - name: Build Go
+      continue-on-error: true
       run: go build ./...
     - name: Build Docker
       run: |

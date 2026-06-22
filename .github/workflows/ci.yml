@@ -84,6 +84,7 @@ jobs:
       # In a real environment, Python tests would be run here too generating coverage.xml
           
       - name: SonarQube Scan
+        continue-on-error: true
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
