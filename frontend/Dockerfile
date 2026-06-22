@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Enable corepack for yarn/pnpm if needed, using npm here
 COPY package.json package-lock.json* ./
-RUN npm ci --prefer-offline --no-audit
+RUN npm install --prefer-offline --no-audit
 
 COPY . .
 RUN npm run build
