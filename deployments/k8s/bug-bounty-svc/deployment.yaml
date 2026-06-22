@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bug-bounty-svc
+  namespace: snisid-core
+  labels:
+    app: bug-bounty-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bug-bounty-svc
+  template:
+    metadata:
+      labels:
+        app: bug-bounty-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8100"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: bug-bounty-svc
+        image: snisid/bug-bounty-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8100
+        env:
+        - name: BOUNTY_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: BOUNTY_DB_PORT
+          value: "26257"
+        - name: BOUNTY_DB_NAME
+          value: "snisid_bounty"
+        - name: BOUNTY_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: BOUNTY_DB_SSLMODE
+          value: "disable"
+        - name: BOUNTY_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: BOUNTY_SERVICE_PORT
+          value: "8100"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8100
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8100
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

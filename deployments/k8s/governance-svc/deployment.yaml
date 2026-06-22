@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: governance-svc
+  namespace: snisid-core
+  labels:
+    app: governance-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: governance-svc
+  template:
+    metadata:
+      labels:
+        app: governance-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8105"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: governance-svc
+        image: snisid/governance-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8105
+        env:
+        - name: GOV_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: GOV_DB_PORT
+          value: "26257"
+        - name: GOV_DB_NAME
+          value: "snisid_governance"
+        - name: GOV_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: GOV_DB_SSLMODE
+          value: "disable"
+        - name: GOV_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: GOV_SERVICE_PORT
+          value: "8105"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8105
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8105
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

@@ -1,0 +1,230 @@
+openapi: "3.0.3"
+info:
+  title: "Bug Bounty API"
+  description: "Bug bounty and pentest program automation"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8100/api/v1/bug-bounty"
+paths:
+  /programs:
+    post:
+      summary: "Create bounty program"
+      operationId: createProgram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - program_id
+                - target
+                - scope_type
+              properties:
+                program_id:
+                  type: string
+                  format: uuid
+                target:
+                  type: string
+                scope_type:
+                  type: string
+                in_scope:
+                  type: boolean
+                reward_min:
+                  type: number
+                reward_max:
+                  type: number
+      responses:
+        '201':
+          description: "Program created"
+        '400':
+          description: "Invalid request"
+    get:
+      summary: "List active programs"
+      operationId: listPrograms
+      responses:
+        '200':
+          description: "Program list"
+  /reports:
+    post:
+      summary: "Submit vulnerability report"
+      operationId: submitReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - program_id
+                - submitter
+                - title
+                - description
+                - severity
+              properties:
+                program_id:
+                  type: string
+                  format: uuid
+                submitter:
+                  type: string
+                title:
+                  type: string
+                description:
+                  type: string
+                severity:
+                  type: string
+                scope_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: "Report submitted"
+        '400':
+          description: "Invalid request"
+  /reports/{id}:
+    get:
+      summary: "Get report status"
+      operationId: getReport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Report found"
+        '404':
+          description: "Not found"
+  /reports/{id}/triage:
+    post:
+      summary: "Triage report"
+      operationId: triageReport
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - triager
+                - severity
+                - reproducible
+              properties:
+                triager:
+                  type: string
+                severity:
+                  type: string
+                reproducible:
+                  type: boolean
+                duplicate_of:
+                  type: string
+                  format: uuid
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: "Report triaged"
+        '400':
+          description: "Invalid request"
+  /reports/{id}/reward:
+    post:
+      summary: "Issue reward"
+      operationId: issueReward
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency
+                - paid_to
+                - approved_by
+              properties:
+                amount:
+                  type: number
+                currency:
+                  type: string
+                paid_to:
+                  type: string
+                approved_by:
+                  type: string
+      responses:
+        '201':
+          description: "Reward issued"
+        '400':
+          description: "Invalid request"
+  /pentests:
+    post:
+      summary: "Schedule pentest"
+      operationId: schedulePentest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - program_id
+                - title
+                - scope
+                - start_date
+                - team_lead
+              properties:
+                program_id:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                scope:
+                  type: string
+                start_date:
+                  type: string
+                  format: date
+                end_date:
+                  type: string
+                  format: date
+                team_lead:
+                  type: string
+      responses:
+        '201':
+          description: "Pentest scheduled"
+        '400':
+          description: "Invalid request"
+  /pentests/{id}/results:
+    get:
+      summary: "Get pentest results"
+      operationId: getPentestResults
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Pentest results"
+        '404':
+          description: "Not found"
+components:
+  schemas: {}

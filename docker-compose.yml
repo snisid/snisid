@@ -1814,6 +1814,343 @@ services:
         condition: service_started
     logging: *default-logging
 
+  # --- Platform Services (16) ---
+  hsm-svc:
+    build:
+      context: .
+      dockerfile: services/hsm-svc/Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      HSM_DB_HOST: cockroach
+      HSM_DB_PORT: 26257
+      HSM_DB_NAME: snisid_hsm
+      HSM_DB_USER: root
+      HSM_DB_SSLMODE: disable
+      HSM_KAFKA_BROKERS: kafka:9092
+      HSM_SERVICE_PORT: "8090"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  enrollment-svc:
+    build:
+      context: .
+      dockerfile: services/enrollment-svc/Dockerfile
+    ports:
+      - "8091:8091"
+    environment:
+      ENROLLMENT_DB_HOST: cockroach
+      ENROLLMENT_DB_PORT: 26257
+      ENROLLMENT_DB_NAME: snisid_enrollment
+      ENROLLMENT_DB_USER: root
+      ENROLLMENT_DB_SSLMODE: disable
+      ENROLLMENT_KAFKA_BROKERS: kafka:9092
+      ENROLLMENT_SERVICE_PORT: "8091"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  card-svc:
+    build:
+      context: .
+      dockerfile: services/card-svc/Dockerfile
+    ports:
+      - "8092:8092"
+    environment:
+      CARD_DB_HOST: cockroach
+      CARD_DB_PORT: 26257
+      CARD_DB_NAME: snisid_card_svc
+      CARD_DB_USER: root
+      CARD_DB_SSLMODE: disable
+      CARD_KAFKA_BROKERS: kafka:9092
+      CARD_SERVICE_PORT: "8092"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  certification-svc:
+    build:
+      context: .
+      dockerfile: services/certification-svc/Dockerfile
+    ports:
+      - "8093:8093"
+    environment:
+      CERT_DB_HOST: cockroach
+      CERT_DB_PORT: 26257
+      CERT_DB_NAME: snisid_certification
+      CERT_DB_USER: root
+      CERT_DB_SSLMODE: disable
+      CERT_KAFKA_BROKERS: kafka:9092
+      CERT_SERVICE_PORT: "8093"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  mdl-svc:
+    build:
+      context: .
+      dockerfile: services/mdl-svc/Dockerfile
+    ports:
+      - "8094:8094"
+    environment:
+      MDL_DB_HOST: cockroach
+      MDL_DB_PORT: 26257
+      MDL_DB_NAME: snisid_mdl
+      MDL_DB_USER: root
+      MDL_DB_SSLMODE: disable
+      MDL_KAFKA_BROKERS: kafka:9092
+      MDL_SERVICE_PORT: "8094"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  age-verification-svc:
+    build:
+      context: .
+      dockerfile: services/age-verification-svc/Dockerfile
+    ports:
+      - "8095:8095"
+    environment:
+      AGEVERIFY_DB_HOST: cockroach
+      AGEVERIFY_DB_PORT: 26257
+      AGEVERIFY_DB_NAME: snisid_ageverification
+      AGEVERIFY_DB_USER: root
+      AGEVERIFY_DB_SSLMODE: disable
+      AGEVERIFY_KAFKA_BROKERS: kafka:9092
+      AGEVERIFY_SERVICE_PORT: "8095"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  employee-verify-svc:
+    build:
+      context: .
+      dockerfile: services/employee-verify-svc/Dockerfile
+    ports:
+      - "8096:8096"
+    environment:
+      EMPVERIFY_DB_HOST: cockroach
+      EMPVERIFY_DB_PORT: 26257
+      EMPVERIFY_DB_NAME: snisid_empverify
+      EMPVERIFY_DB_USER: root
+      EMPVERIFY_DB_SSLMODE: disable
+      EMPVERIFY_KAFKA_BROKERS: kafka:9092
+      EMPVERIFY_SERVICE_PORT: "8096"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  dr-svc:
+    build:
+      context: .
+      dockerfile: services/dr-svc/Dockerfile
+    ports:
+      - "8097:8097"
+    environment:
+      DR_DB_HOST: cockroach
+      DR_DB_PORT: 26257
+      DR_DB_NAME: snisid_dr
+      DR_DB_USER: root
+      DR_DB_SSLMODE: disable
+      DR_KAFKA_BROKERS: kafka:9092
+      DR_SERVICE_PORT: "8097"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  fips-cert-svc:
+    build:
+      context: .
+      dockerfile: services/fips-cert-svc/Dockerfile
+    ports:
+      - "8098:8098"
+    environment:
+      FIPS_DB_HOST: cockroach
+      FIPS_DB_PORT: 26257
+      FIPS_DB_NAME: snisid_fips
+      FIPS_DB_USER: root
+      FIPS_DB_SSLMODE: disable
+      FIPS_KAFKA_BROKERS: kafka:9092
+      FIPS_SERVICE_PORT: "8098"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  pki-bridge-svc:
+    build:
+      context: .
+      dockerfile: services/pki-bridge-svc/Dockerfile
+    ports:
+      - "8099:8099"
+    environment:
+      PKIBRIDGE_DB_HOST: cockroach
+      PKIBRIDGE_DB_PORT: 26257
+      PKIBRIDGE_DB_NAME: snisid_pkibridge
+      PKIBRIDGE_DB_USER: root
+      PKIBRIDGE_DB_SSLMODE: disable
+      PKIBRIDGE_KAFKA_BROKERS: kafka:9092
+      PKIBRIDGE_SERVICE_PORT: "8099"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  bug-bounty-svc:
+    build:
+      context: .
+      dockerfile: services/bug-bounty-svc/Dockerfile
+    ports:
+      - "8100:8100"
+    environment:
+      BOUNTY_DB_HOST: cockroach
+      BOUNTY_DB_PORT: 26257
+      BOUNTY_DB_NAME: snisid_bounty
+      BOUNTY_DB_USER: root
+      BOUNTY_DB_SSLMODE: disable
+      BOUNTY_KAFKA_BROKERS: kafka:9092
+      BOUNTY_SERVICE_PORT: "8100"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  accessibility-svc:
+    build:
+      context: .
+      dockerfile: services/accessibility-svc/Dockerfile
+    ports:
+      - "8101:8101"
+    environment:
+      ACCESS_DB_HOST: cockroach
+      ACCESS_DB_PORT: 26257
+      ACCESS_DB_NAME: snisid_accessibility
+      ACCESS_DB_USER: root
+      ACCESS_DB_SSLMODE: disable
+      ACCESS_KAFKA_BROKERS: kafka:9092
+      ACCESS_SERVICE_PORT: "8101"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  service-desk-svc:
+    build:
+      context: .
+      dockerfile: services/service-desk-svc/Dockerfile
+    ports:
+      - "8102:8102"
+    environment:
+      SERVICEDESK_DB_HOST: cockroach
+      SERVICEDESK_DB_PORT: 26257
+      SERVICEDESK_DB_NAME: snisid_servicedesk
+      SERVICEDESK_DB_USER: root
+      SERVICEDESK_DB_SSLMODE: disable
+      SERVICEDESK_KAFKA_BROKERS: kafka:9092
+      SERVICEDESK_SERVICE_PORT: "8102"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  audit-svc:
+    build:
+      context: .
+      dockerfile: services/audit-svc/Dockerfile
+    ports:
+      - "8103:8103"
+    environment:
+      AUDIT_DB_HOST: cockroach
+      AUDIT_DB_PORT: 26257
+      AUDIT_DB_NAME: snisid_audit
+      AUDIT_DB_USER: root
+      AUDIT_DB_SSLMODE: disable
+      AUDIT_KAFKA_BROKERS: kafka:9092
+      AUDIT_SERVICE_PORT: "8103"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  sla-svc:
+    build:
+      context: .
+      dockerfile: services/sla-svc/Dockerfile
+    ports:
+      - "8104:8104"
+    environment:
+      SLA_DB_HOST: cockroach
+      SLA_DB_PORT: 26257
+      SLA_DB_NAME: snisid_sla
+      SLA_DB_USER: root
+      SLA_DB_SSLMODE: disable
+      SLA_KAFKA_BROKERS: kafka:9092
+      SLA_SERVICE_PORT: "8104"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
+  governance-svc:
+    build:
+      context: .
+      dockerfile: services/governance-svc/Dockerfile
+    ports:
+      - "8105:8105"
+    environment:
+      GOV_DB_HOST: cockroach
+      GOV_DB_PORT: 26257
+      GOV_DB_NAME: snisid_governance
+      GOV_DB_USER: root
+      GOV_DB_SSLMODE: disable
+      GOV_KAFKA_BROKERS: kafka:9092
+      GOV_SERVICE_PORT: "8105"
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+    logging: *default-logging
+
 volumes:
   pg_data:
   cockroach_data:

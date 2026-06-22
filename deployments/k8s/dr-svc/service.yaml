@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dr-svc
+  namespace: snisid-core
+  labels:
+    app: dr-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8097
+    targetPort: 8097
+    protocol: TCP
+    name: http
+  selector:
+    app: dr-svc

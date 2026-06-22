@@ -1,0 +1,56 @@
+{
+  "title": "FIPS Cert Service Dashboard (Golden Signals)",
+  "uid": "fips-cert-svc",
+  "tags": ["golden-signals", "fips", "platform"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "FIPS Cert Request Rate (QPS)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"fips-cert-svc\"}[1m]))",
+          "legendFormat": "fips-cert-svc QPS"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "FIPS Cert Error Rate (HTTP 5xx)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"fips-cert-svc\",status=~\"5..\"}[1m])) / sum(rate(kong_http_requests_total{service=\"fips-cert-svc\"}[1m]))",
+          "legendFormat": "Error %"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "FIPS Cert P99 Latency",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(kong_latency_bucket{service=\"fips-cert-svc\"}[5m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Validation Status",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "fips_validation_status",
+          "legendFormat": "{{module}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

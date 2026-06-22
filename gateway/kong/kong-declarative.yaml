@@ -1008,6 +1008,393 @@ services:
           - PATCH
           - DELETE
 
+  # ──────────────────────────────────────────────
+  # Platform Services (16)
+  # ──────────────────────────────────────────────
+  - name: hsm-svc
+    url: http://hsm-svc.snisid-core.svc.cluster.local:8090
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: hsm-svc-route
+        paths:
+          - /api/v1/hsm
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: enrollment-svc
+    url: http://enrollment-svc.snisid-core.svc.cluster.local:8091
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: enrollment-svc-route
+        paths:
+          - /api/v1/enrollment
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: card-svc
+    url: http://card-svc.snisid-core.svc.cluster.local:8092
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: card-svc-route
+        paths:
+          - /api/v1/card
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: certification-svc
+    url: http://certification-svc.snisid-core.svc.cluster.local:8093
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: certification-svc-route
+        paths:
+          - /api/v1/certification
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: mdl-svc
+    url: http://mdl-svc.snisid-core.svc.cluster.local:8094
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: mdl-svc-route
+        paths:
+          - /api/v1/mdl
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: age-verification-svc
+    url: http://age-verification-svc.snisid-core.svc.cluster.local:8095
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: age-verification-svc-route
+        paths:
+          - /api/v1/age-verification
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: employee-verify-svc
+    url: http://employee-verify-svc.snisid-core.svc.cluster.local:8096
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: employee-verify-svc-route
+        paths:
+          - /api/v1/employee-verify
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: dr-svc
+    url: http://dr-svc.snisid-core.svc.cluster.local:8097
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: dr-svc-route
+        paths:
+          - /api/v1/dr
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: fips-cert-svc
+    url: http://fips-cert-svc.snisid-core.svc.cluster.local:8098
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: fips-cert-svc-route
+        paths:
+          - /api/v1/fips-cert
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: pki-bridge-svc
+    url: http://pki-bridge-svc.snisid-core.svc.cluster.local:8099
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: pki-bridge-svc-route
+        paths:
+          - /api/v1/pki-bridge
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: bug-bounty-svc
+    url: http://bug-bounty-svc.snisid-core.svc.cluster.local:8100
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: bug-bounty-svc-route
+        paths:
+          - /api/v1/bug-bounty
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: accessibility-svc
+    url: http://accessibility-svc.snisid-core.svc.cluster.local:8101
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: accessibility-svc-route
+        paths:
+          - /api/v1/accessibility
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: service-desk-svc
+    url: http://service-desk-svc.snisid-core.svc.cluster.local:8102
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: service-desk-svc-route
+        paths:
+          - /api/v1/service-desk
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: audit-svc
+    url: http://audit-svc.snisid-core.svc.cluster.local:8103
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: audit-svc-route
+        paths:
+          - /api/v1/audit
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: sla-svc
+    url: http://sla-svc.snisid-core.svc.cluster.local:8104
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: sla-svc-route
+        paths:
+          - /api/v1/sla
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
+  - name: governance-svc
+    url: http://governance-svc.snisid-core.svc.cluster.local:8105
+    retries: 3
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    routes:
+      - name: governance-svc-route
+        paths:
+          - /api/v1/governance
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+    plugins:
+      - name: jwt
+      - name: rate-limiting
+        config:
+          second: 5
+          minute: 100
+
 # --- CONSUMERS & JWT SECRETS ---
 # In a real environment, the public keys for the JWT plugin are synced via an ingress controller
 # pulling from Keycloak's JWKS endpoint, avoiding hardcoded consumers here.

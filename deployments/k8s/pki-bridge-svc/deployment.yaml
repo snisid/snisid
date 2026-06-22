@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pki-bridge-svc
+  namespace: snisid-core
+  labels:
+    app: pki-bridge-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pki-bridge-svc
+  template:
+    metadata:
+      labels:
+        app: pki-bridge-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8099"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: pki-bridge-svc
+        image: snisid/pki-bridge-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8099
+        env:
+        - name: PKIBRIDGE_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: PKIBRIDGE_DB_PORT
+          value: "26257"
+        - name: PKIBRIDGE_DB_NAME
+          value: "snisid_pkibridge"
+        - name: PKIBRIDGE_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: PKIBRIDGE_DB_SSLMODE
+          value: "disable"
+        - name: PKIBRIDGE_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: PKIBRIDGE_SERVICE_PORT
+          value: "8099"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8099
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8099
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

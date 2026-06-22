@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sla-svc
+  namespace: snisid-core
+  labels:
+    app: sla-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sla-svc
+  template:
+    metadata:
+      labels:
+        app: sla-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8104"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: sla-svc
+        image: snisid/sla-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8104
+        env:
+        - name: SLA_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: SLA_DB_PORT
+          value: "26257"
+        - name: SLA_DB_NAME
+          value: "snisid_sla"
+        - name: SLA_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: SLA_DB_SSLMODE
+          value: "disable"
+        - name: SLA_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: SLA_SERVICE_PORT
+          value: "8104"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8104
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8104
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

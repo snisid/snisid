@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-svc
+  namespace: snisid-core
+  labels:
+    app: audit-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: audit-svc
+  template:
+    metadata:
+      labels:
+        app: audit-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8103"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: audit-svc
+        image: snisid/audit-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8103
+        env:
+        - name: AUDIT_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: AUDIT_DB_PORT
+          value: "26257"
+        - name: AUDIT_DB_NAME
+          value: "snisid_audit"
+        - name: AUDIT_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: AUDIT_DB_SSLMODE
+          value: "disable"
+        - name: AUDIT_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: AUDIT_SERVICE_PORT
+          value: "8103"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8103
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8103
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

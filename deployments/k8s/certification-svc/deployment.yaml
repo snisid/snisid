@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: certification-svc
+  namespace: snisid-core
+  labels:
+    app: certification-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: certification-svc
+  template:
+    metadata:
+      labels:
+        app: certification-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8093"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: certification-svc
+        image: snisid/certification-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8093
+        env:
+        - name: CERT_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: CERT_DB_PORT
+          value: "26257"
+        - name: CERT_DB_NAME
+          value: "snisid_certification"
+        - name: CERT_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: CERT_DB_SSLMODE
+          value: "disable"
+        - name: CERT_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: CERT_SERVICE_PORT
+          value: "8093"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8093
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8093
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

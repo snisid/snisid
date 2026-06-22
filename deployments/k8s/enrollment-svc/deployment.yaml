@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enrollment-svc
+  namespace: snisid-core
+  labels:
+    app: enrollment-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: enrollment-svc
+  template:
+    metadata:
+      labels:
+        app: enrollment-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8091"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: enrollment-svc
+        image: snisid/enrollment-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8091
+        env:
+        - name: ENROLLMENT_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: ENROLLMENT_DB_PORT
+          value: "26257"
+        - name: ENROLLMENT_DB_NAME
+          value: "snisid_enrollment"
+        - name: ENROLLMENT_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: ENROLLMENT_DB_SSLMODE
+          value: "disable"
+        - name: ENROLLMENT_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: ENROLLMENT_SERVICE_PORT
+          value: "8091"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8091
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8091
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

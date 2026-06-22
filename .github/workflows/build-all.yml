@@ -38,6 +38,22 @@ jobs:
           - critical-infra-protection-ht
           - fisa-court-svc
           - classification-mgmt-ht
+          - hsm-svc
+          - enrollment-svc
+          - card-svc
+          - certification-svc
+          - mdl-svc
+          - age-verification-svc
+          - employee-verify-svc
+          - dr-svc
+          - fips-cert-svc
+          - pki-bridge-svc
+          - bug-bounty-svc
+          - accessibility-svc
+          - service-desk-svc
+          - audit-svc
+          - sla-svc
+          - governance-svc
       max-parallel: 10
     steps:
       - uses: actions/checkout@v4

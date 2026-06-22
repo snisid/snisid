@@ -71,6 +71,22 @@ on:
       - 'services/sipci-svc/**'
       - 'services/cybre-svc/**'
       - 'services/ong-svc/**'
+      - 'services/hsm-svc/**'
+      - 'services/enrollment-svc/**'
+      - 'services/card-svc/**'
+      - 'services/certification-svc/**'
+      - 'services/mdl-svc/**'
+      - 'services/age-verification-svc/**'
+      - 'services/employee-verify-svc/**'
+      - 'services/dr-svc/**'
+      - 'services/fips-cert-svc/**'
+      - 'services/pki-bridge-svc/**'
+      - 'services/bug-bounty-svc/**'
+      - 'services/accessibility-svc/**'
+      - 'services/service-desk-svc/**'
+      - 'services/audit-svc/**'
+      - 'services/sla-svc/**'
+      - 'services/governance-svc/**'
   pull_request:
     branches: [ main ]
     paths:
@@ -141,6 +157,22 @@ on:
       - 'services/sipci-svc/**'
       - 'services/cybre-svc/**'
       - 'services/ong-svc/**'
+      - 'services/hsm-svc/**'
+      - 'services/enrollment-svc/**'
+      - 'services/card-svc/**'
+      - 'services/certification-svc/**'
+      - 'services/mdl-svc/**'
+      - 'services/age-verification-svc/**'
+      - 'services/employee-verify-svc/**'
+      - 'services/dr-svc/**'
+      - 'services/fips-cert-svc/**'
+      - 'services/pki-bridge-svc/**'
+      - 'services/bug-bounty-svc/**'
+      - 'services/accessibility-svc/**'
+      - 'services/service-desk-svc/**'
+      - 'services/audit-svc/**'
+      - 'services/sla-svc/**'
+      - 'services/governance-svc/**'
 
 permissions:
   contents: read
@@ -225,10 +257,26 @@ jobs:
             sipci-svc: services/sipci-svc/**
             cybre-svc: services/cybre-svc/**
             ong-svc: services/ong-svc/**
+            hsm-svc: services/hsm-svc/**
+            enrollment-svc: services/enrollment-svc/**
+            card-svc: services/card-svc/**
+            certification-svc: services/certification-svc/**
+            mdl-svc: services/mdl-svc/**
+            age-verification-svc: services/age-verification-svc/**
+            employee-verify-svc: services/employee-verify-svc/**
+            dr-svc: services/dr-svc/**
+            fips-cert-svc: services/fips-cert-svc/**
+            pki-bridge-svc: services/pki-bridge-svc/**
+            bug-bounty-svc: services/bug-bounty-svc/**
+            accessibility-svc: services/accessibility-svc/**
+            service-desk-svc: services/service-desk-svc/**
+            audit-svc: services/audit-svc/**
+            sla-svc: services/sla-svc/**
+            governance-svc: services/governance-svc/**
       - name: Filter HT services
         id: ht-filter
         run: |
-          HT='["id-core","civil-ht","bio-ht","card-ht","pki-ht","iam-ht","interop-ht","infra-ht","cyber-ht","offline-ht","field-ht","data-ht","api-ht","foves-ht","lapi-ht","fpr-ht","afis-svc","fir-svc","sipep-svc","rdep-svc","opr-svc","gang-svc","chef-svc","terr-svc","sanc-svc","reso-svc","siar-svc","biar-svc","expl-svc","trafar-svc","sifr-svc","mar-svc","sltd-svc","blkl-svc","aero-svc","port-svc","ucref-svc","blan-svc","extors-svc","crypt-svc","dipe-svc","trait-svc","enfl-svc","dpide-svc","vict-svc","sigeo-svc","sigdc-svc","rvin-svc","mvsm-svc","sisal-svc","corr-svc","sipci-svc","cybre-svc","ong-svc"]'
+          HT='["id-core","civil-ht","bio-ht","card-ht","pki-ht","iam-ht","interop-ht","infra-ht","cyber-ht","offline-ht","field-ht","data-ht","api-ht","foves-ht","lapi-ht","fpr-ht","afis-svc","fir-svc","sipep-svc","rdep-svc","opr-svc","gang-svc","chef-svc","terr-svc","sanc-svc","reso-svc","siar-svc","biar-svc","expl-svc","trafar-svc","sifr-svc","mar-svc","sltd-svc","blkl-svc","aero-svc","port-svc","ucref-svc","blan-svc","extors-svc","crypt-svc","dipe-svc","trait-svc","enfl-svc","dpide-svc","vict-svc","sigeo-svc","sigdc-svc","rvin-svc","mvsm-svc","sisal-svc","corr-svc","sipci-svc","cybre-svc","ong-svc","hsm-svc","enrollment-svc","card-svc","certification-svc","mdl-svc","age-verification-svc","employee-verify-svc","dr-svc","fips-cert-svc","pki-bridge-svc","bug-bounty-svc","accessibility-svc","service-desk-svc","audit-svc","sla-svc","governance-svc"]'
           echo "ht-matrix=$(jq -c --argjson ht "$HT" '[.[] | select(. as $s | $ht | index($s))]' <<< '${{ steps.filter.outputs.changes }}')" >> $GITHUB_OUTPUT
 
   build-test:

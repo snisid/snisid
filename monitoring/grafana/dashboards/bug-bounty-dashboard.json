@@ -1,0 +1,56 @@
+{
+  "title": "Bug Bounty Dashboard (Golden Signals)",
+  "uid": "bug-bounty-svc",
+  "tags": ["golden-signals", "bug-bounty", "platform"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Bug Bounty Request Rate (QPS)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"bug-bounty-svc\"}[1m]))",
+          "legendFormat": "bug-bounty-svc QPS"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Bug Bounty Error Rate (HTTP 5xx)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"bug-bounty-svc\",status=~\"5..\"}[1m])) / sum(rate(kong_http_requests_total{service=\"bug-bounty-svc\"}[1m]))",
+          "legendFormat": "Error %"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Bug Bounty P99 Latency",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(kong_latency_bucket{service=\"bug-bounty-svc\"}[5m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Report Submission Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(bugbounty_reports_total[1m])",
+          "legendFormat": "{{severity}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

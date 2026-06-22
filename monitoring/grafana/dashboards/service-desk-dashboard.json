@@ -1,0 +1,56 @@
+{
+  "title": "Service Desk Dashboard (Golden Signals)",
+  "uid": "service-desk-svc",
+  "tags": ["golden-signals", "service-desk", "platform"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Service Desk Request Rate (QPS)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"service-desk-svc\"}[1m]))",
+          "legendFormat": "service-desk-svc QPS"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Service Desk Error Rate (HTTP 5xx)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"service-desk-svc\",status=~\"5..\"}[1m])) / sum(rate(kong_http_requests_total{service=\"service-desk-svc\"}[1m]))",
+          "legendFormat": "Error %"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Service Desk P99 Latency",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(kong_latency_bucket{service=\"service-desk-svc\"}[5m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Ticket Resolution Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(servicedesk_tickets_total[1m])",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

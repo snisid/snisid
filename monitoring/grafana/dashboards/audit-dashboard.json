@@ -1,0 +1,56 @@
+{
+  "title": "Audit Service Dashboard (Golden Signals)",
+  "uid": "audit-svc",
+  "tags": ["golden-signals", "audit", "platform"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Audit Request Rate (QPS)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"audit-svc\"}[1m]))",
+          "legendFormat": "audit-svc QPS"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Audit Error Rate (HTTP 5xx)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"audit-svc\",status=~\"5..\"}[1m])) / sum(rate(kong_http_requests_total{service=\"audit-svc\"}[1m]))",
+          "legendFormat": "Error %"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Audit P99 Latency",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(kong_latency_bucket{service=\"audit-svc\"}[5m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Audit Events Ingest Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(audit_events_total[1m])",
+          "legendFormat": "{{severity}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

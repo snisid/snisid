@@ -77,4 +77,20 @@ use (
 	./services/critical-infra-protection-ht
 	./services/fisa-court-svc
 	./services/classification-mgmt-ht
+	./services/hsm-svc
+	./services/enrollment-svc
+	./services/card-svc
+	./services/certification-svc
+	./services/mdl-svc
+	./services/age-verification-svc
+	./services/employee-verify-svc
+	./services/dr-svc
+	./services/fips-cert-svc
+	./services/pki-bridge-svc
+	./services/bug-bounty-svc
+	./services/accessibility-svc
+	./services/service-desk-svc
+	./services/audit-svc
+	./services/sla-svc
+	./services/governance-svc
 )
