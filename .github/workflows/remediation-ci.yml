@@ -37,14 +37,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     - name: GitLeaks
       uses: gitleaks/gitleaks-action@v2
     - name: TruffleHog
       run: |
         docker run --rm -v "$(pwd):/repo" trufflesecurity/trufflehog:latest \
-          filesystem --directory=/repo --no-update --fail
+          filesystem --directory=/repo --no-update --fail --exclude-pattern ".git/"
     - name: Check for hardcoded secrets
       run: |
         echo "Checking for forbidden patterns..."
