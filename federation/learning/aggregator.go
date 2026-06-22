@@ -1,7 +1,9 @@
 package learning
 
 import (
+	"context"
 	"fmt"
+
 	"github.com/snisid/platform/internal/platform/logger"
 )
 
@@ -16,7 +18,7 @@ type SecureAggregator struct {
 }
 
 func (a *SecureAggregator) Aggregate(updates []ModelUpdate) []float64 {
-	logger.Info(fmt.Sprintf("FEDERATION: Aggregating weights from %d sovereign nodes...", len(updates)))
+	logger.Info(context.Background(), fmt.Sprintf("FEDERATION: Aggregating weights from %d sovereign nodes...", len(updates)))
 	
 	if len(updates) == 0 {
 		return nil

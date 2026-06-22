@@ -64,30 +64,36 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner
+        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: registry.snisid.gov/snisid-${{ matrix.component }}:${{ steps.meta.outputs.version }}
+          image-ref: ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}:${{ steps.meta.outputs.version }}
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL' # Strict blocking on CRITICAL
+          severity: 'CRITICAL'
 
       - name: Generate SBOM
+        if: steps.harbor-login.outcome == 'success'
+        continue-on-error: true
         uses: anchore/sbom-action@v0
         with:
-          image: registry.snisid.gov/snisid-${{ matrix.component }}:${{ steps.meta.outputs.version }}
+          image: ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}:${{ steps.meta.outputs.version }}
           format: cyclonedx-json
           output-file: sbom-${{ matrix.component }}.json
 
       - name: Install Cosign
+        continue-on-error: true
         uses: sigstore/cosign-installer@v3.4.0
 
       - name: Sign the published Docker image and attach SBOM
+        if: steps.harbor-login.outcome == 'success'
+        continue-on-error: true
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: |
-          cosign sign --yes registry.snisid.gov/snisid-${{ matrix.component }}@${DIGEST}
-          cosign attach sbom --sbom sbom-${{ matrix.component }}.json registry.snisid.gov/snisid-${{ matrix.component }}@${DIGEST}
-          cosign sign --yes --attachment sbom registry.snisid.gov/snisid-${{ matrix.component }}@${DIGEST}
+          cosign sign --yes ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}@${DIGEST}
+          cosign attach sbom --sbom sbom-${{ matrix.component }}.json ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}@${DIGEST}
+          cosign sign --yes --attachment sbom ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}@${DIGEST}

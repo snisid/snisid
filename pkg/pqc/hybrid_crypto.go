@@ -1,3 +1,5 @@
+//go:build pqc
+
 // === pkg/pqc/hybrid_crypto.go ===
 // SNISID - Cryptographie Post-Quantique Hybride
 // Conforme NIST FIPS 203 (ML-KEM/Kyber) + FIPS 204 (ML-DSA/Dilithium)

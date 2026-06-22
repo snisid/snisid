@@ -207,9 +207,15 @@ func (s *DNAMilvusSearcher) SearchByLocus(ctx context.Context, locusScores []flo
 
 	var matches []DNAMatchResult
 	for _, result := range results {
-		profileIDs, _ := result.Fields.GetColumn("profile_id").GetAsStringData()
-		nius, _ := result.Fields.GetColumn("niu").GetAsStringData()
-		cases, _ := result.Fields.GetColumn("case_reference").GetAsStringData()
+		profileIDCol, _ := result.Fields.GetColumn("profile_id").(*entity.ColumnString)
+		niuCol, _ := result.Fields.GetColumn("niu").(*entity.ColumnString)
+		caseCol, _ := result.Fields.GetColumn("case_reference").(*entity.ColumnString)
+		if profileIDCol == nil || niuCol == nil || caseCol == nil {
+			return nil, fmt.Errorf("unexpected column type in search results")
+		}
+		profileIDs := profileIDCol.Data()
+		nius := niuCol.Data()
+		cases := caseCol.Data()
 
 		for i := 0; i < result.ResultCount; i++ {
 			matches = append(matches, DNAMatchResult{
