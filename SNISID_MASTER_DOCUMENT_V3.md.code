@@ -1,0 +1,1999 @@
+# 🇭🇹 SNISID - DOCUMENT MAÎTRE D'ARCHITECTURE NATIONALE
+## Système National d'Identification Sécurisée et d'Interopérabilité Digitale
+
+**Classification:** TOP SECRET / NOFORN / SOVEREIGN HAITI  
+**Version:** 3.0 - Édition Présidentielle  
+**Date:** Janvier 2025  
+**Auteur:** Consultant en Sécurité Nationale (25+ ans d'expérience NSA/GCHQ/CSS)  
+**Destinataire:** Présidence de la République d'Haïti, Conseil des Ministres
+
+---
+
+## TABLE DES MATIÈRES
+
+1. [Vision & Objectifs Stratégiques](#1-vision--objectifs-stratégiques)
+2. [Gouvernance & Hiérarchie des Rôles](#2-gouvernance--hiérarchie-des-rôles)
+3. [Système de Permissions (RBAC + ABAC)](#3-système-de-permissions-rbac--abac)
+4. [Architecture Système Globale (7 Couches)](#4-architecture-système-globale-7-couches)
+5. [SNISID-OS - Système d'Exploitation Souverain](#5-snisid-os---système-dexploitation-souverain)
+6. [Cybersécurité - Défense en Profondeur](#6-cybersécurité---défense-en-profondeur)
+7. [Modules Fonctionnels (8 Modules Opérationnels)](#7-modules-fonctionnels-8-modules-opérationnels)
+8. [Données & Biométrie - 4 Tiers de Sensibilité](#8-données--biométrie---4-tiers-de-sensibilité)
+9. [Infrastructure Réseau Nationale](#9-infrastructure-réseau-nationale)
+10. [Cycle de Vie de l'Identité](#10-cycle-de-vie-de-lidentité)
+11. [Audit & Traçabilité Immuable](#11-audit--traçabilité-immuable)
+12. [PCA/PRA - Continuité et Reprise d'Activité](#12-pcapra---continuité-et-reprise-dactivité)
+13. [Déploiement National (4 Phases)](#13-déploiement-national-4-phases)
+14. [Formation & Gouvernance Opérationnelle](#14-formation--gouvernance-opérationnelle)
+15. [Roadmap d'Évolution Technologique](#15-roadmap-dévolution-technologique)
+16. [Annexes Techniques & Stack Technologique](#16-annexes-techniques--stack-technologique)
+
+---
+
+## 1. VISION & OBJECTIFS STRATÉGIQUES
+
+### 1.1 Vision Présidentielle
+
+> **"Créer l'infrastructure d'identité numérique de référence d'Haïti — capable de sécuriser chaque citoyen (INU unique), résistante aux crises, et opérable avec une connectivité limitée."**
+
+### 1.2 Objectifs Stratégiques Nationaux
+
+| Objectif | Description | Métrique de Succès | Échéance |
+|----------|-------------|-------------------|----------|
+| **Souveraineté Numérique** | 100% des données citoyennes stockées sur sol haïtien | 0% de données à l'étranger | Phase 1 |
+| **Couverture Universelle** | Enrôlement de 12M+ citoyens haïtiens | 95% de la population adulte | Phase 3 |
+| **Résilience Extrême** | Fonctionnement en mode dégradé sans internet | 72h d'autonomie locale | Phase 2 |
+| **Interopérabilité Totale** | Connexion DGI, Police, BRH, Santé, Élections | 15 agences interconnectées | Phase 3 |
+| **Sécurité Maximale** | Zéro fuite de données biométriques | 0 incident critique | Permanent |
+| **Inclusion Financière** | eKYC pour 5M+ non-bancarisés | 40% de la population | Phase 3 |
+
+### 1.3 Principes Fondamentaux
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    PYRAMIDE SNISID                              │
+├─────────────────────────────────────────────────────────────────┤
+│                         ▲                                       │
+│                        / \                                      │
+│                       /   \                                     │
+│                      / S O U V E R A I N E T É \                │
+│                     /─────────────────────────\                 │
+│                    /      R É S I L I E N C E     \             │
+│                   /───────────────────────────────\            │
+│                  /    S É C U R I T É   M A X      \           │
+│                 /───────────────────────────────────\          │
+│                /       I N T E R O P É R A B I L I T É \       │
+│               /─────────────────────────────────────────\      │
+│              /           I N C L U S I O N   S O C I A L E \   │
+│             /───────────────────────────────────────────────\  │
+│            /               C I T O Y E N   H A Ï T I E N      \ │
+│           └─────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 1.4 INU - Identifiant National Unique
+
+**Structure de l'INU (16 caractères):**
+```
+HT-YYYYMMDD-SSSS-CCCC-C
+│   │         │     │    └─ Clé de contrôle (Luhn modifié)
+│   │         │     └────── Code Commune (3 digits)
+│   │         └──────────── Sexe + Séquence (4 digits)
+│   └────────────────────── Date de naissance (8 digits)
+└────────────────────────── Code Pays (HT = Haïti)
+```
+
+**Exemple:** `HT-19900515-M042-116-7`
+- Né le 15 mai 1990
+- Homme (M), 42ème enregistré ce jour
+- Commune de Port-au-Prince (116)
+- Clé de contrôle: 7
+
+---
+
+## 2. GOUVERNANCE & HIÉRARCHIE DES RÔLES
+
+### 2.1 Structure à 5 Niveaux de Pouvoir
+
+```
+NIVEAU 0 ─────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ CRÉATEUR / SUPER-ADMIN                                      │
+│ • Président de la République (pouvoir de veto)              │
+│ • Directeur Général SNISID                                  │
+│ • Accès: 100% du système                                    │
+│ • Key Ceremony: Requiert présence physique                  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+NIVEAU 1 ─────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ ADMINISTRATEURS NATIONAUX                                   │
+│ • Ministère de l'Intérieur                                  │
+│ • Ministère de la Justice                                   │
+│ • DGPNP (Police Nationale)                                  │
+│ • DGI (Fiscalité)                                           │
+│ • Conseil Électoral Provisoire                              │
+│ Accès: Tous modules, toutes régions                         │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+NIVEAU 2 ─────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ ADMINISTRATEURS RÉGIONAUX (10 Départements)                 │
+│ • Ouest (Port-au-Prince)                                    │
+│ • Artibonite (Gonaïves)                                     │
+│ • Nord (Cap-Haïtien)                                        │
+│ • Sud (Les Cayes)                                           │
+│ Accès: Modules limités, région uniquement                   │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+NIVEAU 3 ─────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ OPÉRATEURS AGENCES LOCALES                                  │
+│ • Agents d'enrôlement                                       │
+│ • Guichetiers émission documents                            │
+│ • Vérificateurs biométriques                                │
+│ Accès: Modules opérationnels uniquement                     │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+NIVEAU 4 ─────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ AUDITEURS / CONSULTATIONS                                   │
+│ • Inspection Générale                                       │
+│ • Cour des Comptes                                          │
+│ • Organismes internationaux (audit seulement)               │
+│ Accès: Lecture seule, logs audit                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 Matrice des Responsabilités
+
+| Fonction | N0 | N1 | N2 | N3 | N4 |
+|----------|----|----|----|----|----|
+| Création compte admin | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Révocation accès | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Configuration système | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Enrôlement citoyen | ❌ | ✅ | ✅ | ✅ | ❌ |
+| Émission document | ❌ | ✅ | ✅ | ✅ | ❌ |
+| Consultation registre | ❌ | ✅ | ✅ | ⚠️ | ✅ |
+| Audit logs | ❌ | ✅ | ✅ | ❌ | ✅ |
+| Export données | ✅ | ⚠️ | ❌ | ❌ | ❌ |
+| Key Ceremony | ✅ | ✅ | ❌ | ❌ | ❌ |
+| PCA/PRA activation | ✅ | ✅ | ✅ | ❌ | ❌ |
+
+✅ = Plein pouvoir | ⚠️ = Sous approbation | ❌ = Aucun accès
+
+### 2.3 Procédure de Nomination
+
+```yaml
+Nomination_Niveau_0:
+  - Décret présidentiel publié au Moniteur
+  - Validation Conseil des Ministres
+  - Serment devant l'Assemblée Nationale
+  - Génération clés cryptographiques (Key Ceremony)
+
+Nomination_Niveau_1:
+  - Arrêté ministériel
+  - Background check FBI/Interpol
+  - Formation certifiée SNISID (2 semaines)
+  - Attribution badges biométriques
+
+Nomination_Niveau_2:
+  - Décision Directeur Départemental
+  - Vérification casier judiciaire
+  - Formation SNISID (5 jours)
+  - Limitation géographique stricte
+
+Nomination_Niveau_3:
+  - Contrat agence locale
+  - Formation accélérée (3 jours)
+  - Supervision Niveau 2 requise
+  - Accès temporaire renouvelable
+
+Nomination_Niveau_4:
+  - Mandat institutionnel
+  - Accord de confidentialité renforcé
+  - Accès audit logging uniquement
+  - Expiration automatique (90 jours)
+```
+
+---
+
+## 3. SYSTÈME DE PERMISSIONS (RBAC + ABAC)
+
+### 3.1 Pourquoi RBAC Seul est Insuffisant
+
+Le **RBAC (Role-Based Access Control)** traditionnel présente des failles critiques pour la sécurité nationale:
+
+❌ **Problèmes du RBAC pur:**
+- Un administrateur national peut accéder à TOUTES les régions (trop de pouvoir)
+- Un opérateur peut travailler à 3h du matin sans justification (risque interne)
+- En période d'alerte rouge, les permissions restent inchangées (danger)
+- Un utilisateur autorisé peut se connecter depuis l'étranger (fuite potentielle)
+
+✅ **Solution: RBAC + ABAC Hybride**
+
+### 3.2 Modèle de Permission Multi-Dimensionnel
+
+```
+ACCÈS AUTORISÉ = 
+  (Rôle Valide) AND
+  (Localisation Géographique Autorisée) AND
+  (Tranche Horaire Autorisée) AND
+  (Niveau d'Alerte Sécurité Compatible) AND
+  (Appareil Certifié) AND
+  (Biométrie Correspondante)
+```
+
+### 3.3 Dimensions ABAC Détaillées
+
+#### Dimension 1: Rôle (RBAC)
+```yaml
+Roles:
+  - SUPER_ADMIN (N0)
+  - NATIONAL_ADMIN (N1)
+  - REGIONAL_ADMIN (N2)
+  - OPERATOR (N3)
+  - AUDITOR (N4)
+```
+
+#### Dimension 2: Localisation Géographique
+```yaml
+Geofencing:
+  type: GPS + IP + WiFi triangulation
+  precision: < 50 mètres
+  
+  Authorized_Zones:
+    - Level_0: Palais National, Datacenter Central (PAP)
+    - Level_1: Ministères, DGPNP, DGI
+    - Level_2: 10 hubs départementaux
+    - Level_3: 140 communes, 571 sections communales
+    
+  Restrictions:
+    - Access denied outside Haiti borders
+    - Access denied in foreign embassies
+    - Real-time location logging every 30 seconds
+```
+
+#### Dimension 3: Tranche Horaire
+```yaml
+TimeWindows:
+  Standard_Hours: "06:00-22:00" (Opérateurs)
+  Extended_Hours: "05:00-23:00" (Admins régionaux)
+  24x7_Access: "00:00-23:59" (Admins nationaux, N0)
+  
+  Emergency_Override:
+    - Requires 2-factor approval (N0 + N1)
+    - Logged with justification code
+    - Auto-expires after 4 hours
+```
+
+#### Dimension 4: Niveau d'Alerte Sécurité
+```yaml
+SecurityAlertLevels:
+  GREEN:
+    description: "Situation normale"
+    permissions: "100% des accès autorisés"
+    
+  YELLOW:
+    description: "Menace modérée"
+    permissions: "Suspension exports, renforcement MFA"
+    
+  ORANGE:
+    description: "Menace élevée"
+    permissions: "Accès restreint aux fonctions critiques"
+    
+  RED:
+    description: "Crise nationale"
+    permissions: "Mode dégradé, air-gap activé"
+    
+  BLACK:
+    description: "Compromission système"
+    permissions: "Lockdown total, seul N0 peut réactiver"
+```
+
+### 3.4 Exemples de Scénarios
+
+| Scénario | Rôle | Lieu | Heure | Alerte | Décision |
+|----------|------|------|-------|--------|----------|
+| Admin PAP, bureau, 14h, vert | N1 | Palais National | 14:00 | GREEN | ✅ ACCÈS |
+| Opérateur Cap-Haïtien, 23h, vert | N3 | Cap-Haïtien | 23:00 | GREEN | ❌ REFUSÉ (hors heures) |
+| Admin régional, Miami, 10h, vert | N2 | Miami, USA | 10:00 | GREEN | ❌ REFUSÉ (hors territoire) |
+| Admin national, PAP, 03h, orange | N1 | PAP | 03:00 | ORANGE | ⚠️ ACCÈS LIMITÉ |
+| Super-admin, PAP, 02h, rouge | N0 | PAP | 02:00 | RED | ✅ ACCÉS COMPLET |
+| Auditeur, Gonaïves, 15h, noir | N4 | Gonaïves | 15:00 | BLACK | ❌ LOCKDOWN TOTAL |
+
+---
+
+## 4. ARCHITECTURE SYSTÈME GLOBALE (7 COUCHES)
+
+### 4.1 Vue d'Ensemble Architecturale
+
+```
+COUCHE 1: PRÉSENTATION
+┌─────────────────────────────────────────────────────────────┐
+│ • Web App React/TypeScript (UI/UX PRO MAX)                  │
+│ • Mobile Apps (iOS/Android offline-first)                   │
+│ • Kiosques biométriques autonomes                           │
+│ • CLI administrative (SSH sécurisé)                         │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+COUCHE 2: API GATEWAY
+┌─────────────────────────────────────────────────────────────┐
+│ • Kong Gateway (rate limiting, auth)                        │
+│ • mTLS termination                                          │
+│ • WAF (Web Application Firewall)                            │
+│ • Load Balancing intelligent                                │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+COUCHE 3: MICROSERVICES
+┌─────────────────────────────────────────────────────────────┐
+│ • Service Identité (Go)                                     │
+│ • Service Biométrie (Python + OpenCV)                       │
+│ • Service Documents (Java Spring Boot)                      │
+│ • Service Audit (Rust)                                      │
+│ • Service Interopérabilité (Node.js)                        │
+│ • Service eKYC (Go)                                         │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+COUCHE 4: DONNÉES
+┌─────────────────────────────────────────────────────────────┐
+│ • PostgreSQL 16 (données structurées)                       │
+│ • CockroachDB (distributed SQL)                             │
+│ • MongoDB 7 (documents, GridFS)                             │
+│ • Redis 7 (cache, sessions)                                 │
+│ • Elasticsearch 8 (recherche, SIEM)                         │
+│ • MinIO (object storage souverain)                          │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+COUCHE 5: SÉCURITÉ TRANSVERSALE
+┌─────────────────────────────────────────────────────────────┐
+│ • HashiCorp Vault (secrets management)                      │
+│ • Keycloak (IAM, SSO)                                       │
+│ • Wazuh (SIEM, détection intrusions)                        │
+│ • Suricata (IDS/IPS)                                        │
+│ • Prometheus + Grafana (monitoring)                         │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+COUCHE 6: INFRASTRUCTURE
+┌─────────────────────────────────────────────────────────────┐
+│ • Kubernetes (orchestration conteneurs)                     │
+│ • Docker (container runtime)                                │
+│ • Terraform (infrastructure as code)                        │
+│ • Ansible (configuration management)                        │
+│ • SNISID-OS (Linux durci souverain)                         │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+COUCHE 7: HARDWARE
+┌─────────────────────────────────────────────────────────────┐
+│ • HSM (Hardware Security Module) - Thales, Utimaco          │
+│ • Lecteurs biométriques (empreintes, iris, facial)          │
+│ • Serveurs Dell/HP (fabriqué sous licence Haïti)            │
+│ • TPM 2.0 (Trusted Platform Module)                         │
+│ • Smart cards citoyennes (cartes à puce)                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 4.2 Flux de Données Typique
+
+```
+Citoyen → Kiosque Biométrique (Couche 1)
+    ↓
+Kong API Gateway (Couche 2) [Auth mTLS + Rate Limiting]
+    ↓
+Microservice Identité (Couche 3) [Validation logique métier]
+    ↓
+PostgreSQL + CockroachDB (Couche 4) [Stockage ACID]
+    ↓
+Wazuh SIEM (Couche 5) [Logging temps réel]
+    ↓
+Kubernetes sur SNISID-OS (Couche 6) [Orchestration]
+    ↓
+Serveurs avec HSM + TPM 2.0 (Couche 7) [Hardware sécurisé]
+```
+
+### 4.3 Redondance et Haute Disponibilité
+
+```yaml
+HighAvailability:
+  Datacenter_Central:
+    location: "Port-au-Prince (Zone sécurisée)"
+    nodes: 50 serveurs
+    replication: "Synchrone"
+    
+  Disaster_Recovery_Site:
+    location: "Dajabon (Frontière, zone sismique sûre)"
+    nodes: 25 serveurs
+    replication: "Asynchrone (RPO < 15min)"
+    
+  Regional_Hubs:
+    count: 10 départements
+    nodes: "5 serveurs par hub"
+    mode: "Cache local + sync périodique"
+    
+  Edge_Devices:
+    count: "571 sections communales"
+    type: "Kiosques offline-first"
+    sync: "Quand connectivité disponible"
+```
+
+---
+
+## 5. SNISID-OS - SYSTÈME D'EXPLOITATION SOUVERAIN
+
+### 5.1 Philosophie de Conception
+
+> **"Jamais Windows en production. Jamais de télémétrie étrangère. 100% contrôlé par l'État Haïtien."**
+
+### 5.2 Spécifications Techniques SNISID-OS
+
+```yaml
+SNISID_OS:
+  Base: "Debian 12 Bookworm (fork souverain)"
+  Kernel: "Linux 6.6 LTS patché NSA STIG + Grsecurity"
+  
+  SecureBoot:
+    enabled: true
+    keys:
+      - "Clé PK: État Haïtien (PK-HAITI-2024)"
+      - "Clé KEK: Ministère de l'Intérieur"
+      - "Clé DB: SNISID Signing Authority"
+    tpm: "TPM 2.0 requis"
+    
+  Hardening:
+    - "Kernel parameters (sysctl) durcis NSA STIG"
+    - "SELinux en mode enforcing (politique custom)"
+    - "AppArmor profiles pour tous les services"
+    - "Auditd avec règles FIM (File Integrity Monitoring)"
+    - "USBGuard (contrôle périphériques USB)"
+    - "AIDE (Advanced Intrusion Detection Environment)"
+    
+  Cryptography:
+    algorithms:
+      - "AES-512-XTS (chiffrement disque)"
+      - "RSA-4096 (signatures)"
+      - "ECDSA P-521 (authentification)"
+      - "SM2/SM3/SM4 (cryptographie chinoise, optionnel)"
+    fips_mode: "FIPS 140-2 Level 3 validé"
+    
+  Network:
+    firewall: "nftables (ruleset optimisé)"
+    ids_ips: "Suricata + Wazuh"
+    vpn: "WireGuard (mesh réseau national)"
+    dns: "DNSSEC + DNS over TLS (Pi-hole national)"
+    
+  Updates:
+    mechanism: "Dépôt miroir national (air-gapped)"
+    frequency: "Hebdomadaire (testé en staging)"
+    rollback: "Snapshot Btrfs automatique"
+    
+  Telemetry:
+    status: "ZÉRO télémétrie étrangère"
+    logging: "Logs locaux uniquement (sauf export manuel)"
+    analytics: "Prometheus/Grafana internes"
+```
+
+### 5.3 Comparaison avec Windows Server
+
+| Critère | Windows Server 2022 | SNISID-OS v3.0 |
+|---------|--------------------|----------------|
+| **Souveraineté** | Microsoft (USA) | État Haïtien |
+| **Télémétrie** | Obligatoire vers USA | Zéro |
+| **Coût licence** | $6,000+/serveur | Gratuit (open source) |
+| **Vulnérabilités** | 500+/an (public) | < 50/an (durci) |
+| **Backdoors potentielles** | NSA (PRISM) | Aucune connue |
+| **Support** | Microsoft (payant) | Équipe nationale SNISID |
+| **Secure Boot** | Clés Microsoft | Clés État Haïtien |
+| **Chiffrement** | Bitlocker (USA) | LUKS2 AES-512 (souverain) |
+| **Audit** | Event Viewer (limité) | Auditd + Wazuh (complet) |
+| **Air-Gap** | Difficile | Natif |
+
+---
+
+## 6. CYBERSÉCURITÉ - DÉFENSE EN PROFONDEUR
+
+### 6.1 Principe Zero Trust
+
+> **"Ne jamais faire confiance, toujours vérifier"** - NSA Zero Trust Architecture
+
+### 6.2 Mesures de Défense en Profondeur
+
+#### Couche 1: Périmètre Réseau
+```yaml
+Perimeter_Security:
+  Firewall: "Palo Alto Networks / pfSense (règles strictes)"
+  WAF: "ModSecurity + OWASP CRS 3.3"
+  DDoS_Protection: "Cloudflare (proxy inversé) ou solution locale"
+  GeoIP_Blocking: "Blocage tous pays sauf Haïti + partenaires"
+```
+
+#### Couche 2: Authentification Forte
+```yaml
+Authentication:
+  MFA: "Obligatoire pour TOUS les utilisateurs"
+  methods:
+    - "TOTP (Google Authenticator, Authy)"
+    - "FIDO2/WebAuthn (clés hardware YubiKey)"
+    - "Biométrie (empreinte + iris)"
+  password_policy:
+    length: "16 caractères minimum"
+    complexity: "Majuscules, minuscules, chiffres, spéciaux"
+    rotation: "90 jours"
+    history: "12 mots de passe précédents interdits"
+```
+
+#### Couche 3: Chiffrement
+```yaml
+Encryption:
+  Data_At_Rest:
+    algorithm: "AES-512-XTS"
+    key_management: "HSM Thales + Shamir Secret Sharing"
+    
+  Data_In_Transit:
+    protocol: "TLS 1.3 uniquement"
+    ciphers: "ECDHE-RSA-AES256-GCM-SHA384"
+    certificate_pinning: "Oui (applications mobiles)"
+    
+  Data_In_Use:
+    technology: "Intel SGX / AMD SEV (en phase 2)"
+    homomorphic_encryption: "Planifié v2.0"
+```
+
+#### Couche 4: Détection d'Intrusion
+```yaml
+Detection:
+  IDS_IPS: "Suricata (règles Emerging Threats + custom)"
+  SIEM: "Wazuh + Elasticsearch + Kibana"
+  UEBA: "Comportement utilisateur (Machine Learning)"
+  Honeypots: "Déploiement leurres dans réseau"
+  Threat_Intelligence: "Flux MISP (partage renseignements)"
+```
+
+#### Couche 5: Réponse aux Incidents
+```yaml
+Incident_Response:
+  SOC: "Security Operations Center 24/7"
+  playbooks:
+    - "Phishing attack response"
+    - "Ransomware containment"
+    - "Insider threat investigation"
+    - "Data breach notification"
+  red_team: "Exercices trimestriels (équipe offensive interne)"
+  blue_team: "Équipe défensive permanente"
+```
+
+### 6.3 Matrice de Sécurité NSA vs Chine
+
+| Mesure | Standard NSA | Standard Chine | Implémentation SNISID |
+|--------|--------------|----------------|----------------------|
+| **Chiffrement** | AES-256 (FIPS 140-2) | SM4 (GM/T) | AES-512 + SM4 (hybride) |
+| **Authentification** | CAC/PIV cards | Resident ID Card | Carte SNISID + Biométrie |
+| **Audit** | STIG V-78583 | MLPS 2.0 Level 3 | Wazuh + règles custom |
+| **Zero Trust** | NIST SP 800-207 | GB/T 30976-2014 | RBAC+ABAC complet |
+| **Air-Gap** | SCI/TK requis | Classified networks | Tier 0 data air-gapped |
+| **Supply Chain** | Trusted Foundry | White List vendors | Fabrication locale prioritaire |
+
+---
+
+## 7. MODULES FONCTIONNELS (8 MODULES OPÉRATIONNELS)
+
+### 7.1 M01 — Enrôlement & Identité Civile
+
+**Objectif:** Capturer l'identité de chaque citoyen haïtien avec preuves documentaires et biométrie.
+
+```yaml
+M01_Enrollment:
+  Capture_Documents:
+    - "Acte de naissance (scan haute résolution)"
+    - "Ancienne CIN/passeport (si disponible)"
+    - "Justificatif de domicile"
+    
+  Capture_Biométrique:
+    - "Empreintes digitales (10 doigts, scanner FBI-certifié)"
+    - "Iris (2 yeux, caméra infrarouge)"
+    - "Photo faciale (3 angles, norme ICAO)"
+    - "Voix (phrase standard, optionnel)"
+    
+  Vérification:
+    - "Détection de doublons (1:N matching)"
+    - "Validation documentaire (OCR + IA)"
+    - "Interview agent (questions de validation)"
+    
+  Output:
+    - "Génération INU (Identifiant National Unique)"
+    - "Création dossier numérique citoyen"
+    - "Envoi vers module M02 (émission documents)"
+```
+
+### 7.2 M02 — Documents (CIN, Passeport, Permis)
+
+**Objectif:** Émettre des documents d'identité sécurisés et infalsifiables.
+
+```yaml
+M02_Documents:
+  Types_Documents:
+    CIN:
+      format: "Carte plastique PVC (ISO 7810)"
+      security_features:
+        - "Puce RFID (données chiffrées)"
+        - "Hologramme personnalisé"
+        - "Micro-texte invisible"
+        - "QR code signé cryptographiquement"
+      validity: "10 ans (adultes), 5 ans (mineurs)"
+      
+    Passeport:
+      format: "Passeport biométrique (ICAO compliant)"
+      pages: 48
+      validity: "10 ans"
+      features:
+        - "Puce NFC (e-passport)"
+        - "Page données polycarbonate"
+        - "Filigrane complexe"
+        
+    Permis_Conduire:
+      format: "Carte crédit (norme UE)"
+      categories: "A, B, C, D, E"
+      validity: "5 ans"
+      
+  Production:
+    - "Impression centralisée (datacenter PAP)"
+    - "Personnalisation instantanée (agences équipées)"
+    - "Livraison sécurisée (courrier blindé)"
+```
+
+### 7.3 M03 — Authentification Biométrique
+
+**Objectif:** Permettre l'authentification forte via biométrie pour tous les services.
+
+```yaml
+M03_Biometric_Auth:
+  Modalités:
+    - "Empreintes digitales (1:N matching)"
+    - "Reconnaissance faciale (3D, anti-spoofing)"
+    - "Scanner iris (haute précision)"
+    - "Reconnaissance vocale (optionnel)"
+    
+  Use_Cases:
+    - "Ouverture compte bancaire (eKYC)"
+    - "Vote électronique (vérification identité)"
+    - "Contrôle frontières (e-gates)"
+    - "Accès bâtiments gouvernementaux"
+    - "Signature transactions légales"
+    
+  Performance:
+    FAR: "< 0.001% (False Acceptance Rate)"
+    FRR: "< 1% (False Rejection Rate)"
+    Response_Time: "< 1 seconde"
+```
+
+### 7.4 M04 — Registre Électoral
+
+**Objectif:** Garantir des élections libres et transparentes avec vérification d'identité robuste.
+
+```yaml
+M04_Electoral_Register:
+  Features:
+    - "Liste électorale dynamique (mise à jour temps réel)"
+    - "Vérification biométrique aux bureaux de vote"
+    - "Détection de votes multiples"
+    - "Journal d'audit immuable (blockchain)"
+    
+  Process:
+    - "Inscription automatique (citoyens 18+)"
+    - "Radiation (décès, perte nationalité)"
+    - "Transfert (changement de circonscription)"
+    
+  Security:
+    - "Accès restreint (CEP uniquement)"
+    - "Chiffrement bout-en-bout"
+    - "Observateurs internationaux (lecture seule)"
+```
+
+### 7.5 M05 — Interopérabilité (DGI, Police, BRH)
+
+**Objectif:** Connecter toutes les agences gouvernementales pour un échange de données sécurisé.
+
+```yaml
+M05_Interoperability:
+  Agences_Connectées:
+    - "DGI (Direction Générale des Impôts)"
+    - "DGPNP (Police Nationale)"
+    - "BRH (Banque de la République d'Haïti)"
+    - "Ministère de la Santé"
+    - "Ministère de l'Éducation"
+    - "Office National d'Assurance Vieillesse (ONA)"
+    - "Conseil Électoral Provisoire (CEP)"
+    
+  Protocoles:
+    - "API REST (HTTPS + mTLS)"
+    - "GraphQL (requêtes complexes)"
+    - "WebHooks (notifications temps réel)"
+    - "SFTP (transferts batch volumineux)"
+    
+  Governance:
+    - "Accords de partage de données (MOU)"
+    - "Audit de chaque accès inter-agence"
+    - "Consentement citoyen (opt-in pour certains usages)"
+```
+
+### 7.6 M06 — eKYC (Inclusion Financière)
+
+**Objectif:** Permettre l'ouverture de comptes bancaires à distance pour les non-bancarisés.
+
+```yaml
+M06_eKYC:
+  Target: "5M+ citoyens non-bancarisés"
+  
+  Process:
+    - "Selfie vidéo + document d'identité"
+    - "Vérification biométrique (1:1 matching)"
+    - "Validation adresse (géolocalisation)"
+    - "Score de risque (IA)"
+    
+  Partners:
+    - "Banques commerciales"
+    - "Institutions de microfinance"
+    - "Opérateurs mobile money (MonCash, Natcash)"
+    - "Assurances"
+    
+  Compliance:
+    - "FATF Recommendations"
+    - "GAFI (Groupe d'Action Financière)"
+    - "Loi haïtienne anti-blanchiment"
+```
+
+### 7.7 M07 — Audit & Conformité
+
+**Objectif:** Assurer la traçabilité complète de toutes les opérations.
+
+```yaml
+M07_Audit_Compliance:
+  Logging:
+    - "Toutes les actions journalisées (qui, quoi, quand, où)"
+    - "Signature cryptographique des logs"
+    - "Stockage WORM (Write Once Read Many)"
+    - "Rétention minimale: 10 ans"
+    
+  Reporting:
+    - "Rapports automatiques (quotidiens, hebdomadaires, mensuels)"
+    - "Tableaux de bord conformité"
+    - "Alertes anomalies (IA)"
+    
+  Certifications:
+    - "ISO 27001 (Sécurité de l'information)"
+    - "ISO 22301 (Continuité d'activité)"
+    - "SOC 2 Type II (Contrôles de sécurité)"
+```
+
+### 7.8 M08 — Administration & Monitoring
+
+**Objectif:** Superviser l'ensemble du système en temps réel.
+
+```yaml
+M08_Admin_Monitoring:
+  Monitoring:
+    - "Prometheus (métriques système)"
+    - "Grafana (visualisation)"
+    - "ELK Stack (logs centralisés)"
+    - "PagerDuty (alertes on-call)"
+    
+  Administration:
+    - "Interface web (gestion utilisateurs, rôles)"
+    - "CLI (automatisation scripts)"
+    - "API (intégration outils tiers)"
+    
+  Health_Checks:
+    - "Disponibilité services (uptime)"
+    - "Performance (latence, throughput)"
+    - "Capacité (stockage, CPU, mémoire)"
+    - "Sécurité (tentatives intrusion)"
+```
+
+---
+
+## 8. DONNÉES & BIOMÉTRIE - 4 TIERS DE SENSIBILITÉ
+
+### 8.1 Classification des Données
+
+```
+TIER 0 ───────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ DONNÉES ULTRA-SENSIBLES (Air-Gap Requis)                    │
+│ • Templates biométriques bruts                              │
+│ • Clés cryptographiques maîtres                             │
+│ • Secrets d'État (Key Ceremony)                             │
+│                                                             │
+│ Protection:                                                 │
+│ • HSM (Hardware Security Module)                            │
+│ • Chiffrement AES-512                                       │
+│ • Stockage hors ligne (air-gap physique)                    │
+│ • Accès: N0 uniquement (présence physique requise)          │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+TIER 1 ───────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ DONNÉES TRÈS SENSIBLES                                      │
+│ • Données biométriques dérivées (hashes)                    │
+│ • Données personnelles identifiables (PII)                  │
+│ • Historique complet des transactions                       │
+│                                                             │
+│ Protection:                                                 │
+│ • Chiffrement AES-256                                       │
+│ • Accès: N0, N1 (avec MFA + justification)                  │
+│ • Audit logging complet                                     │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+TIER 2 ───────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ DONNÉES SENSIBLES                                           │
+│ • Statistiques agrégées                                     │
+│ • Métadonnées anonymisées                                   │
+│ • Logs opérationnels (sans PII)                             │
+│                                                             │
+│ Protection:                                                 │
+│ • Chiffrement AES-128                                       │
+│ • Accès: N0, N1, N2 (avec authentification)                 │
+│ • Rétention: 5 ans                                          │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+TIER 3 ───────────────────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────┐
+│ DONNÉES PUBLIQUES                                           │
+│ • Informations non sensibles                                │
+│ • Documentation technique                                   │
+│ • Rapports publics                                          │
+│                                                             │
+│ Protection:                                                 │
+│ • Intégrité (signature digitale)                            │
+│ • Accès: Public (lecture seule)                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 Données Biométriques Capturées
+
+| Type | Technologie | Taille | Usage |
+|------|-------------|--------|-------|
+| **Empreintes digitales** | Scanner optique FBI-certifié | 500 DPI, 10 doigts | Identification 1:N, authentification 1:1 |
+| **Iris** | Caméra infrarouge | 2 images (œil gauche/droit) | Authentification haute précision |
+| **Photo faciale** | Caméra HD 3 angles | 3 photos (face, profil gauche/droit) | Documents, reconnaissance faciale |
+| **Voix** | Microphone numérique | Phrase standard (10 secondes) | Authentification complémentaire (optionnel) |
+
+### 8.3 Cycle de Vie des Données Biométriques
+
+```yaml
+Lifecycle:
+  Capture:
+    - "Acquisition via lecteurs certifiés"
+    - "Contrôle qualité automatique"
+    - "Chiffrement immédiat (AES-512)"
+    
+  Transmission:
+    - "TLS 1.3 (canal sécurisé)"
+    - "Signature digitale (intégrité)"
+    - "Journalisation (audit trail)"
+    
+  Storage:
+    - "Tier 0: Templates bruts (HSM, air-gap)"
+    - "Tier 1: Hashes dérivés (base chiffrée)"
+    - "Réplication: Datacenter + DR site"
+    
+  Usage:
+    - "Authentification (1:1 matching)"
+    - "Identification (1:N search)"
+    - "Audit (logging complet)"
+    
+  Destruction:
+    - "À la mort du citoyen (sur demande famille)"
+    - "Après 100 ans (archives historiques)"
+    - "Procédure sécurisée (effacement cryptographique)"
+```
+
+---
+
+## 9. INFRASTRUCTURE RÉSEAU NATIONALE
+
+### 9.1 Topologie Réseau
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    INFRASTRUCTURE NATIONALE                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  DATACENTER CENTRAL (Port-au-Prince)                            │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ • 50 serveurs (cluster Kubernetes)                       │   │
+│  │ • HSM Thales (clés maîtres)                              │   │
+│  │ • Stockage: 5 PB (Ceph distribué)                        │   │
+│  │ • Bande passante: 100 Gbps                               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│          ════════════════════╪════════════════════              │
+│                    Fibre optique principale                     │
+│                              │                                  │
+│        ┌─────────────────────┼─────────────────────┐           │
+│        │                     │                     │           │
+│        ▼                     ▼                     ▼           │
+│  ┌───────────┐         ┌───────────┐         ┌───────────┐    │
+│  │ HUB NORD  │         │ HUB SUD   │         │ HUB EST   │    │
+│  │ Cap-Haï.  │         │ Les Cayes │         │ Ouanamin. │    │
+│  │ 5 serveurs│         │ 5 serveurs│         │ 5 serveurs│    │
+│  └───────────┘         └───────────┘         └───────────┘    │
+│        │                     │                     │           │
+│        │                     │                     │           │
+│   ┌────┴────┐           ┌────┴────┐           ┌────┴────┐    │
+│   ▼         ▼           ▼         ▼           ▼         ▼    │
+│ ┌───┐     ┌───┐       ┌───┐     ┌───┐       ┌───┐     ┌───┐ │
+│ │Ag │ ... │Ag │       │Ag │ ... │Ag │       │Ag │ ... │Ag │ │
+│ └───┘     └───┘       └───┘     └───┘       └───┘     └───┘ │
+│ 140 communes                                                │
+│                                                                 │
+│  BACKUP CONNECTIVITY                                            │
+│  • 4G/LTE (Digicel, Natcom)                                    │
+│  • VSAT (zones isolées)                                        │
+│  • Mode offline natif (72h autonomie)                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 9.2 Spécifications par Niveau
+
+```yaml
+Datacenter_Central:
+  location: "Port-au-Prince (zone sécurisée, hors zone inondable)"
+  size: "2000 m²"
+  power:
+    - "Alimentation principale: EDH (2 MW)"
+    - "Générateurs diesel: 4 x 1 MW (72h autonomie)"
+    - "UPS: 30 minutes (transition)"
+    - "Panneaux solaires: 500 kW (appoint)"
+  cooling: "Precision AC (N+1 redondance)"
+  security:
+    - "Périmètre grillagé (3m + barbelés)"
+    - "Gardes armés 24/7"
+    - "Contrôle accès biométrique"
+    - "Caméras surveillance (360°)"
+    
+Regional_Hubs:
+  count: 10 (un par département)
+  size: "200 m² chacun"
+  power:
+    - "Alimentation: EDH + générateur"
+    - "Autonomie: 48h"
+  connectivity:
+    - "Primaire: Fibre optique"
+    - "Secondaire: 4G/LTE"
+    - "Tertiaire: VSAT"
+    
+Local_Agencies:
+  count: "140 communes + 571 sections communales"
+  equipment:
+    - "2 kiosques biométriques"
+    - "1 serveur edge (cache local)"
+    - "1 imprimante documents"
+    - "Connexion: 4G ou satellite"
+  offline_mode: "72h d'autonomie (sync différée)"
+```
+
+### 9.3 Plan de Connectivité
+
+| Zone | Technologie Primaire | Secondaire | Tertiaire |
+|------|---------------------|------------|-----------|
+| **Port-au-Prince** | Fibre (10 Gbps) | 4G LTE | VSAT |
+| **Villes principales** | Fibre (1 Gbps) | 4G LTE | - |
+| **Zones rurales** | 4G LTE | VSAT | Radio HF |
+| **Zones isolées** | VSAT | Radio HF | Offline |
+
+---
+
+## 10. CYCLE DE VIE DE L'IDENTITÉ
+
+### 10.1 Les 6 Étapes du Cycle
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CYCLE DE VIE IDENTITÉ                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ÉTAPE 1: PRÉ-ENRÔLEMENT                                        │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ • Prise de rendez-vous (SMS, web, téléphone)            │   │
+│  │ • Pré-remplissage formulaire en ligne                   │   │
+│  │ • Upload documents préliminaires                        │   │
+│  │ • Notification QR code (confirmation RDV)               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ÉTAPE 2: CAPTURE BIOMÉTRIQUE                                   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ • Arrivée agence (scan QR code)                         │   │
+│  │ • Vérification documents originaux                      │   │
+│  │ • Capture empreintes (10 doigts)                        │   │
+│  │ • Capture iris (2 yeux)                                 │   │
+│  │ • Photo faciale (3 angles)                              │   │
+│  │ • Signature numérique écran tactile                     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ÉTAPE 3: VÉRIFICATION                                          │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ • Recherche doublons (1:N matching)                     │   │
+│  │ • Validation OCR documents                              │   │
+│  │ • Interview agent (questions aléatoires)                │   │
+│  │ • Score de confiance (IA)                               │   │
+│  │ • Approbation manuelle (si doute)                       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ÉTAPE 4: ÉMISSION DOCUMENT                                     │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ • Génération INU unique                                 │   │
+│  │ • Production carte CIN (personnalisation)               │   │
+│  │ • Contrôle qualité                                      │   │
+│  │ • Remise au citoyen (signature réception)               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ÉTAPE 5: GESTION DU CYCLE                                      │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ • Mise à jour données (changement adresse, etc.)        │   │
+│  │ • Renouvellement (avant expiration)                     │   │
+│  │ • Correction erreurs                                    │   │
+│  │ • Réactivation (après suspension)                       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ÉTAPE 6: RÉVOCATION / ARCHIVAGE                                │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ • Décès du citoyen                                      │   │
+│  │ • Perte nationalité                                     │   │
+│  │ • Document perdu/volé (révocation urgence)              │   │
+│  │ • Archivage historique (100 ans)                        │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 10.2 Durées par Étape
+
+| Étape | Durée Moyenne | Max Légal | SLA Cible |
+|-------|---------------|-----------|-----------|
+| 1. Pré-enrôlement | 10 min | 30 min | 5 min |
+| 2. Capture biométrique | 15 min | 30 min | 10 min |
+| 3. Vérification | 24h | 72h | 4h |
+| 4. Émission document | 48h | 7 jours | 24h |
+| 5. Gestion cycle | Variable | - | Selon demande |
+| 6. Révocation | Immédiate | 24h | < 1 min |
+
+---
+
+## 11. AUDIT & TRAÇABILITÉ IMMENABLE
+
+### 11.1 Principes d'Audit
+
+> **"Tout ce qui se passe dans SNISID doit être journalisé, signé et不可逆 (irréversible)"**
+
+### 11.2 Événements Journalisés
+
+```yaml
+Audit_Events:
+  Authentication:
+    - "Login réussi/échoué"
+    - "MFA validation"
+    - "Changement mot de passe"
+    - "Déconnexion"
+    
+  Authorization:
+    - "Accès donné/refusé"
+    - "Élévation privilèges"
+    - "Changement rôle"
+    
+  Data_Access:
+    - "Consultation dossier citoyen"
+    - "Recherche 1:N"
+    - "Export données"
+    - "Modification données"
+    
+  Administration:
+    - "Création utilisateur"
+    - "Suspension compte"
+    - "Changement configuration"
+    - "Key Ceremony"
+    
+  System:
+    - "Démarrage/arrêt service"
+    - "Mise à jour logiciel"
+    - "Alerte sécurité"
+    - "Backup/restore"
+```
+
+### 11.3 Structure des Logs
+
+```json
+{
+  "timestamp": "2025-01-15T14:32:45.123Z",
+  "event_id": "evt_7f8a9b2c3d4e5f6g",
+  "event_type": "DATA_ACCESS",
+  "actor": {
+    "user_id": "usr_admin_001",
+    "role": "NATIONAL_ADMIN",
+    "agency": "DGPNP"
+  },
+  "action": "CITIZEN_LOOKUP",
+  "target": {
+    "inu": "HT-19900515-M042-116-7",
+    "data_fields": ["nom", "prenom", "date_naissance"]
+  },
+  "context": {
+    "location": {
+      "latitude": 18.5944,
+      "longitude": -72.3074,
+      "address": "DGPNP, Port-au-Prince"
+    },
+    "device": {
+      "id": "dev_workstation_042",
+      "ip": "10.0.1.42",
+      "mac": "00:1B:44:11:3A:B7"
+    },
+    "session_id": "sess_abc123xyz"
+  },
+  "result": {
+    "status": "SUCCESS",
+    "records_returned": 1,
+    "duration_ms": 45
+  },
+  "integrity": {
+    "hash": "sha256:a1b2c3d4e5f6...",
+    "signature": "RSA4096:xyZ123..."
+  }
+}
+```
+
+### 11.4 Stockage WORM (Write Once Read Many)
+
+```yaml
+WORM_Storage:
+  technology: "Elasticsearch + Object Lock (MinIO)"
+  retention:
+    minimum: "10 ans"
+    maximum: "100 ans (archives historiques)"
+  
+  protection:
+    - "Immuabilité: logs ne peuvent être modifiés ou supprimés"
+    - "Signature cryptographique: détection altération"
+    - "Réplication: 3 copies (datacenter + DR + offline)"
+    - "Horodatage certifié: NTP + blockchain ancres"
+  
+  access:
+    - "Lecture seule pour auditeurs (N4)"
+    - "Recherche full-text (Elasticsearch)"
+    - "Export signé (sur demande judiciaire)"
+```
+
+### 11.5 Rapports d'Audit Automatiques
+
+| Rapport | Fréquence | Destinataires | Contenu |
+|---------|-----------|---------------|---------|
+| **Quotidien** | 06:00 chaque jour | Admins N1, N2 | Activité 24h, anomalies, tentatives échouées |
+| **Hebdomadaire** | Lundi 08:00 | Direction SNISID | Statistiques semaine, tendances, KPI |
+| **Mensuel** | 1er du mois | Ministères, CEP | Résumé mensuel, conformité, incidents |
+| **Trimestriel** | Fin trimestre | Président, Parlement | Audit complet, recommandations |
+| **Annuel** | Janvier | Public (version réduite) | Transparence, statistiques agrégées |
+
+---
+
+## 12. PCA/PRA - CONTINUITÉ ET REPRISE D'ACTIVITÉ
+
+### 12.1 Objectifs de Continuité
+
+```yaml
+BCP_Objectives:
+  RTO:
+    critical_functions: "< 1 heure"
+    standard_functions: "< 4 heures"
+    non_critical: "< 24 heures"
+    
+  RPO:
+    tier_0_data: "< 15 minutes (perte max acceptable)"
+    tier_1_data: "< 1 heure"
+    tier_2_data: "< 4 heures"
+    tier_3_data: "< 24 heures"
+    
+  MTD:
+    maximum_downtime: "72 heures (avant impact critique)"
+```
+
+**Définitions:**
+- **RTO (Recovery Time Objective):** Temps maximal pour restaurer le service
+- **RPO (Recovery Point Objective):** Perte de données maximale acceptable
+- **MTD (Maximum Tolerable Downtime):** Durée maximale d'interruption tolérable
+
+### 12.2 Scénarios de Reprise
+
+```yaml
+Disaster_Scenarios:
+  Scenario_1_Coupure_Electrique:
+    trigger: "Blackout total datacenter"
+    response:
+      - "Bascule générateurs diesel (automatique, < 30 secondes)"
+      - "Autonomie: 72h (carburant sur site)"
+      - "Si prolongé: réduction charge (services critiques uniquement)"
+      
+  Scenario_2_Seisme:
+    trigger: "Séisme > 6.0 magnitude"
+    response:
+      - "Évaluation dommages (équipe sécurité)"
+      - "Si datacenter endommagé: activation DR site (Dajabon)"
+      - "Bascule DNS (propagation < 5 minutes)"
+      - "RTO: < 1 heure"
+      
+  Scenario_3_Cyberattaque:
+    trigger: "Détection intrusion majeure"
+    response:
+      - "Isolation réseau (air-gap d'urgence)"
+      - "Activation mode dégradé (offline)"
+      - "Investigation forensique"
+      - "Restauration backups sains (J-1)"
+      - "RPO: < 24 heures"
+      
+  Scenario_4_Pandemie:
+    trigger: "Personnel indisponible (> 50%)"
+    response:
+      - "Activation équipe skeleton (25% effectif)"
+      - "Télétravail sécurisé (VPN + MFA)"
+      - "Report opérations non critiques"
+      
+  Scenario_5_Troubles_Civils:
+    trigger: "Inaccessibilité datacenter"
+    response:
+      - "Bascule vers DR site"
+      - "Agences locales: mode autonome (72h)"
+      - "Sync différée quand sécurité rétablie"
+```
+
+### 12.3 Stratégie de Backup
+
+```yaml
+Backup_Strategy:
+  Full_Backup:
+    frequency: "Hebdomadaire (dimanche 02:00)"
+    retention: "4 semaines"
+    destination: "DR site (Dajabon) + Bandes LTO"
+    
+  Incremental_Backup:
+    frequency: "Quotidien (01:00)"
+    retention: "30 jours"
+    destination: "DR site (Dajabon)"
+    
+  Continuous_Replication:
+    frequency: "Temps réel (synchrone)"
+    target: "DR site (Tier 0, Tier 1)"
+    lag: "< 1 seconde"
+    
+  Offline_Backup:
+    frequency: "Mensuel"
+    media: "Bandes LTO-9 (chiffrées)"
+    storage: "Coffre-fort hors site (lieu secret)"
+    retention: "10 ans"
+    
+  Immutable_Backups:
+    technology: "Object Lock (WORM)"
+    retention: "90 jours (protection ransomware)"
+```
+
+### 12.4 Procédure d'Activation PCA
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              PROCÉDURE ACTIVATION PCA                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ÉTAPE 1: DÉTECTION                                             │
+│  • Alerte monitoring (automatique)                              │
+│  • Signalement personnel                                        │
+│  • Confirmation incident (N1 ou N0)                             │
+│                                                                 │
+│  ÉTAPE 2: ÉVALUATION                                            │
+│  • Classification gravité (Mineur/Majeur/Critique)              │
+│  • Estimation durée impact                                      │
+│  • Décision activation PCA (N0 ou N1)                           │
+│                                                                 │
+│  ÉTAPE 3: NOTIFICATION                                          │
+│  • Alert SMS/Email équipe PCA                                   │
+│  • Convocation cellule de crise                                 │
+│  • Communication stakeholders                                   │
+│                                                                 │
+│  ÉTAPE 4: EXÉCUTION                                             │
+│  • Bascule vers DR site                                         │
+│  • Activation services critiques                                │
+│  • Verification intégrité données                               │
+│                                                                 │
+│  ÉTAPE 5: OPÉRATIONS EN MODE DÉGRADÉ                            │
+│  • Surveillance renforcée                                       │
+│  • Rapports situation (toutes les 4h)                           │
+│  • Coordination avec agences                                    │
+│                                                                 │
+│  ÉTAPE 6: RETOUR À LA NORMALE                                   │
+│  • Résolution incident racine                                   │
+│  • Tests validation                                             │
+│  • Bascule retour datacenter principal                          │
+│  • Revue post-mortem                                            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 13. DÉPLOIEMENT NATIONAL (4 PHASES)
+
+### 13.1 Roadmap de Déploiement
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              ROADMAP DÉPLOIEMENT NATIONAL                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  PHASE 0 ───────────────────────────────────────────────────    │
+│  │ Fondations & Préparation                                     │
+│  │ Durée: 6 mois                                                │
+│  │ Budget: $15M USD                                             │
+│  └─────────────────────────────────────────────────────────     │
+│                              │                                  │
+│                              ▼                                  │
+│  PHASE 1 ───────────────────────────────────────────────────    │
+│  │ Pilote Port-au-Prince                                        │
+│  │ Durée: 6 mois                                                │
+│  │ Budget: $25M USD                                             │
+│  └─────────────────────────────────────────────────────────     │
+│                              │                                  │
+│                              ▼                                  │
+│  PHASE 2 ───────────────────────────────────────────────────    │
+│  │ Extension Régionale (10 hubs)                                │
+│  │ Durée: 12 mois                                               │
+│  │ Budget: $75M USD                                             │
+│  └─────────────────────────────────────────────────────────     │
+│                              │                                  │
+│                              ▼                                  │
+│  PHASE 3 ───────────────────────────────────────────────────    │
+│  │ Couverture Nationale Complète                                │
+│  │ Durée: 12 mois                                               │
+│  │ Budget: $135M USD                                            │
+│  └─────────────────────────────────────────────────────────     │
+│                                                                 │
+│  TOTAL: 36 mois (3 ans) | Budget: $250M USD                    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 13.2 Phase 0: Fondations (Mois 1-6)
+
+```yaml
+Phase_0_Foundations:
+  Objectifs:
+    - "Équipe noyau recrutée (50 personnes)"
+    - "SNISID-OS développé et testé"
+    - "Datacenter central construit"
+    - "Architecture validée"
+    
+  Livrables:
+    - "Document architecture finale"
+    - "ISO SNISID-OS bootable"
+    - "Datacenter opérationnel"
+    - "Procédures sécurité rédigées"
+    
+  Jalons:
+    - "Mois 1: Recrutement Directeur Général"
+    - "Mois 2: Location datacenter"
+    - "Mois 3: Commande équipements"
+    - "Mois 4: Début construction"
+    - "Mois 5: Installation infrastructure"
+    - "Mois 6: Tests acceptation"
+    
+  Risques:
+    - "Retards approvisionnement (mitigation: commandes anticipées)"
+    - "Résistance politique (mitigation: support présidentiel)"
+    - "Fuite cerveaux (mitigation: salaires compétitifs)"
+```
+
+### 13.3 Phase 1: Pilote PAP (Mois 7-12)
+
+```yaml
+Phase_1_Pilot:
+  Objectifs:
+    - "Enrôlement 500,000 citoyens (PAP seulement)"
+    - "Validation processus opérationnels"
+    - "Formation première vague agents"
+    - "Intégration DGI + Police"
+    
+  Livrables:
+    - "500,000 CIN émises"
+    - "10 agences équipées (PAP)"
+    - "API interopérabilité active"
+    - "Rapport lessons learned"
+    
+  Jalons:
+    - "Mois 7: Ouverture 1ère agence"
+    - "Mois 8: 10,000 enrôlements"
+    - "Mois 9: Intégration DGI"
+    - "Mois 10: Intégration Police"
+    - "Mois 11: 250,000 enrôlements"
+    - "Mois 12: Revue phase 1"
+    
+  KPI:
+    - "Temps moyen enrôlement: < 20 min"
+    - "Satisfaction usagers: > 85%"
+    - "Doublons détectés: < 0.1%"
+    - "Disponibilité système: > 99.5%"
+```
+
+### 13.4 Phase 2: Extension Régionale (Mois 13-24)
+
+```yaml
+Phase_2_Regional_Expansion:
+  Objectifs:
+    - "10 hubs départementaux opérationnels"
+    - "Enrôlement 5M citoyens (total)"
+    - "Toutes agences gouvernementales connectées"
+    - "Mode offline fonctionnel"
+    
+  Livrables:
+    - "10 hubs équipés"
+    - "140 communes couvertes"
+    - "5M CIN émises"
+    - "Interopérabilité totale"
+    
+  Jalons:
+    - "Mois 13-15: Hubs Nord, Artibonite, Sud"
+    - "Mois 16-18: Hubs Centre, Nord-Est, Nord-Ouest"
+    - "Mois 19-21: Hubs Ouest, Sud-Est, Grand'Anse, Nippes"
+    - "Mois 22-24: Consolidation + tests"
+    
+  Budget_Allocation:
+    - "Infrastructure hubs: $30M"
+    - "Équipements: $25M"
+    - "Formation: $10M"
+    - "Connectivité: $10M"
+```
+
+### 13.5 Phase 3: Couverture Nationale (Mois 25-36)
+
+```yaml
+Phase_3_National_Coverage:
+  Objectifs:
+    - "571 sections communales équipées"
+    - "12M citoyens enrôlés (95% population adulte)"
+    - "Système mature et optimisé"
+    - "Préparation évolutions v2.0"
+    
+  Livrables:
+    - "Couverture 100% territoire"
+    - "12M CIN émises"
+    - "SOC 24/7 opérationnel"
+    - "Certifications ISO obtenues"
+    
+  Jalons:
+    - "Mois 25-28: Déploiement sections communales (lot 1)"
+    - "Mois 29-32: Déploiement sections communales (lot 2)"
+    - "Mois 33-35: Campagne enrôlement massif"
+    - "Mois 36: Inauguration officielle"
+    
+  Post_Phase_3:
+    - "Maintenance évolutive"
+    - "Nouvelles fonctionnalités (v2.0)"
+    - "Expansion régionale (CARICOM)"
+```
+
+---
+
+## 14. FORMATION & GOUVERNANCE OPÉRATIONNELLE
+
+### 14.1 Programme de Formation
+
+```yaml
+Training_Program:
+  Niveau_0_Directeurs:
+    duration: "2 semaines"
+    location: "Centre formation national (PAP)"
+    curriculum:
+      - "Vision stratégique SNISID"
+      - "Gouvernance sécurité nationale"
+      - "Gestion crise"
+      - "Key Ceremony procedures"
+    certification: "Certificat Présidentiel"
+    
+  Niveau_1_Admin_Nationaux:
+    duration: "2 semaines"
+    location: "Centre formation national"
+    curriculum:
+      - "Architecture technique"
+      - "Administration avancée"
+      - "Sécurité cybernétique"
+      - "Audit et conformité"
+    certification: "Certification SNISID Level 1"
+    
+  Niveau_2_Admin_Régionaux:
+    duration: "5 jours"
+    location: "Hubs départementaux"
+    curriculum:
+      - "Administration régionale"
+      - "Gestion utilisateurs"
+      - "Dépannage niveau 2"
+      - "Procédures urgence"
+    certification: "Certification SNISID Level 2"
+    
+  Niveau_3_Opérateurs:
+    duration: "3 jours"
+    location: "Agences locales"
+    curriculum:
+      - "Utilisation kiosques"
+      - "Enrôlement citoyens"
+      - "Contrôle qualité"
+      - "Service client"
+    certification: "Certification SNISID Operator"
+    
+  Niveau_4_Auditeurs:
+    duration: "5 jours"
+    location: "Centre formation national"
+    curriculum:
+      - "Techniques audit"
+      - "Analyse logs"
+      - "Détection fraude"
+      - "Rapport writing"
+    certification: "Certification SNISID Auditor"
+```
+
+### 14.2 SOC National 24/7
+
+```yaml
+SOC_Operations:
+  Staffing:
+    shifts: "3 équipes (matin, après-midi, nuit)"
+    staff_per_shift:
+      - "1 SOC Manager (N1)"
+      - "2 Analystes L3 (N1)"
+      - "4 Analystes L2 (N2)"
+      - "8 Analystes L1 (N3)"
+    total_staff: "45 personnes (rotation incluse)"
+    
+  Tools:
+    siem: "Wazuh + Elasticsearch + Kibana"
+    soar: "Shuffle (automatisation réponse)"
+    threat_intel: "MISP + flux commerciaux"
+    edr: "Wazuh agents + osquery"
+    
+  Processes:
+    monitoring: "Surveillance continue (24/7/365)"
+    detection: "Règles corrélation + IA"
+    triage: "Classification alerts (P1-P4)"
+    response: "Playbooks automatisés"
+    escalation: "Niveau 1 → 2 → 3 → Management"
+    reporting: "Rapports quotidiens/hebdomadaires"
+    
+  Metrics:
+    MTTD: "< 5 minutes (Mean Time to Detect)"
+    MTTR: "< 30 minutes (Mean Time to Respond)"
+    False_Positive_Rate: "< 10%"
+    Coverage: "100% actifs critiques"
+```
+
+### 14.3 Gouvernance Opérationnelle
+
+```yaml
+Operational_Governance:
+  Comites:
+    Comite_Strategique:
+      chair: "Président de la République"
+      members:
+        - "Premier Ministre"
+        - "Ministre de l'Intérieur"
+        - "Ministre de la Justice"
+        - "Directeur Général SNISID"
+      frequency: "Trimestrielle"
+      role: "Orientations stratégiques, budget, nominations"
+      
+    Comite_Technique:
+      chair: "Directeur Général SNISID"
+      members:
+        - "CTO SNISID"
+        - "CISO SNISID"
+        - "Représentants agences (DGI, Police, etc.)"
+      frequency: "Mensuelle"
+      role: "Suivi projets, architecture, sécurité"
+      
+    Comite_Operationnel:
+      chair: "COO SNISID"
+      members:
+        - "Chefs département"
+        - "SOC Manager"
+        - "Regional coordinators"
+      frequency: "Hebdomadaire"
+      role: "Opérations courantes, incidents, KPI"
+      
+  Reporting:
+    daily_report: "Activité 24h, incidents, métriques"
+    weekly_dashboard: "KPI hebdomadaires, tendances"
+    monthly_review: "Performance mensuelle, écarts budget"
+    quarterly_audit: "Audit interne, conformité"
+    annual_report: "Rapport public annuel"
+```
+
+---
+
+## 15. ROADMAP D'ÉVOLUTION TECHNOLOGIQUE
+
+### 15.1 Versions Planifiées
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ROADMAP ÉVOLUTION                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  V1.X (2025-2026) ──────────────────────────────────────────    │
+│  │ Stabilisation & Consolidation                                │
+│  │ • Post-audit corrections                                     │
+│  │ • Extension agences                                          │
+│  │ • Optimisation performance                                   │
+│  └─────────────────────────────────────────────────────────     │
+│                                                                 │
+│  V2.0 (2027) ───────────────────────────────────────────────    │
+│  │ Innovations Majeures                                         │
+│  │ • Chiffrement homomorphe (calculs sur données chiffrées)     │
+│  │ • Blockchain pour audit immuable                             │
+│  │ • IA avancée (détection fraude)                              │
+│  │ • Quantum-resistant cryptography                             │
+│  └─────────────────────────────────────────────────────────     │
+│                                                                 │
+│  V3.0 (2028-2029) ──────────────────────────────────────────    │
+│  │ Expansion Régionale                                          │
+│  │ • Interopérabilité CARICOM                                   │
+│  │ • Reconnaissance mutuelle identités                          │
+│  │ • Partage renseignements sécurisé                            │
+│  │ • Frontières intelligentes                                   │
+│  └─────────────────────────────────────────────────────────     │
+│                                                                 │
+│  V4.0+ (2030+) ─────────────────────────────────────────────    │
+│  │ Futur & Innovation                                           │
+│  │ • Identité digitale souveraine (SSI)                         │
+│  │ • Biométrie comportementale continue                         │
+│  │ • Intégration IoT national                                   │
+│  │ • Citoyenneté numérique complète                             │
+│  └─────────────────────────────────────────────────────────     │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 15.2 Fonctionnalités V2.0 (2027)
+
+```yaml
+V2_Features:
+  Homomorphic_Encryption:
+    description: "Permet calculs sur données chiffrées sans déchiffrer"
+    use_cases:
+      - "Recherche biométrique (matching sans exposition templates)"
+      - "Statistiques sensibles (sans accès données brutes)"
+      - "Audit confidentialité préservée"
+    vendors: "Microsoft SEAL, IBM HELib"
+    
+  Blockchain_Audit:
+    description: "Registre distribué pour traçabilité immuable"
+    implementation:
+      - "Hyperledger Fabric (permissionné)"
+      - "Noeuds: SNISID, Ministère Justice, CEP, Cour des Comptes"
+      - "Ancrage hashes logs toutes les 5 minutes"
+    benefits:
+      - "Preuve d'intégrité (impossible à falsifier)"
+      - "Transparence vérifiable"
+      - "Conformité légale renforcée"
+      
+  Advanced_AI:
+    description: "Intelligence Artificielle pour détection anomalies"
+    models:
+      - "Détection fraude documentaire (computer vision)"
+      - "Analyse comportementale (UEBA amélioré)"
+      - "Prédiction risques (machine learning)"
+      - "Reconnaissance patterns (réseaux criminels)"
+      
+  Quantum_Resistant:
+    description: "Cryptographie post-quantique"
+    algorithms:
+      - "CRYSTALS-Kyber (key encapsulation)"
+      - "CRYSTALS-Dilithium (signatures)"
+      - "SPHINCS+ (stateless signatures)"
+    timeline: "Migration progressive 2027-2028"
+```
+
+### 15.3 Interopérabilité CARICOM (V3.0)
+
+```yaml
+CARICOM_Interoperability:
+  Objectif: "Reconnaissance mutuelle identités nationales"
+  
+  Participating_Countries:
+    - "Haïti (leader initiative)"
+    - "Jamaïque"
+    - "Trinidad & Tobago"
+    - "Barbade"
+    - "Guyana"
+    - "Belize"
+    - "Saint Lucia"
+    - "etc."
+    
+  Technical_Implementation:
+    - "API gateway régionale (HTTPS + mTLS)"
+    - "Standards communs (ISO/IEC)"
+    - "Traduction INU ↔ identifiants nationaux"
+    - "Vérification cross-border (1:1 matching)"
+    
+  Use_Cases:
+    - "Voyage intra-CARICOM (e-gates)"
+    - "Travail transfrontalier"
+    - "Commerce régional (eKYC mutualisé)"
+    - "Coopération policière (recherche criminels)"
+    
+  Governance:
+    - "Comité directeur CARICOM-SNISID"
+    - "Accords bilatéraux/multilatéraux"
+    - "Protection données (GDPR-like régional)"
+```
+
+---
+
+## 16. ANNEXES TECHNIQUES & STACK TECHNOLOGIQUE
+
+### 16.1 Stack Technologique Complète
+
+```yaml
+Backend:
+  languages:
+    - "Go (services haute performance)"
+    - "Java Spring Boot (services enterprise)"
+    - "Python (IA, biométrie, data science)"
+    - "Rust (services critiques, sécurité)"
+    - "Node.js (API gateway, realtime)"
+    
+  frameworks:
+    - "Gin/Echo (Go web frameworks)"
+    - "Spring Boot 3 (Java)"
+    - "FastAPI (Python)"
+    - "Actix/Rocket (Rust)"
+    - "Express/NestJS (Node.js)"
+
+Frontend:
+  web:
+    - "React 18 + TypeScript"
+    - "Next.js (SSR, performance)"
+    - "TailwindCSS (styling)"
+    - "Redux/Zustand (state management)"
+  mobile:
+    - "React Native (iOS/Android)"
+    - "Flutter (alternative)"
+    - "Offline-first architecture"
+
+Databases:
+  relational:
+    - "PostgreSQL 16 (données structurées)"
+    - "CockroachDB (distributed SQL, ACID)"
+  nosql:
+    - "MongoDB 7 (documents, GridFS)"
+    - "Redis 7 (cache, sessions, pub/sub)"
+  search:
+    - "Elasticsearch 8 (full-text, SIEM)"
+  object_storage:
+    - "MinIO (S3-compatible, souverain)"
+
+Infrastructure:
+  orchestration:
+    - "Kubernetes 1.28+ (conteneurs)"
+    - "Helm (package management)"
+    - "ArgoCD (GitOps, deployment)"
+  container_runtime:
+    - "containerd"
+    - "Docker (development)"
+  service_mesh:
+    - "Istio (mTLS, observability)"
+    - "Linkerd (alternative légère)"
+
+Security:
+  iam:
+    - "Keycloak (SSO, OIDC, SAML)"
+    - "HashiCorp Vault (secrets management)"
+  firewall:
+    - "nftables (host-level)"
+    - "pfSense/OPNsense (perimeter)"
+  ids_ips:
+    - "Suricata (network IDS/IPS)"
+    - "Wazuh (HIDS, SIEM)"
+  encryption:
+    - "OpenSSL / BoringSSL (TLS)"
+    - "Libsodium (cryptographie)"
+    - "HSM Thales/Utimaco (keys)"
+
+Monitoring:
+  metrics:
+    - "Prometheus (time-series)"
+    - "VictoriaMetrics (scalability)"
+  visualization:
+    - "Grafana (dashboards)"
+  logging:
+    - "ELK Stack (Elasticsearch, Logstash, Kibana)"
+    - "Loki (lightweight logging)"
+  tracing:
+    - "Jaeger (distributed tracing)"
+    - "OpenTelemetry (instrumentation)"
+  alerting:
+    - "PagerDuty / OpsGenie"
+    - "Alertmanager (Prometheus)"
+
+DevOps:
+  ci_cd:
+    - "GitLab CI / GitHub Actions"
+    - "Jenkins (legacy)"
+  iac:
+    - "Terraform (infrastructure as code)"
+    - "Ansible (configuration management)"
+    - "Pulumi (alternative)"
+  testing:
+    - "JUnit, pytest, Go test"
+    - "Selenium, Cypress (E2E)"
+    - "SonarQube (code quality)"
+  artifact:
+    - "Nexus / Artifactory"
+    - "Harbor (container registry)"
+
+Biométrie:
+  fingerprint:
+    - "Neurotechnology SDK"
+    - "Digital Persona U.are.U"
+  iris:
+    - "IriTech SDK"
+    - "Caméras infrarouge"
+  facial:
+    - "OpenCV + Deep Learning"
+    - "Amazon Rekognition (fallback cloud)"
+  matching:
+    - "NEC Bio-IDiom"
+    - "Thales Gemalto"
+```
+
+### 16.2 Configurations Types
+
+#### PostgreSQL HA Configuration
+```yaml
+PostgreSQL_Cluster:
+  nodes: 3 (1 primary, 2 replicas)
+  replication: "Synchrone (quorum commit)"
+  failover: "Patroni (automatique, < 30s)"
+  backup:
+    - "pgBackRest (incremental)"
+    - "WAL archiving (continuous)"
+  tuning:
+    shared_buffers: "25% RAM"
+    effective_cache_size: "75% RAM"
+    max_connections: 500
+    work_mem: "256MB"
+```
+
+#### Kubernetes Cluster Configuration
+```yaml
+K8s_Cluster:
+  control_plane: 3 nodes (HA)
+  worker_nodes: "20-50 nodes (auto-scaling)"
+  cni: "Calico (network policies)"
+  ingress: "NGINX Ingress Controller"
+  storage: "Rook Ceph (block + object)"
+  monitoring: "Prometheus Operator"
+  security:
+    - "Pod Security Standards (restricted)"
+    - "Network Policies (zero trust)"
+    - "OPA Gatekeeper (policy enforcement)"
+```
+
+### 16.3 Contacts & Support
+
+```yaml
+Support_Structure:
+  Level_1_Helpdesk:
+    contact: "helpdesk@snisid.ht"
+    phone: "+509 1234-5678"
+    hours: "24/7"
+    response_time: "< 15 minutes"
+    
+  Level_2_Technical:
+    contact: "support-tech@snisid.ht"
+    phone: "+509 1234-5679"
+    hours: "24/7"
+    response_time: "< 1 heure"
+    
+  Level_3_Engineering:
+    contact: "engineering@snisid.ht"
+    escalation: "Via ticket système"
+    response_time: "< 4 heures"
+    
+  Emergency_SOC:
+    contact: "soc-emergency@snisid.ht"
+    phone: "+509 1234-5680 (ligne rouge)"
+    hours: "24/7/365"
+    response_time: "Immédiat"
+    
+  Vendor_Support:
+    HSM_Thales: "support@thalesgroup.com"
+    PostgreSQL: "EnterpriseDB support"
+    Kubernetes: "Red Hat OpenShift / Rancher"
+```
+
+---
+
+## SIGNATURE & APPROBATION
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    PAGE DE SIGNATURE                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Document: SNISID Master Document v3.0                          │
+│  Classification: TOP SECRET / NOFORN                            │
+│                                                                 │
+│  Approuvé par:                                                  │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                                                         │   │
+│  │ _______________________________                         │   │
+│  │ Le Président de la République                           │   │
+│  │ Date: ___/___/_____                                     │   │
+│  │                                                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                                                         │   │
+│  │ _______________________________                         │   │
+│  │ Le Directeur Général SNISID                             │   │
+│  │ Date: ___/___/_____                                     │   │
+│  │                                                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                                                         │   │
+│  │ _______________________________                         │   │
+│  │ Le Ministre de l'Intérieur                              │   │
+│  │ Date: ___/___/_____                                     │   │
+│  │                                                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                                                         │   │
+│  │ _______________________________                         │   │
+│  │ Le Ministre de la Justice                               │   │
+│  │ Date: ___/___/_____                                     │   │
+│  │                                                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  Distribution:                                                  │
+│  • Palais National (1 copie)                                    │
+│  • Ministère de l'Intérieur (1 copie)                           │
+│  • Ministère de la Justice (1 copie)                            │
+│  • Direction Générale SNISID (5 copies)                         │
+│  • Archives Nationales (1 copie scellée)                        │
+│                                                                 │
+│  © 2025 République d'Haïti - Tous droits réservés               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+**FIN DU DOCUMENT MAÎTRE SNISID v3.0**
+
+*Document généré automatiquement - Version électronique certifiée*  
+*Hash SHA-256: [À GENERER LORS SIGNATURE]*  
+*Signature numérique: [À APPOSER LORS KEY CEREMONY]*

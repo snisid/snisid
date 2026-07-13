@@ -1,0 +1,257 @@
+# SPÉCIFICATIONS SERVEURS BLINDÉS - SNISID
+
+## Architecture Globale
+
+### Datacenter Central (Tier IV)
+- **Localisation**: Port-au-Prince (site souterrain ou bunker)
+- **Surface**: 500 m² minimum
+- **Capacité**: 50 racks complets
+- **Redondance**: 2N (tous les systèmes doublés)
+
+### Hubs Régionaux (Tier III)
+- **Nombre**: 10 hubs (un par département)
+- **Localisation**: Chefs-lieux départementaux
+- **Capacité**: 5-10 racks chacun
+- **Redondance**: N+1
+
+## Spécifications Serveurs
+
+### Serveurs de Base de Données (Tier 0)
+
+```yaml
+database_servers:
+  purpose: "Données biométriques et identités (Tier 0)"
+  quantity: 12  # Cluster haute disponibilité
+  
+  hardware:
+    manufacturer: "Dell PowerEdge R940xa ou HPE ProLiant DL580 Gen10"
+    cpu:
+      type: "Intel Xeon Platinum 8380 ou AMD EPYC 7763"
+      cores: 32
+      sockets: 4
+    ram:
+      total: "2 TB DDR4 ECC Registered"
+      type: "3200 MHz"
+    storage:
+      boot: "2x 480GB SSD SATA RAID 1"
+      data: "8x 3.84TB NVMe SSD RAID 10"
+      encryption: "Self-Encrypting Drives (SED) FIPS 140-2"
+    network:
+      ports: "4x 10GbE SFP+ + 2x 1GbE RJ45"
+      hba: "2x 16Gb Fibre Channel"
+    power:
+      psu: "4x 1600W Platinum Redundant"
+      ups_integration: "Oui"
+      
+  security_features:
+    tpm: "TPM 2.0 obligatoire"
+    secure_boot: "Activé avec clés personnalisées"
+    chassis_intrusion: "Détection avec alerte immédiate"
+    nic_partitioning: "SR-IOV activé"
+    firmware_protection: "Signature cryptographique requise"
+    
+  operating_system:
+    base: "SNISID-OS (Debian durci souverain)"
+    kernel: "5.15 LTS avec patches de sécurité"
+    hardening: "NSA STIG Level 4"
+    
+  software:
+    database: "PostgreSQL 16 avec Patroni HA"
+    replication: "Synchrone local + Asynchrone distant"
+    backup: "Continu avec WAL archiving"
+```
+
+### Serveurs d'Application
+
+```yaml
+application_servers:
+  purpose: "Microservices SNISID"
+  quantity: 24
+  
+  hardware:
+    manufacturer: "Dell PowerEdge R740 ou HPE ProLiant DL380 Gen10"
+    cpu:
+      type: "Intel Xeon Gold 6348 ou AMD EPYC 7543"
+      cores: 28
+      sockets: 2
+    ram:
+      total: "512 GB DDR4 ECC"
+      type: "3200 MHz"
+    storage:
+      boot: "2x 480GB SSD SATA RAID 1"
+      data: "4x 1.92TB NVMe SSD RAID 5"
+    network:
+      ports: "2x 10GbE SFP+ + 2x 1GbE RJ45"
+    power:
+      psu: "2x 1100W Platinum Redundant"
+```
+
+### Serveurs de Surveillance (SOC)
+
+```yaml
+soc_servers:
+  purpose: "SIEM, IDS/IPS, UEBA, Threat Intelligence"
+  quantity: 16
+  
+  hardware:
+    manufacturer: "Supermicro SuperServer ou Dell PowerEdge R740xd"
+    cpu:
+      type: "AMD EPYC 7643 ou Intel Xeon Silver 4314"
+      cores: 48
+      sockets: 2
+    ram:
+      total: "1 TB DDR4 ECC"
+    storage:
+      hot_storage: "4x 3.84TB NVMe SSD RAID 10"
+      cold_storage: "12x 16TB HDD RAID 6"
+      total_capacity: "~200 TB brut"
+    network:
+      ports: "4x 25GbE SFP28 + 2x 1GbE"
+      tap_ports: "8x 10GbE pour miroir trafic"
+    gpu:
+      model: "NVIDIA Tesla T4 ou A10"
+      quantity: 2
+      purpose: "Accélération IA pour détection anomalies"
+```
+
+## Infrastructure Réseau
+
+### Commutateurs (Switches)
+
+```yaml
+network_switches:
+  core:
+    model: "Cisco Nexus 9500 ou Arista 7500E"
+    quantity: 2  # Redondance active-active
+    capacity: "25.6 Tbps"
+    ports: "48x 100GbE QSFP28"
+    features:
+      - "VXLAN EVPN"
+      - "Segment routing"
+      - "MACsec chiffrement couche 2"
+      - "ACL matérielles"
+      
+  distribution:
+    model: "Cisco Catalyst 9500 ou Juniper QFX5110"
+    quantity: 10
+    capacity: "3.2 Tbps"
+    ports: "48x 25GbE SFP28"
+    
+  access:
+    model: "Cisco Catalyst 9300 ou HPE Aruba CX 6300"
+    quantity: 50
+    ports: "48x 1GbE PoE+ + 4x 10GbE SFP+"
+    features:
+      - "802.1X authentication"
+      - "Port security"
+      - "DHCP snooping"
+```
+
+### Pare-feux Nouvelle Génération
+
+```yaml
+firewalls:
+  perimeter:
+    model: "Palo Alto Networks PA-7080 ou Fortinet FortiGate 3700D"
+    quantity: 2  # Haute disponibilité
+    throughput: "400 Gbps"
+    threat_prevention: "180 Gbps"
+    features:
+      - "Deep Packet Inspection"
+      - "SSL/TLS decryption"
+      - "IPS signature-based + behavioral"
+      - "Anti-malware sandboxing"
+      - "URL filtering"
+      - "DNS security"
+      
+  internal:
+    model: "Palo Alto PA-5280 ou FortiGate 1500D"
+    quantity: 8  # Segmentation micro-segmentation
+    throughput: "80 Gbps"
+    features:
+      - "Zero Trust segmentation"
+      - "User-ID integration"
+      - "App-ID application control"
+```
+
+## Système de Refroidissement
+
+```yaml
+cooling_system:
+  type: "In-row cooling avec confinement allées chaudes/froides"
+  capacity: "800 kW total"
+  redundancy: "N+2"
+  efficiency:
+    pue_target: "≤ 1.3"
+    free_cooling: "Utilisation air extérieur quand T < 18°C"
+  monitoring:
+    sensors: "Température, humidité, pression différentielle"
+    alerts: "SMS, email, sirène locale"
+```
+
+## Alimentation Électrique
+
+```yaml
+power_system:
+  utility_feed: "Double alimentation EDF + générateur"
+  ups:
+    type: "Double conversion online"
+    capacity: "1200 kVA"
+    redundancy: "2N"
+    battery_runtime: "30 minutes à pleine charge"
+    autonomy_with_generators: "Illimitée"
+  generators:
+    type: "Diesel industriel"
+    capacity: "2 x 800 kW"
+    fuel_autonomy: "72 heures"
+    refuel_contract: "Priorité nationale"
+  pdus:
+    type: "Intelligentes avec monitoring"
+    outlets: "C13/C19 avec mesure individuelle"
+```
+
+## Sécurité Physique
+
+```yaml
+physical_security:
+  perimeter:
+    fence: "Clôture 3m avec barbelés"
+    cameras: "PTZ avec vision nocturne"
+    patrols: "Gardes armés 24/7"
+    
+  building:
+    walls: "Béton armé anti-explosion"
+    doors: "Blindées niveau balistique 4"
+    locks: "Électroniques + biométrie"
+    
+  datacenter_hall:
+    access: "Multi-facteurs (badge + biométrie + PIN)"
+    mantrap: "Sas anti-poursuite"
+    fm200: "Extinction gaz inerte"
+    vesda: "Détection fumée très précoce"
+    
+  surveillance:
+    cameras_interior: "360° sans angles morts"
+    recording: "90 jours minimum"
+    analytics: "Détection intrusion, comportement suspect"
+```
+
+## Budget Estimatif
+
+| Catégorie | Montant (USD) |
+|-----------|---------------|
+| HSM (3 unités) | $222,000 |
+| Serveurs Tier 0 (12) | $1,800,000 |
+| Serveurs Application (24) | $1,440,000 |
+| Serveurs SOC (16) | $960,000 |
+| Stockage SAN/NAS | $800,000 |
+| Réseau (switches, firewalls) | $1,200,000 |
+| Infrastructure DC (refroidissement, UPS) | $2,500,000 |
+| Sécurité physique | $500,000 |
+| Installation et configuration | $400,000 |
+| Formation | $150,000 |
+| **TOTAL ESTIMATIF** | **$9,972,000** |
+
+---
+*Document de spécification technique - Niveau Confidentiel Défense*
+*République d'Haïti - Ministère de l'Intérieur*

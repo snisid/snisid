@@ -1,0 +1,447 @@
+# PROCÉDURES OPÉRATIONNELLES STANDARD (SOP) - SOC SNISID
+
+## SOP-001: Surveillance Continue SIEM
+
+### Objectif
+Assurer une surveillance ininterrompue de tous les événements de sécurité du système SNISID.
+
+### Périmètre
+- Tous les logs systèmes (serveurs, réseau, applications)
+- Flux réseau (NetFlow, PCAP)
+- Alertes IDS/IPS
+- Événements HSM et cryptographiques
+- Accès physiques (badges, biométrie)
+
+### Procédure
+
+#### 1. Démarrage de Shift
+```bash
+# Checklist pré-shift
+- [ ] Vérifier état de santé SIEM (Wazuh/Elasticsearch)
+- [ ] Confirmer connectivité toutes sources de logs
+- [ ] Review alertes non traitées du shift précédent
+- [ ] Vérifier bulletins menace récents
+- [ ] Tester canal communication sécurisé
+```
+
+#### 2. Surveillance Active
+- **Dashboard Principal**: Vue globale santé sécurité
+- **Dashboard Secondaire**: Alertes temps réel par criticité
+- **Revue Périodique**: Toutes les 15 minutes minimum
+
+#### 3. Tri des Alertes
+```
+Priorité P1 (Critique): Traitement immédiat (< 5 min)
+  - Intrusion confirmée
+  - Exfiltration données en cours
+  - Compromission HSM/clés
+  - Attaque ransomware active
+
+Priorité P2 (Élevée): Traitement urgent (< 15 min)
+  - Suspicion intrusion
+  - Mouvement latéral détecté
+  - Escalade privilèges anormale
+  - Communication C2 suspecte
+
+Priorité P3 (Moyenne): Traitement standard (< 1 heure)
+  - Tentatives scanning/reconnaissance
+  - Violations politiques mineures
+  - Anomalies comportementales
+
+Priorité P4 (Faible): Traitement différé (< 4 heures)
+  - Faux positifs confirmés
+  - Activités légitimes inhabituelles
+  - Informations renseignement
+```
+
+#### 4. Documentation
+Chaque alerte doit être documentée dans le ticket avec:
+- Timestamp exact
+- Source et destination
+- Signature/règle déclenchée
+- Actions entreprises
+- Résolution et classification finale
+
+### Métriques de Performance
+- Temps moyen détection (MTTD): < 5 minutes
+- Temps moyen réponse (MTTR): < 30 minutes
+- Taux faux positifs: < 20%
+- Couverture sources logs: 100%
+
+---
+
+## SOP-002: Qualification et Escalade d'Incident
+
+### Objectif
+Qualifier rapidement la nature et sévérité d'un incident pour déterminer la réponse appropriée.
+
+### Matrice de Qualification
+
+```yaml
+severity_matrix:
+  critical_sev1:
+    criteria:
+      - "Compromission confirmée données Tier 0 (biométrie, clés)"
+      - "Attaque en cours sur infrastructure critique"
+      - "Exfiltration massive données sensibles"
+      - "Déni de service affectant service national"
+    response_time: "< 5 minutes"
+    escalation: "Directeur SOC + DG SNISID + Ministre"
+    actions:
+      - "Activation cellule crise immédiate"
+      - "Isolement segments affectés"
+      - "Notification autorités nationales"
+      - "Préparation communication publique"
+      
+  high_sev2:
+    criteria:
+      - "Suspicion forte compromission"
+      - "Mouvement latéral détecté"
+      - "Tentative accès non autorisé données sensibles"
+      - "Malware confirmé sur poste critique"
+    response_time: "< 15 minutes"
+    escalation: "Chef d'équipe + Directeur Adjoint"
+    actions:
+      - "Investigation approfondie Tier 2/3"
+      - "Containment partiel"
+      - "Prélèvement preuves forensiques"
+      
+  medium_sev3:
+    criteria:
+      - "Tentative intrusion bloquée"
+      - "Violation politique sécurité"
+      - "Anomalie nécessitant investigation"
+    response_time: "< 1 heure"
+    escalation: "Tier 2 analyst"
+    actions:
+      - "Investigation standard"
+      - "Documentation complète"
+      - "Recommandations prévention"
+      
+  low_sev4:
+    criteria:
+      - "Faux positif confirmé"
+      - "Activité inhabituelle mais légitime"
+      - "Information renseignement"
+    response_time: "< 4 heures"
+    escalation: "Tier 1 analyst"
+    actions:
+      - "Clôture avec documentation"
+      - "Ajustement règles détection si nécessaire"
+```
+
+### Formulaire d'Escalade
+
+```markdown
+FORMULAIRE D'ESCALADE D'INCIDENT - SNISID-SOC-FORM-002
+
+Numéro Ticket: _______________
+Date/Heure: _______________
+Analyste: _______________
+
+DESCRIPTION INCIDENT:
+_____________________
+_____________________
+
+SEVERITÉ ÉVALUÉE: □ SEV1 □ SEV2 □ SEV3 □ SEV4
+
+CRITÈRES RENCONTRÉS:
+_____________________
+_____________________
+
+ACTIONS DÉJÀ ENTREPRISES:
+_____________________
+_____________________
+
+PERSONNES ESCALADÉES:
+Nom: _______________ Heure: _______________
+Nom: _______________ Heure: _______________
+
+RECOMMANDATIONS:
+_____________________
+_____________________
+
+SIGNATURE ANALYSTE: _______________
+```
+
+---
+
+## SOP-003: Réponse à Incident Critique (SEV1)
+
+### Objectif
+Contenir et éradiquer une attaque critique dans les délais les plus courts.
+
+### Phase 1: Détection et Alarme (0-5 minutes)
+
+```bash
+# Actions immédiates Tier 1
+1. Confirmer l'alerte comme SEV1
+2. Activer alarme sonore War Room
+3. Notifier Chef d'Équipe et Directeur Adjoint
+4. Ouvrir ticket incident majeur
+5. Démarrer chronomètre réponse
+```
+
+### Phase 2: Mobilisation (5-15 minutes)
+
+```bash
+# Actions management
+1. Activer cellule crise (physique ou virtuelle)
+2. Convoquer experts Tier 3 et forensiques
+3.Notifier DG SNISID et autorités
+4. Établir canal communication sécurisé
+5. Briefing situation initial
+```
+
+### Phase 3: Investigation Rapide (15-30 minutes)
+
+```bash
+# Actions Tier 2/3
+1. Identifier vecteur attaque initial
+2. Cartographier étendue compromission
+3. Identifier données potentiellement exposées
+4. Déterminer si attaque toujours active
+5. Documenter findings en temps réel
+```
+
+### Phase 4: Endiguement (30-60 minutes)
+
+```bash
+# Décisions containment
+Options selon scénario:
+
+Option A: Isolation réseau
+  - Déconnecter segments affectés
+  - Basculer traffic vers backups sains
+  - Bloquer IPs/domaines malveillants
+  
+Option B: Shutdown contrôlé
+  - Arrêt progressif systèmes compromis
+  - Préservation mémoire pour forensique
+  - Activation mode dégradé
+  
+Option C: Contre-mesures actives
+  - Déploiement règles IPS bloquantes
+  - Invalidation sessions compromises
+  - Rotation clés cryptographiques
+```
+
+### Phase 5: Éradication (1-4 heures)
+
+```bash
+# Actions éradication
+1. Supprimer accès attaquants (comptes, backdoors)
+2. Nettoyer/reconstruire systèmes compromis
+3. Patch vulnérabilités exploitées
+4. Renforcer monitoring zones affectées
+5. Vérifier absence persistance
+```
+
+### Phase 6: Recovery (4-24 heures)
+
+```bash
+# Retour à normale
+1. Validation sécurité par audit rapide
+2. Restauration services depuis backups sains
+3. Monitoring renforcé post-recovery
+4. Communication statut aux parties prenantes
+5. Reprise activité normale progressive
+```
+
+### Phase 7: Post-Incident (24-48 heures)
+
+```bash
+# Lessons learned
+1. Réunion retour expérience complète
+2. Rédaction rapport incident détaillé
+3. Identification améliorations processus
+4. Mise à jour playbooks et détections
+5. Plan actions correctives
+```
+
+---
+
+## SOP-004: Chasse aux Menaces (Threat Hunting)
+
+### Objectif
+Proactivement rechercher des indicateurs de compromission non détectés par les outils automatiques.
+
+### Cycle de Hunting
+
+#### 1. Hypothèse de Départ
+Sources d'hypothèses:
+- Renseignement menaces (TI) récent
+- Nouvelles TTPs observées dans secteur public
+- Anomalies subtiles dans les logs
+- Questions "Et si...?" de l'équipe
+
+#### 2. Plan de Chasse
+
+```yaml
+hunt_plan_template:
+  hypothesis: "Un attaquant pourrait exfiltrer des données via DNS tunneling"
+  
+  data_sources:
+    - "Logs DNS (queries, volumes)"
+    - "NetFlow sortant"
+    - "Proxy logs"
+    
+  tools:
+    - "Elasticsearch queries"
+    - "Python scripts analyse"
+    - "Wireshark pour PCAP"
+    
+  indicators_research:
+    - "Domaines longueur anormale"
+    - "Volume queries élevé par host"
+    - "Entropie élevée noms domaine"
+    - "Connections vers IPs suspectes"
+    
+  timeline: "4 heures maximum"
+  analysts_assigned: "1 Tier 2 + 1 Tier 3"
+```
+
+#### 3. Exécution
+
+```bash
+# Exemple query Elasticsearch - DNS Tunneling detection
+GET /logs-dns-*/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {"range": {"timestamp": {"gte": "now-24h"}}},
+        {"term": {"query_type": "TXT"}},
+        {"script": {
+          "script": {
+            "source": "params._source.query_name.length() > 50"
+          }
+        }}
+      ]
+    }
+  },
+  "aggs": {
+    "top_clients": {
+      "terms": {"field": "client_ip", "size": 20}
+    }
+  }
+}
+```
+
+#### 4. Analyse et Validation
+
+- Examiner résultats anormaux
+- Corréler avec autres sources
+- Éliminer faux positifs connus
+- Confirmer ou infirmer hypothèse
+
+#### 5. Documentation et Suivi
+
+Si menace confirmée:
+- Ouvrir ticket incident
+- Escalader selon SOP-002
+- Créer nouvelles règles détection
+
+Si négatif:
+- Documenter hypothèse infirmée
+- Archiver recherches
+- Partager learnings avec équipe
+
+### Programme de Hunting Proactif
+
+```yaml
+weekly_hunts:
+  semaine_1: "Recherche mouvement latéral"
+  semaine_2: "Détection persistence mechanisms"
+  semaine_3: "Analyse exfiltration potentielle"
+  semaine_4: "Chasse basée TI récente"
+  
+monthly_focus:
+  janvier: "Credential theft & misuse"
+  février: "Privilege escalation"
+  mars: "Data exfiltration"
+  avril: "Malware & C2 communications"
+  # ... cycle annuel complet
+```
+
+---
+
+## SOP-005: Gestion des Preuves Numériques
+
+### Objectif
+Assurer la préservation légale des preuves numériques pour poursuites judiciaires.
+
+### Chaîne de Custode
+
+#### 1. Collecte
+
+```bash
+# Procédure collecte preuves
+1. Documenter scène (photos, vidéos)
+2. Noter timestamp exact découverte
+3. Identifier personne ayant découvert
+4. Utiliser équipement stérilisé
+5. Créer image bit-à-bit support original
+6. Calculer hash MD5/SHA256 image
+7. Sceller preuve dans sac anti-preuve
+```
+
+#### 2. Stockage
+
+```yaml
+evidence_storage:
+  location: "Armoire forte SOC, accès biométrique"
+  access_log: "Automatisé avec vidéo surveillance"
+  environmental_controls:
+    temperature: "18-22°C"
+    humidity: "40-50%"
+    magnetic_shielding: "Oui"
+  inventory_system: "Base de données dédiée avec QR codes"
+```
+
+#### 3. Transport
+
+```markdown
+PROCÈS-VERBAL DE TRANSPORT DE PREUVES
+
+Numéro affaire: _______________
+Date transport: _______________
+
+PREUVE(S):
+Description: _______________
+Numéro série/scellé: _______________
+Hash vérifié: _______________
+
+TRANSPORTÉ PAR:
+Nom: _______________
+Signature: _______________
+
+REÇU PAR:
+Nom: _______________
+Organisation: _______________
+Signature: _______________
+
+HEURE DÉPART: _______________
+HEURE ARRIVÉE: _______________
+
+INCIDENTS PENDANT TRANSPORT: _____________________
+```
+
+#### 4. Analyse
+
+- Travailler uniquement sur copies, jamais originaux
+- Documenter chaque étape analyse
+- Utiliser outils validés scientifiquement
+- Préserver reproductibilité
+
+#### 5. Présentation Judiciaire
+
+- Préparer rapport expert compréhensible
+- Visualisations claires (timeline, graphes)
+- Être prêt à témoigner sous serment
+- Maintenir impartialité scientifique
+
+---
+
+*Manuel de procédures SOC - Niveau Confidentiel*
+*SNISID - République d'Haïti*

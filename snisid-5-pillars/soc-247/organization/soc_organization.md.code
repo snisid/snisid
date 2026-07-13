@@ -1,0 +1,284 @@
+# ORGANISATION DU SOC SNISID - 24/7/365
+
+## Mission du SOC
+
+**Mission**: Détecter, analyser et répondre aux incidents de sécurité affectant le système SNISID en temps réel, 24 heures sur 24, 7 jours sur 7, 365 jours par an.
+
+**Objectifs**:
+- Détection des menaces en < 5 minutes
+- Qualification des incidents en < 15 minutes
+- Endiguement des attaques critiques en < 30 minutes
+- Éradication complète en < 4 heures
+- Retour d'expérience systématique sous 48 heures
+
+## Structure Hiérarchique
+
+### Niveau 1: Direction du SOC
+
+```yaml
+soc_director:
+  title: "Directeur du Centre de Sécurité Opérationnelle"
+  grade: "A-1 (Cadre Dirigeant)"
+  reports_to: "Directeur Général SNISID"
+  
+  responsibilities:
+    - "Définition de la stratégie de sécurité"
+    - "Budget et ressources du SOC"
+    - "Relations avec les autorités nationales"
+    - "Communication de crise"
+    - "Validation des procédures majeures"
+    
+  requirements:
+    - "Master en cybersécurité ou équivalent"
+    - "15+ ans expérience sécurité nationale"
+    - "Certifications: CISSP, CISM, GIAC GSLC"
+    - "Habilitation Top Secret"
+    - "Expérience direction SOC gouvernemental"
+    
+  shifts: "Horaires bureau + astreinte 24/7"
+```
+
+### Niveau 2: Management Opérationnel
+
+```yaml
+soc_manager_team:
+  soc_deputy_director:
+    count: 2  # Rotation jour/nuit
+    title: "Directeur Adjoint SOC"
+    shift_pattern: "12h jour / 12h nuit / 48h repos"
+    
+  team_leads:
+    count: 4  # Un par équipe (Alpha, Bravo, Charlie, Delta)
+    title: "Chef d'Équipe SOC"
+    shift_pattern: "Rotation hebdomadaire"
+    
+  responsibilities:
+    - "Supervision opérations en temps réel"
+    - "Escalade niveau 2 et 3"
+    - "Coordination avec autres agences"
+    - "Validation rapports d'incidents"
+    - "Planning et gestion des effectifs"
+```
+
+### Niveau 3: Analystes SOC
+
+```yaml
+analyst_tiers:
+  tier1_analysts:
+    count: 16  # 4 par shift x 4 équipes
+    title: "Analyste SOC Niveau 1"
+    role: "Triaging et qualification initiale"
+    
+    responsibilities:
+      - "Surveillance continue des alertes SIEM"
+      - "Qualification initiale (faux positif vs réel)"
+      - "Enrichissement contexte incident"
+      - "Escalade vers Tier 2 si nécessaire"
+      - "Documentation première réponse"
+      
+    requirements:
+      - "Licence informatique ou cybersécurité"
+      - "2+ ans expérience SOC"
+      - "Certifications: Security+, CEH, GCIA"
+      - "Habilitation Secret"
+      
+    shift_pattern: "4x12 (4 jours 12h / 4 jours repos)"
+    
+  tier2_analysts:
+    count: 8  # 2 par shift
+    title: "Analyste SOC Niveau 2"
+    role: "Investigation approfondie"
+    
+    responsibilities:
+      - "Investigation incidents escaladés"
+      - "Analyse malware forensique"
+      - "Chasse aux menaces (threat hunting)"
+      - "Corrélation multi-sources"
+      - "Rédaction rapports techniques"
+      
+    requirements:
+      - "Master cybersécurité"
+      - "5+ ans expérience SOC/forensique"
+      - "Certifications: GCIH, GNFA, GCFA"
+      - "Habilitation Top Secret"
+      
+  tier3_experts:
+    count: 4  # 1 par shift + on-call
+    title: "Expert SOC Niveau 3"
+    role: "Réponse avancée et reverse engineering"
+    
+    responsibilities:
+      - "Réponse aux incidents critiques"
+      - "Reverse engineering malware"
+      - "Analyse APT (Advanced Persistent Threat)"
+      - "Développement signatures détection"
+      - "Mentorat Tier 1 et Tier 2"
+      
+    requirements:
+      - "Master + spécialisation offensive"
+      - "10+ ans expérience cybersécurité"
+      - "Certifications: OSEP, OSCE, GXPN"
+      - "Habilitation Top Secret SCI"
+```
+
+### Niveau 4: Spécialistes
+
+```yaml
+specialists:
+  threat_intelligence:
+    count: 4
+    title: "Analyste Renseignement Menaces"
+    role: "Veille stratégique et tactique"
+    
+    responsibilities:
+      - "Collecte renseignements sources ouvertes/fermées"
+      - "Analyse groupes adverses (APT)"
+      - "Production bulletins menace"
+      - "Intégration feeds TI dans SIEM"
+      - "Liaison avec services renseignement"
+      
+  forensics_incident_response:
+    count: 4
+    title: "Expert Forensique & Réponse Incident"
+    role: "Investigation post-incident"
+    
+    responsibilities:
+      - "Acquisition preuves numériques"
+      - "Analyse forensique disque/mémoire"
+      - "Reconstruction timeline attaque"
+      - "Préservation chaîne de custode"
+      - "Support investigations judiciaires"
+      
+  grc_specialists:
+    count: 2
+    title: "Spécialiste Gouvernance Risque Conformité"
+    role: "Conformité réglementaire"
+    
+    responsibilities:
+      - "Veille réglementaire"
+      - "Audits internes"
+      - "Rapports conformité ANSSI/MLPS"
+      - "Gestion risques cyber"
+      - "Politiques et procédures"
+```
+
+## Effectifs Totaux
+
+| Catégorie | Effectif | Shifts Couverts |
+|-----------|----------|-----------------|
+| Directeur SOC | 1 | Jour + astreinte |
+| Directeurs Adjoints | 2 | 24/7 rotation |
+| Chefs d'Équipe | 4 | Rotation hebdo |
+| Analystes Tier 1 | 16 | 24/7 (4x12) |
+| Analystes Tier 2 | 8 | 24/7 |
+| Experts Tier 3 | 4 | 24/7 + garde |
+| Analystes TI | 4 | Jour + astreinte |
+| Experts Forensiques | 4 | Jour + astreinte |
+| Spécialistes GRC | 2 | Jour |
+| **TOTAL** | **45** | **24/7/365** |
+
+## Planning Type (Shift 12h)
+
+### Équipe Alpha (Jour J1)
+- 06:00 - 18:00: 1 Directeur Adjoint + 1 Chef d'Équipe + 4 Tier 1 + 2 Tier 2 + 1 Tier 3
+- Relève avec Équipe Bravo
+
+### Équipe Bravo (Nuit J1)
+- 18:00 - 06:00: 1 Directeur Adjoint + 1 Chef d'Équipe + 4 Tier 1 + 2 Tier 2 + 1 Tier 3 (on-call)
+- Relève avec Équipe Charlie
+
+### Rotation Complète
+- Semaine 1: Alpha (Jour) → Bravo (Nuit)
+- Semaine 2: Charlie (Jour) → Delta (Nuit)
+- Semaine 3-4: Repos et formation
+
+## Salaire et Avantages
+
+```yaml
+compensation:
+  currency: "USD"
+  
+  salaries_annual:
+    soc_director: "$180,000 - $250,000"
+    deputy_director: "$140,000 - $180,000"
+    team_lead: "$110,000 - $140,000"
+    tier3_expert: "$120,000 - $160,000"
+    tier2_analyst: "$90,000 - $120,000"
+    tier1_analyst: "$65,000 - $90,000"
+    specialist: "$95,000 - $130,000"
+    
+  benefits:
+    - "Prime shift nuit: +20%"
+    - "Prime week-end: +50%"
+    - "Prime jours fériés: +100%"
+    - "Assurance santé complète famille"
+    - "Mutuelle retraite avantageuse"
+    - "Véhicule de fonction (management)"
+    - "Logement de fonction ou allocation"
+    - "Formation continue illimitée"
+    - "Certifications payées + bonus"
+    
+  retention_programs:
+    - "Bonus fidélité annuel (5-15% salaire)"
+    - "Plan carrière clair avec promotions"
+    - "Participation conférences internationales"
+    - "Programme reconnaissance employé du mois"
+```
+
+## Localisation Physique
+
+### War Room SOC
+
+```yaml
+war_room_specifications:
+  location: "Centre de Commandement SNISID, Port-au-Prince"
+  size: "200 m²"
+  capacity: "30 postes de travail"
+  
+  zones:
+    operations_floor:
+      description: "Espace principal analystes"
+      workstations: 24
+      displays: "Mur vidéo 4x4 écrans 55 pouces"
+      
+    management_area:
+      description: "Bureaux vitrés supervision"
+      offices: 6
+      view: "Vue directe sur operations floor"
+      
+    conference_room:
+      description: "Salle crise sécurisée"
+      capacity: 20
+      features:
+        - "Visioconférence加密"
+        - "Tableau blanc numérique"
+        - "Phone conférence"
+        - "Isolation phonique"
+        
+    break_room:
+      description: "Espace détente équipiers"
+      features:
+        - "Kitchenette complète"
+        - "Canapés et lits repos"
+        - "Jeux et divertissements"
+        
+    secure_storage:
+      description: "Armoires fortes preuves"
+      security: "Biométrie + combinaison"
+      
+  technical_infrastructure:
+    network:
+      - "Réseau rouge (données classifiées)"
+      - "Réseau noir (internet)"
+      - "Air-gapped physique entre réseaux"
+    power:
+      - "UPS redondant 2N"
+      - "Générateur backup automatique"
+    environmental:
+      - "Climatisation précise 20°C ±1"
+      - "Contrôle humidité 45% ±5%"
+```
+
+---
+*Document d'organisation officiel - Niveau Confidentiel*
+*Direction Générale SNISID - République d'Haïti*

@@ -1,0 +1,89 @@
+# Guide d'Installation et de Configuration SNISID
+
+## 📋 Prérequis Système
+
+### Configuration Matérielle Minimale
+
+| Composant | Minimum | Recommandé | Production |
+|-----------|---------|------------|------------|
+| **CPU** | 8 cœurs | 16 cœurs | 32+ cœurs |
+| **RAM** | 16 GB | 32 GB | 64+ GB |
+| **Stockage** | 500 GB SSD | 1 TB NVMe | 4+ TB NVMe RAID |
+| **Réseau** | 1 Gbps | 10 Gbps | 25+ Gbps |
+
+### Système d'Exploitation
+
+```bash
+# Debian GNU/Linux 12 (Bookworm) - Édition Souveraine
+# Kernel: 6.1 LTS avec patches de sécurité NSA STIG
+```
+
+---
+
+## 🔧 Installation des Modules Externes
+
+### Étape 1: Préparation de l'Environnement
+
+```bash
+#!/bin/bash
+# Mise à jour du système
+sudo apt update && sudo apt upgrade -y
+
+# Installation des dépendances
+sudo apt install -y git curl wget docker.io docker-compose \
+    postgresql-client mongodb-org-shell redis-tools \
+    elasticsearch-curator minio-client \
+    build-essential cmake pkg-config \
+    python3 python3-pip python3-venv \
+    golang-go nodejs npm \
+    openjdk-17-jdk maven
+
+# Configuration des variables d'environnement
+export SNISID_HOME=/opt/snisid
+export DATAWAVE_HOME=$SNISID_HOME/datawave
+export EMISSARY_HOME=$SNISID_HOME/emissary
+export MAAT_HOME=$SNISID_HOME/maat
+
+# Ajout au profile utilisateur
+echo "export SNISID_HOME=/opt/snisid" >> ~/.bashrc
+echo "export DATAWAVE_HOME=\$SNISID_HOME/datawave" >> ~/.bashrc
+echo "export EMISSARY_HOME=\$SNISID_HOME/emissary" >> ~/.bashrc
+echo "export MAAT_HOME=\$SNISID_HOME/maat" >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Étape 2: Installation de DataWave (NSA)
+
+```bash
+#!/bin/bash
+cd $DATAWAVE_HOME
+
+# Construction avec Maven
+mvn clean install -DskipTests -Pdist
+
+# Configuration de la base de données
+cp accumulo-site.template.xml accumulo-site.xml
+# Éditer accumulo-site.xml avec les paramètres de production
+
+# Démarrage des services
+./bin/install.sh
+./bin/start-all.sh
+
+# Vérification
+./bin/status.sh
+```
+
+### Étape 3: Installation d'Emissary (NSA)
+
+```bash
+#!/bin/bash
+cd $EMISSARY_HOME
+
+# Construction
+./gradlew build -x test
+
+# Configuration Kafka
+cat > config/kafka.properties << EOF
+bootstrap.servers=kafka1:9092,kafka2:9092,kafka3:9092
+security.protocol=SASL_SSL
+sasl.mechanism=PLAIN

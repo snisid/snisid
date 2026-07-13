@@ -1,0 +1,134 @@
+# SPÉCIFICATIONS HSM - SNISID
+
+## Exigences Minimales
+
+### Certification Requise
+- **FIPS 140-2 Level 3** (minimum) ou **Level 4** (recommandé)
+- **Common Criteria EAL 4+** ou supérieur
+- **ANSI X9.24** pour la gestion des clés financières
+- **PCI HSM** pour les applications de paiement
+
+### Modèles Recommandés
+
+#### 1. Thales Luna Network HSM A700/A800
+- **Certification**: FIPS 140-2 Level 3, Common Criteria EAL 4+
+- **Performance**: 12,500 signatures RSA-2048/sec
+- **Interfaces**: Ethernet, USB, Serial
+- **Fonctionnalités**:
+  - Génération de clés RSA/ECC jusqu'à 4096 bits
+  - Support Shamir's Secret Sharing natif
+  - Clavier LCD intégré pour PIN entry
+  - Détection d'intrusion physique avec zeroization
+  - Alimentation redondante
+
+#### 2. Utimaco CryptoServer CP5
+- **Certification**: FIPS 140-2 Level 3, BSI Common Criteria EAL 4+
+- **Performance**: 15,000 opérations RSA-2048/sec
+- **Interfaces**: PCIe, Ethernet
+- **Fonctionnalités**:
+  - Multi-tenancy sécurisé
+  - Backup de clés chiffré
+  - Audit logging conforme
+  - Support PKCS#11, JCE, CNG, CAPI
+
+#### 3. Entrust nShield Connect XC
+- **Certification**: FIPS 140-2 Level 3
+- **Performance**: 20,000 opérations RSA-2048/sec
+- **Interfaces**: Ethernet, USB
+- **Fonctionnalités**:
+  - Overclocking de sécurité
+  - Key Ceremony assistée
+  - Remote administration sécurisée
+
+### Configuration Requise pour SNISID
+
+```yaml
+hsm_configuration:
+  model: "Thales Luna A800 ou équivalent"
+  quantity: 3  # 1 production + 1 backup + 1 development
+  firmware_version: "≥ 7.7.0"
+  
+  network:
+    isolation: "Air-gapped réseau physique"
+    vlan: "Dédié, non routable"
+    firewall: "Whitelist IP stricte"
+    
+  security:
+    partition_count: 10  # Une par application critique
+    m_of_n_authentication: "3 of 5"  # Shamir's Secret Sharing
+    tamper_response: "Zeroization immédiate"
+    audit_logging: "Local + Syslog distant"
+    
+  cryptographic_capabilities:
+    algorithms:
+      - "RSA 4096"
+      - "ECC P-256, P-384, P-521"
+      - "AES 128/192/256/512"
+      - "SHA-256/384/512"
+      - "GM/T SM2/SM3/SM4 (Chine)"
+    key_storage: "Illimité (mémoire sécurisée)"
+    random_number_generator: "TRNG certifié NIST SP 800-90"
+    
+  physical_security:
+    rack_location: "Salle blindée Tier IV"
+    access_control: "Biométrie + badge + PIN"
+    surveillance: "Caméra 24/7 avec enregistrement"
+    environmental:
+      temperature: "18-24°C"
+      humidity: "40-60%"
+      ups: "Double conversion, autonomie 4h"
+      
+  maintenance:
+    firmware_updates: "Signés cryptographiquement uniquement"
+    support_contract: "24/7/365 avec SLA 1h"
+    annual_audit: "Obligatoire par tiers certifié"
+```
+
+### Procédure d'Installation
+
+1. **Réception et Inspection**
+   - Vérifier les scellés d'emballage
+   - Contrôler les numéros de série
+   - Tester l'intégrité physique
+
+2. **Initialisation en Environnement Contrôlé**
+   - Effectuer dans une salle blindée
+   - Présence de 3 administrateurs minimum
+   - Enregistrement vidéo complet
+
+3. **Configuration des Partitions**
+   - Créer une partition par application SNISID
+   - Définir les politiques M of N
+   - Générer les clés maîtresses
+
+4. **Intégration avec SNISID**
+   - Installation du client PKCS#11
+   - Configuration des connecteurs
+   - Tests de performance et de sécurité
+
+5. **Documentation et Audit**
+   - Rapport d'installation signé
+   - Registre des clés générées
+   - Plan de reprise en cas de défaillance
+
+### Budget Estimatif
+
+| Item | Quantité | Prix Unitaire | Total |
+|------|----------|---------------|-------|
+| HSM Thales Luna A800 | 3 | $45,000 | $135,000 |
+| Câbles et accessoires | 3 | $2,000 | $6,000 |
+| Rack sécurisé | 1 | $15,000 | $15,000 |
+| Formation administrateurs | 6 | $5,000 | $30,000 |
+| Contrat support 3 ans | 3 | $12,000 | $36,000 |
+| **TOTAL** | | | **$222,000** |
+
+### Délai de Livraison
+
+- **Commande à livraison**: 8-12 semaines
+- **Installation et configuration**: 2 semaines
+- **Formation et certification**: 1 semaine
+- **Total projet**: 12-15 semaines
+
+---
+*Document de spécification technique - Niveau Confidentiel*
+*Ministère de l'Intérieur d'Haïti - SNISID Project Office*
