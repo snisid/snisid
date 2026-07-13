@@ -1,43 +1,12 @@
 ```
-# Dependencies and build artifacts
-external-integrations/*/node_modules/
-external-integrations/*/.venv/
-external-integrations/*/venv/
-external-integrations/*/dist/
-external-integrations/*/build/
-external-integrations/*/__pycache__/
-external-integrations/*/.pytest_cache/
-external-integrations/*/.mypy_cache/
-external-integrations/*/target/
-external-integrations/*/.gradle/
-
-# System files
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Environment files
+# Environment and configuration files
 .env
 .env.local
 *.env.*
 
-# Editor/IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
+# Logs
+*.log
 
-# Compiled files
-*.pyc
-*.class
-*.o
-*.exe
-*.dll
-*.so
-*.a
-*.obj
-*.out
+# External integrations (based on modified files)
+external-integrations/
 ```
