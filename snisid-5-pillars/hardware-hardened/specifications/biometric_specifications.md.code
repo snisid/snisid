@@ -1,0 +1,259 @@
+# SPÉCIFICATIONS ÉQUIPEMENTS BIOMÉTRIQUES - SNISID
+
+## Exigences Generales
+
+### Normes de Conformité
+- **NIST IR 8383** (Mobile ID)
+- **ISO/IEC 19794** (Formats de données biométriques)
+- **ISO/IEC 30107** (Détection de présentation/anti-spoofing)
+- **FBI Appendix F** (Empreintes digitales)
+- **ICAO 9303** (Passeports électroniques)
+
+## Kits d'Enrôlement Fixes (Centres SNISID)
+
+### Station Biométrique Complète
+
+```yaml
+fixed_enrollment_station:
+  purpose: "Enrôlement initial dans les centres SNISID"
+  quantity_recommended: 100  # Un par agence locale
+  
+  components:
+    fingerprint_scanner:
+      type: "Scanner optique ou capacitif 10 doigts simultanés"
+      resolution: "1000 DPI minimum (500 DPI acceptable)"
+      area: "4x5 pouces minimum"
+      certification: "FBI Appendix F certified"
+      models:
+        - "Digital Persona U.are.U 4500"
+        - "SecuGen Hamster Pro 10"
+        - "Morpho MSO 300"
+      features:
+        - "Détection de doigt vivant (live finger detection)"
+        - "Résistant aux rayures et chocs"
+        - "Interface USB 3.0"
+        
+    iris_scanner:
+      type: "Caméra infrarouge dual-eye"
+      resolution: "≥ 2 MP par œil"
+      wavelength: "850nm infrarouge"
+      capture_time: "< 2 secondes"
+      models:
+        - "IriTech IriShield USB"
+        - "Jiris JIRIS 2000"
+        - "Morpho Iris ID"
+      features:
+        - "Anti-spoofing (détection faux iris)"
+        - "Compatible lunettes et lentilles"
+        - "Distance de capture: 10-30 cm"
+        
+    facial_camera:
+      type: "Caméra HD avec éclairage adaptatif"
+      resolution: "≥ 5 MP"
+      features:
+        - "Éclairage LED intégré"
+        - "Détection de visage automatique"
+        - "Conforme ICAO 9303 pour passeports"
+        - "Anti-spoofing 3D"
+      models:
+        - "Logitech Brio 4K"
+        - "Microsoft LifeCam Studio"
+        - "Canon EOS Webcam Utility"
+        
+    signature_pad:
+      type: "Tablette graphique avec stylet"
+      resolution: "≥ 2000 LPI"
+      pressure_levels: "≥ 1024"
+      models:
+        - "Wacom STU-540"
+        - "Topaz SigLite T-LBK767"
+        
+    document_scanner:
+      type: "Scanner plat haute vitesse"
+      resolution: "600 DPI optique"
+      speed: "≥ 30 ppm"
+      features:
+        - "Recto-verso automatique"
+        - "Détection UV et IR pour authenticité"
+        - "OCR intégré"
+      models:
+        - "Epson DS-530 II"
+        - "Fujitsu fi-7160"
+        
+    pc_integrated:
+      type: "Mini PC ou All-in-One"
+      specs:
+        cpu: "Intel Core i7 ou AMD Ryzen 7"
+        ram: "16 GB DDR4"
+        storage: "512 GB NVMe SSD"
+        os: "SNISID-OS (Linux durci)"
+        ports: "USB 3.0 x6, Ethernet Gigabit"
+        tpm: "TPM 2.0 obligatoire"
+        
+    enclosure:
+      type: "Borne ergonomique sécurisée"
+      features:
+        - "Verrouillage physique des composants"
+        - "Protection anti-vandalisme"
+        - "Câblage interne caché"
+        - "Écran tactile 15 pouces intégré"
+```
+
+## Kits d'Enrôlement Mobiles (Zones Reculées)
+
+### Valise Biométrique Portable
+
+```yaml
+mobile_enrollment_kit:
+  purpose: "Enrôlement dans zones sans électricité/réseau"
+  quantity_recommended: 50
+  
+  components:
+    fingerprint_scanner:
+      type: "Scanner USB portable 4 doigts"
+      certification: "FBI Mobile ID certified"
+      battery: "Autonomie 8 heures"
+      models:
+        - "Digital Persona U.are.U Lite"
+        - "SecuGen Hamster Plus"
+        
+    iris_camera:
+      type: "Caméra portable monoculaire"
+      battery: "Autonomie 6 heures"
+      
+    tablet_ruggedized:
+      type: "Tablette durcie militaire"
+      specs:
+        screen: "10 pouces sunlight readable"
+        cpu: "Snapdragon 660 ou équivalent"
+        ram: "6 GB"
+        storage: "128 GB + microSD 256 GB"
+        os: "Android durci avec conteneur Linux"
+        battery: "12 heures autonomie"
+        protection: "IP68 + MIL-STD-810G"
+        connectivity:
+          - "4G/LTE multi-opérateurs"
+          - "WiFi 802.11ac"
+          - "Bluetooth 5.0"
+          - "GPS/GNSS"
+        security:
+          - "Chiffrement matériel AES-256"
+          - "Effacement à distance"
+          - "Authentification biométrique locale"
+      models:
+        - "Panasonic Toughbook FZ-T1"
+        - "Samsung Galaxy Tab Active3"
+        - "Getac F110"
+        
+    portable_printer:
+      type: "Imprimante thermique mobile"
+      features:
+        - "Impression CIN temporaire"
+        - "Battery-powered"
+        - "Bluetooth/WiFi"
+      models:
+        - "Zebra ZQ520"
+        - "Brother RJ-4230B"
+        
+    power_bank:
+      capacity: "50000 mAh minimum"
+      outputs: "USB-C PD, USB-A QC"
+      solar_charging: "Optionnel mais recommandé"
+      
+    carrying_case:
+      type: "Valise étanche et antichoc"
+      rating: "IP67"
+      features:
+        - "Mousse découpée sur mesure"
+        - "Verrouillage par combinaison"
+        - "Roulettes et poignée télescopique"
+```
+
+## Lecteurs Biométriques de Vérification (Points de Contrôle)
+
+### Terminaux de Vérification Rapide
+
+```yaml
+verification_terminals:
+  purpose: "Vérification d'identité aux points de contrôle"
+  quantity_recommended: 200
+  
+  types:
+    border_control:
+      location: "Aéroports, ports frontaliers"
+      components:
+        - "Scanner empreintes 10 doigts"
+        - "Reconnaissance faciale avec e-gate"
+        - "Lecteur passeport électronique RFID"
+        - "Contrôle automatique des documents"
+      models:
+        - "Thales Gemalto e-Gate"
+        - "IDEMIA Border Control Solution"
+        
+    police_checkpoint:
+      location: "Postes de police mobiles/fixes"
+      components:
+        - "Scanner empreintes 2 doigts"
+        - "Caméra faciale portable"
+        - "Terminal mobile 4G"
+      models:
+        - "Morpho Smartcard Reader"
+        - "HID Global Vertu"
+        
+    bank_kyc:
+      location: "Agences bancaires, institutions financières"
+      components:
+        - "Scanner empreintes 4 doigts"
+        - "Vérification faciale"
+        - "Lecteur carte d'identité NFC"
+      models:
+        - "Digital Persona Auriga"
+        - "Precise Biometrics Precise 100SC"
+```
+
+## Infrastructure Biométrique Centrale
+
+### Serveurs de Matching Biométrique
+
+```yaml
+biometric_matching_servers:
+  purpose: "Comparaison biométrique 1:N en temps réel"
+  quantity: 8  # Cluster haute disponibilité
+  
+  requirements:
+    fingerprint_matching:
+      capacity: "100 millions d'empreintes"
+      response_time_1n: "< 1 seconde pour 1:N"
+      far_false_accept_rate: "< 0.0001%"
+      frr_false_reject_rate: "< 1%"
+      
+    iris_matching:
+      capacity: "50 millions d'iris"
+      response_time: "< 500 ms"
+      
+    facial_recognition:
+      capacity: "20 millions de visages"
+      response_time: "< 2 secondes"
+      accuracy: "> 99.5% à NIST FRVT"
+      
+    software:
+      engine: "Morpho AFIS ou NEC NeoFace"
+      license: "Perpétuelle avec maintenance 5 ans"
+      api: "REST + SDK C++/Java/Python"
+```
+
+## Budget Estimatif
+
+| Équipement | Quantité | Prix Unitaire | Total |
+|------------|----------|---------------|-------|
+| Stations fixes complètes | 100 | $15,000 | $1,500,000 |
+| Kits mobiles | 50 | $8,000 | $400,000 |
+| Terminaux vérification | 200 | $3,000 | $600,000 |
+| Serveurs matching biométrique | 8 | $120,000 | $960,000 |
+| Logiciels et licences | - | - | $500,000 |
+| Installation et formation | - | - | $300,000 |
+| **TOTAL** | | | **$4,260,000** |
+
+---
+*Document de spécification technique - Niveau Confidentiel*
+*Projet SNISID - République d'Haïti*

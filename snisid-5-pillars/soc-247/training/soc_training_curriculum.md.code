@@ -1,0 +1,298 @@
+# PROGRAMME DE FORMATION SOC SNISID
+
+## Curriculum Global
+
+### Durée Totale: 12 Semaines (3 Mois)
+
+## Phase 1: Fondamentaux (Semaines 1-2)
+
+### Module 1.1: Introduction SNISID
+- **Durée**: 2 jours
+- **Contenu**:
+  - Mission et organisation SNISID
+  - Architecture technique globale
+  - Classification données (Tier 0-3)
+  - Politiques sécurité nationales
+  - Cadre juridique haïtien
+  
+- **Validation**: Quiz écrit (80% requis)
+
+### Module 1.2: Cybersecurity Fundamentals
+- **Durée**: 3 jours
+- **Contenu**:
+  - Concepts réseau (TCP/IP, DNS, HTTP/S)
+  - Cryptographie appliquée
+  - Authentification et autorisation
+  - Types de menaces et attaques
+  - Kill Chain et MITRE ATT&CK
+  
+- **Validation**: Laboratoire pratique
+
+### Module 1.3: Linux Hardening
+- **Durée**: 3 jours
+- **Contenu**:
+  - Administration Linux avancée
+  - SNISID-OS spécificités
+  - Auditd et logging système
+  - AppArmor/SELinux
+  - Détection rootkits
+  
+- **Validation**: TP hardening serveur
+
+### Module 1.4: Legal and Compliance
+- **Durée**: 2 jours
+- **Contenu**:
+  - Lois protection données Haïti
+  - Standards NSA et chinois applicables
+  - Chaîne de custode preuves
+  - Témoignage judiciaire
+  - Éthique et déontologie SOC
+  
+- **Validation**: Étude de cas juridique
+
+---
+
+## Phase 2: Outils SOC (Semaines 3-5)
+
+### Module 2.1: SIEM Wazuh
+- **Durée**: 5 jours
+- **Contenu**:
+  - Architecture Wazuh
+  - Déploiement et configuration agents
+  - Création règles custom
+  - Dashboard Kibana
+  - Investigation requêtes Elasticsearch
+  
+- **Laboratoire**: 
+  - Déployer cluster Wazuh
+  - Créer 10 règles détection
+  - Investiguer scenario attaque
+  
+- **Validation**: Certification Wazuh Level 1
+
+### Module 2.2: Network Security Monitoring
+- **Durée**: 4 jours
+- **Contenu**:
+  - Analyse trafic avec Suricata
+  - Logs Zeek interprétation
+  - Recherche PCAP Arkime
+  - Détection anomalies réseau
+  - Reconstruction sessions
+  
+- **Laboratoire**:
+  - Analyser capture attaque réelle
+  - Extraire IOCs malware
+  - Identifier exfiltration DNS
+  
+- **Validation**: Exercice pratique NSM
+
+### Module 2.3: EDR et Endpoint Analysis
+- **Durée**: 4 jours
+- **Contenu**:
+  - Wazuh agents advanced features
+  - Osquery queries
+  - Analyse processus suspects
+  - Persistence mechanisms
+  - Memory forensics basics
+  
+- **Laboratoire**:
+  - Détecter malware sur endpoint
+  - Identifier persistence
+  - Nettoyer compromission
+  
+- **Validation**: Scenario EDR completion
+
+### Module 2.4: SOAR et Automation
+- **Durée**: 2 jours
+- **Contenu**:
+  - Principes SOAR
+  - Shuffle playbooks
+  - Integration APIs
+  - Automated response
+  
+- **Laboratoire**:
+  - Créer playbook phishing
+  - Tester automation containment
+  
+- **Validation**: Playbook fonctionnel
+
+---
+
+## Phase 3: Réponse Incident (Semaines 6-8)
+
+### Module 3.1: Incident Response Methodology
+- **Durée**: 3 jours
+- **Contenu**:
+  - Framework NIST SP 800-61
+  - Phases IR (Preparation → Lessons Learned)
+  - Communication crise
+  - Documentation incidents
+  - Coordination équipes
+  
+- **Validation**: Tabletop exercise
+
+### Module 3.2: Digital Forensics
+- **Durée**: 5 jours
+- **Contenu**:
+  - Acquisition preuves (disque, mémoire)
+  - Outils forensiques (Autopsy, Volatility)
+  - Timeline analysis
+  - Artefacts Windows/Linux
+  - Anti-forensics detection
+  
+- **Laboratoire**:
+  - Imager disque compromis
+  - Analyser dump mémoire
+  - Reconstruire timeline attaque
+  
+- **Validation**: Rapport forensique complet
+
+### Module 3.3: Malware Analysis
+- **Durée**: 4 jours
+- **Contenu**:
+  - Static analysis (strings, PE structure)
+  - Dynamic analysis (sandbox, debugging)
+  - Reverse engineering basics
+  - YARA rules creation
+  - IOC extraction
+  
+- **Laboratoire**:
+  - Analyser échantillons malware réels
+  - Créer règles YARA
+  - Documenter TTPs
+  
+- **Validation**: Rapport analyse malware
+
+### Module 3.4: Threat Hunting
+- **Durée**: 3 jours
+- **Contenu**:
+  - Méthodologie hunting
+  - Hypothesis-driven hunting
+  - Data exploration techniques
+  - Hunting with ElasticSearch
+  - Reporting findings
+  
+- **Laboratoire**:
+  - Chasser menace simulée
+  - Développer hypotheses
+  - Présenter résultats
+  
+- **Validation**: Hunt report
+
+---
+
+## Phase 4: Spécialisation (Semaines 9-10)
+
+### Tracks au Choix (selon rôle futur)
+
+#### Track A: Analyste Tier 1
+- **Focus**: Triaging, qualification, escalation
+- **Modules additionnels**:
+  - Social engineering detection
+  - Phishing analysis
+  - Basic log analysis
+  - Customer communication
+  
+#### Track B: Analyste Tier 2
+- **Focus**: Investigation approfondie
+- **Modules additionnels**:
+  - Advanced log correlation
+  - Lateral movement detection
+  - Privilege escalation analysis
+  - Incident documentation
+  
+#### Track C: Expert Tier 3
+- **Focus**: Réponse avancée, reverse engineering
+- **Modules additionnels**:
+  - Advanced malware RE
+  - APT TTPs deep dive
+  - Custom tool development
+  - Mentorship skills
+
+---
+
+## Phase 5: Simulation et Certification (Semaines 11-12)
+
+### Module 5.1: Capstone Exercise
+- **Durée**: 5 jours
+- **Scenario**: Attaque APT complète simulée
+- **Phases**:
+  - Jour 1: Détection initiale
+  - Jour 2-3: Investigation et containment
+  - Jour 4: Éradication et recovery
+  - Jour 5: Post-incident review
+  
+- **Évaluation**:
+  - Temps de détection
+  - Qualité investigation
+  - Efficacité réponse
+  - Documentation produite
+  - Travail d'équipe
+
+### Module 5.2: Certifications Officielles
+- **Examens**:
+  - SNISID SOC Analyst Level 1 (obligatoire)
+  - Security+ ou équivalent
+  - Certification outil primaire (Wazuh)
+  
+- **Conditions obtention**:
+  - 80% minimum chaque examen
+  - Participation 100% formations
+  - Validation capstone exercise
+
+### Module 5.3: Graduation Ceremony
+- **Événement**: Remise certificats
+- **Invités**: Direction SNISID, Ministère
+- **Discours**: Meilleur étudiant de la promotion
+
+---
+
+## Formation Continue
+
+### Requirements Annuels
+- **Heures formation**: 40 heures/an minimum
+- **Certifications renewals**: Tous les 2 ans
+- **Exercices simulation**: Trimestriels
+- **Veille technologique**: Hebdomadaire (4h)
+
+### Programme Avancé (Annuel)
+
+```yaml
+advanced_training_yearly:
+  q1:
+    - "Nouvelles menaces et TTPs"
+    - "Mise à jour outils SOC"
+    - "Retour expériences incidents année"
+    
+  q2:
+    - "Formation spécialisée (au choix)"
+    - "Conférence sécurité (externe)"
+    - "Exercice inter-agences"
+    
+  q3:
+    - "Deep dive technique (malware, forensics)"
+    - "Certification avancée"
+    - "Mentorat nouveaux analystes"
+    
+  q4:
+    - "Préparation audits"
+    - "Amélioration procédures"
+    - "Planning formation année suivante"
+```
+
+## Budget Formation
+
+| Poste | Coût par Analyste | Total (45 analystes) |
+|-------|-------------------|----------------------|
+| Formateurs externes | $10,000 | $450,000 |
+| Plateformes e-learning | $2,000 | $90,000 |
+| Certifications exams | $3,000 | $135,000 |
+| Conférences externes | $5,000 | $225,000 |
+| Laboratoires pratiques | $8,000 | $360,000 |
+| Documentation et livres | $1,000 | $45,000 |
+| **TOTAL INITIAL** | **$29,000** | **$1,305,000** |
+| **TOTAL ANNUEL (continue)** | **$15,000** | **$675,000** |
+
+---
+*Programme de formation officiel - Niveau Confidentiel*
+*SNISID - Académie de Cybersécurité*

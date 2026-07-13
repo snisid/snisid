@@ -1,0 +1,136 @@
+# SNISID Data Fabric & Ingestion Pipeline (Inspired by NSA DataWave)
+# Architecture: Apache NiFi + Kafka + DataWave Core
+# Objectif: Ingestion temps réel de toutes les sources (Caméras, Télécoms, Frontières, Banques)
+
+version: '3.8'
+
+services:
+  # 1. INGESTION LAYER (Style NSA DataWave)
+  snisid-nifi:
+    image: apache/nifi:1.23.2
+    container_name: snisid_ingestion_core
+    environment:
+      - NIFI_WEB_HTTP_PORT=8443
+      - NIFI_WEB_HTTPS_PORT=8443
+      - NIFI_ZOOKEEPER_CONNECTORS=zookeeper:2181
+      - NIFI_SECURITY_USER_AUTHENTICATION=tls
+      - NIFI_AUTHORIZER=tls-user-authorizer
+    volumes:
+      - ./data/nifi/conf:/opt/nifi/nifi-current/conf
+      - ./data/nifi/database_repository:/opt/nifi/nifi-current/database_repository
+      - ./data/nifi/flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
+      - ./data/nifi/content_repository:/opt/nifi/nifi-current/content_repository
+      - ./data/nifi/provenance_repository:/opt/nifi/nifi-current/provenance_repository
+      - ./data/nifi/state:/opt/nifi/nifi-current/state
+      - ./pipelines/ingestion_rules:/opt/nifi/nifi-current/data/ingestion_rules # Règles FBI/DEA style
+    networks:
+      - snisid_secure_net
+    restart: always
+    depends_on:
+      - kafka-broker
+      - zookeeper
+
+  # 2. MESSAGE BROKER (High Throughput - Style Chinese Skynet)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - snisid_secure_net
+
+  kafka-broker:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 8760 # 1 an de rétention (Standard MLPS Chine)
+    networks:
+      - snisid_secure_net
+
+  # 3. DATA LAKE STORAGE (MinIO - Souveraineté des données)
+  minio-datalake:
+    image: minio/minio:RELEASE.2023-12-20T01-00-02Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${SNISID_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${SNISID_ROOT_PASS}
+    volumes:
+      - ./data/lake_raw:/data
+    networks:
+      - snisid_secure_net
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  # 4. GRAPH DATABASE (Neo4j Enterprise - Style FBI Link Analysis)
+  neo4j-graph:
+    image: neo4j:5.14-enterprise
+    environment:
+      - NEO4J_AUTH=neo4j/${SNISID_GRAPH_PASS}
+      - NEO4J_PLUGINS=["graph-data-science"]
+      - NEO4J_dbms_security_auth__minimum__password__length=16
+      - NEO4J_dbms_memory_pagecache_size=4G
+      - NEO4J_dbms_memory_heap_initial__size=4G
+      - NEO4J_dbms_memory_heap_max__size=8G
+    volumes:
+      - ./data/neo4j/data:/data
+      - ./data/neo4j/logs:/logs
+      - ./data/neo4j/import:/var/lib/neo4j/import
+      - ./data/neo4j/plugins:/plugins
+    networks:
+      - snisid_secure_net
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+
+  # 5. SEARCH & ANALYTICS ENGINE (Elasticsearch - Style DEA Sentinel)
+  elasticsearch-master:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    environment:
+      - node.name=es-master
+      - cluster.name=snisid-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+      - xpack.security.enabled=true
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.transport.ssl.enabled=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data/es/data:/usr/share/elasticsearch/data
+    networks:
+      - snisid_secure_net
+    ports:
+      - "9200:9200"
+
+networks:
+  snisid_secure_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.50.0.0/16  # Réseau isolé Sécurité Nationale
+
+volumes:
+  data_nifi_conf:
+  data_lake_raw:
+  data_neo4j_data:
+  data_es_data:
+
+# NOTE DE L'EXPERT:
+# Cette configuration reproduit l'architecture "IC ITE" de la communauté du renseignement US.
+# DataWave permet d'ingérer des formats hétérogènes (CDR télécoms, vidéos CCTV, dossiers judiciaires PDF).
+# Neo4j permet de tracer les réseaux criminels (qui connaît qui, qui a appelé qui).
+# Elasticsearch permet la recherche full-text sur des pétaoctets de données en millisecondes.

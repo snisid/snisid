@@ -1,0 +1,103 @@
+# SNISID AEGIS-OMERTA PROTOCOL CONFIGURATION
+# Version: 1.0 (TOP SECRET / NOFORN)
+# Objective: Rendre le système inviolable et incorruptible
+
+security_policy:
+  name: "AEGIS-OMERTA"
+  status: "ACTIVE"
+  enforcement_level: "KERNEL_MANDATORY"
+
+# 1. MODULE JUDAS-PROTOCOL (Détection Corruption Interne)
+insider_threat_detection:
+  enabled: true
+  behavioral_analysis:
+    engine: "UEBA-AI-v4"
+    baseline_learning_days: 30
+    anomaly_sensitivity: "CRITICAL"
+  
+  triggers:
+    - event: "ACCESS_OUT_OF_JURISDICTION"
+      action: "FREEZE_AND_ALERT"
+    - event: "BULK_DATA_EXPORT"
+      threshold: 5_files
+      action: "FREEZE_AND_ALERT"
+    - event: "OFF_HOURS_ACCESS"
+      requires_mission_order: true
+      action: "FREEZE_AND_ALERT"
+    - event: "LOG_TAMPERING_ATTEMPT"
+      action: "IMMEDIATE_LOCKDOWN"
+    - event: "PRIVILEGE_ESCALATION_TRY"
+      action: "IMMEDIATE_LOCKDOWN"
+
+  alert_payload:
+    include_user_photo: true
+    include_fiscal_id_nif: true
+    include_full_name: true
+    include_screen_recording: true
+    include_attempted_action_details: true
+    encryption: "AES-512-GCM"
+    
+  transmission:
+    method: "SATELLITE_DIRECT_LINK" # Bypass local network to prevent interception
+    destination: "CENTRAL_COMMAND_VAULT"
+    recurrence_interval: "15m" # Repeat every 15 mins until acknowledged
+    acknowledgment_required_by: "DIRECTOR_MASTER_CODE"
+
+# 2. ZERO-KNOWLEDGE ARCHITECTURE
+data_privacy:
+  homomorphic_encryption:
+    enabled: true
+    algorithm: "CKKS-RNS" # Allows computation on encrypted data
+    decryption_context: "JUST_IN_TIME_DISPLAY_ONLY"
+  
+  access_control:
+    model: "QUORUM_M_OF_N"
+    required_signers: 3
+    signer_roles: ["TECH_ADMIN", "JUDICIAL_OFFICER", "INTERNAL_AUDITOR"]
+    geographic_separation_required: true # Signers must be in different buildings
+
+# 3. IMMUTABLE BOOT & KERNEL HARDENING
+system_integrity:
+  boot_security:
+    secure_boot: "ENFORCED"
+    measured_boot: "TPM2_PCR_EXTEND"
+    kernel_signature_check: "MANDATORY"
+    rollback_protection: true
+  
+  filesystem:
+    root_partition_mode: "READ_ONLY"
+    overlay_fs: "TMPFS" # Changes lost on reboot unless authorized
+    integrity_monitor: "AIDE_REALTIME"
+    
+  anti_tamper:
+    hsm_physical_protection: true
+    zeroize_on_case_open: true # Erase keys if server case is opened
+    reboot_on_kernel_panic: "IMMEDIATE"
+
+# 4. BLOCKCHAIN AUDIT LOGGING (WORM)
+audit_trail:
+  storage_type: "PRIVATE_BLOCKCHAIN"
+  immutability: "WRITE_ONCE_READ_MANY"
+  consensus_nodes: ["PORT_AU_PRINCE", "CAP_HAITIEN", "LES_CAYES", "GONAIVES"]
+  retention_period: "PERMANENT"
+  legal_admissibility: "HASH_SIGNED_BY_SUPREME_COURT_KEY"
+
+# 5. REGIONAL HIERARCHY CONTROL
+hierarchy_enforcement:
+  central_authority: "ABSOLUTE"
+  regional_nodes:
+    mode: "SLAVE_READONLY_CONFIG"
+    can_override_central_policy: false
+    heartbeat_check_interval: "30s"
+    auto_lockdown_if_disconnect: "15m" # Lock region if comms lost with central
+
+# 6. INCIDENT RESPONSE AUTOMATION
+automated_response:
+  upon_insider_alert:
+    - action: "DISABLE_USER_ACCOUNT"
+      scope: "IMMEDIATE"
+    - action: "REVOKE_ALL_ACTIVE_SESSIONS"
+    - action: "LOCK_WORKSTATION_REMOTE"
+    - action: "NOTIFY_IGPN_AND_DIC" # Inspector General & Anti-Corruption
+    - action: "GENERATE_LEGAL_DOSSIER_PDF"
+      destination: "PROSECUTOR_OFFICE_SECURE_DROP"

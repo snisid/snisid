@@ -1,0 +1,99 @@
+# PROCÉDURE DE CERTIFICATION DU MATÉRIEL SNISID
+
+## Phase 1: Qualification Fournisseur
+
+### Critères d'Éligibilité
+1. **Existence légale**: Entreprise enregistrée depuis ≥ 5 ans
+2. **Références**: Au moins 3 déploiements gouvernementaux similaires
+3. **Certifications**: ISO 9001, ISO 27001 obligatoires
+4. **Clearance**: Personnel habilité secret-défense
+5. **Support local**: Bureau ou partenaire en Haïti/Caribbean
+
+### Due Diligence
+- Vérification antécédents judiciaires
+- Analyse financière (3 derniers exercices)
+- Audit de la chaîne d'approvisionnement
+- Test de pénétration des produits proposés
+
+## Phase 2: Tests de Conformité
+
+### Tests en Laboratoire Accrédité
+1. **Tests FIPS 140-2**: Par laboratoire NVLAP accrédité
+2. **Tests Common Criteria**: Evaluation EAL 4+
+3. **Tests TEMPEST**: Émissions électromagnétiques
+4. **Tests environnementaux**: MIL-STD-810G
+
+### Tests Fonctionnels SNISID
+```bash
+# Script de test automatisé
+./snisid_hardware_validation.sh \
+  --hsm-model "Thales Luna A800" \
+  --server-model "Dell R940xa" \
+  --biometric-scanner "Digital Persona 4500" \
+  --output-report "/tmp/certification_report.pdf"
+```
+
+### Critères de Réussite
+- Taux de disponibilité: ≥ 99.99%
+- Temps de réponse: Conformément aux SLA
+- Sécurité: Zéro vulnérabilité critique
+- Interopérabilité: 100% avec SNISID-OS
+
+## Phase 3: Homologation Officielle
+
+### Comité d'Homologation
+- Président: Directeur Général SNISID
+- Membres:
+  - Représentant Ministère de l'Intérieur
+  - Représentant Ministère de la Défense
+  - Expert cybersécurité indépendant
+  - Représentant ANSSI ou équivalent
+
+### Dossier d'Homologation
+1. Rapport de tests laboratoire
+2. Rapport de tests fonctionnels
+3. Analyse de risques
+4. Plan de maintenance
+5. Engagement de support long terme
+6. Certifications originales
+
+### Décision
+- **Homologué**: Validité 3 ans, renouvelable
+- **Homologué sous réserve**: Corrections mineures requises
+- **Refusé**: Non-conformité majeure
+
+## Phase 4: Surveillance Continue
+
+### Audits Annuels
+- Vérification maintien des certifications
+- Test de pénétration annuel
+- Revue des incidents de sécurité
+- Mise à jour firmware/software
+
+### Retrait d'Homologation
+Conditions de retrait immédiat:
+- Vulnérabilité critique non corrigée sous 30 jours
+- Incident de sécurité majeur
+- Changement de propriété fournisseur (risque géopolitique)
+- Non-respect du contrat de support
+
+## Registre des Matériels Certifiés
+
+Maintenu dans: `${CERTIFICATIONS_DIR}/approved_hardware_registry.json`
+
+Format:
+```json
+{
+  "certification_id": "SNISID-HW-2024-001",
+  "vendor": "Thales Group",
+  "product": "Luna Network HSM A800",
+  "certification_date": "2024-01-15",
+  "expiry_date": "2027-01-15",
+  "test_reports": [...],
+  "status": "ACTIVE"
+}
+```
+
+---
+*Procédure officielle - Niveau Confidentiel*
+*Direction Générale SNISID*
