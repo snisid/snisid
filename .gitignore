@@ -1,12 +1,31 @@
-```
-# Environment and configuration files
-.env
-.env.local
-*.env.*
-
-# Logs
+﻿# Windows system files
+AppData/
+NTUSER.*
+ntuser.*
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
 *.log
+.DS_Store
 
-# External integrations (based on modified files)
-external-integrations/
-```
+# Credentials
+.aws/
+.ssh/
+!.ssh/config
+ed25519
+ed25519.pub
+id_*
+*.pem
+
+# Logs and Temp
+logs/
+tmp/
+temp/
+execution_reports.md
+bashs_execution_reports
+
+# Node/Python
+node_modules/
+__pycache__/
+.env
