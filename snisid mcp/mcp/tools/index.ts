@@ -35,8 +35,10 @@ import { registerRiskScoreTool } from './intelligence/riskScore.js';
 import { registerNetworkAnalysisTool } from './intelligence/networkAnalysis.js';
 import { registerThreatDetectionTool } from './intelligence/threatDetection.js';
 import { registerBehaviorAnalysisTool } from './intelligence/behaviorAnalysis.js';
+import { registerSwarmTools } from './security/swarmTools.js';
 
 export function registerAllTools(server: McpServer): void {
+  registerSwarmTools(server);
   registerVerifyIdentityTool(server);
   registerCitizenProfileTool(server);
   registerBiometricMatchTool(server);
