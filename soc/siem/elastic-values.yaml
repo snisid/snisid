@@ -1,0 +1,40 @@
+elasticsearch:
+  replicas: 3
+  minimumMasterNodes: 2
+  volumeClaimTemplate:
+    accessModes: [ "ReadWriteOnce" ]
+    storageClassName: "encrypted-sc"
+    resources:
+      requests:
+        storage: 500Gi
+  esConfig:
+    elasticsearch.yml: |
+      xpack.security.enabled: true
+      xpack.security.transport.ssl.enabled: true
+      # Index Lifecycle Management settings
+      xpack.ilm.enabled: true
+
+kibana:
+  replicas: 2
+  elasticsearchHosts: "https://elasticsearch-master:9200"
+  kibanaConfig:
+    kibana.yml: |
+      server.ssl.enabled: true
+      xpack.security.encryptionKey: ${KIBANA_ENCRYPTION_KEY}
+      xpack.encryptedSavedObjects.encryptionKey: ${KIBANA_ENCRYPTION_KEY}
+      xpack.reporting.encryptionKey: ${KIBANA_ENCRYPTION_KEY}
+
+filebeat:
+  # Deployed as a DaemonSet to collect K8s logs
+  daemonset:
+    filebeatConfig:
+      filebeat.yml: |
+        filebeat.autodiscover:
+          providers:
+            - type: kubernetes
+              node: ${NODE_NAME}
+              hints.enabled: true
+        output.kafka:
+          hosts: ["kafka-broker.snisid-core.svc.cluster.local:9092"]
+          topic: 'snisid.raw.logs'
+          ssl.certificate_authorities: ["/etc/kafka/certs/ca.crt"]

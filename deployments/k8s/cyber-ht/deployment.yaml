@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cyber-ht
+  namespace: snisid-core
+  labels:
+    app: cyber-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cyber-ht
+  template:
+    metadata:
+      labels:
+        app: cyber-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8210"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: cyber-ht
+        image: snisid/cyber-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8210
+        env:
+        - name: CYBER_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: CYBER_DB_PORT
+          value: "26257"
+        - name: CYBER_DB_NAME
+          value: "snisid_cyber"
+        - name: CYBER_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: CYBER_DB_SSLMODE
+          value: "disable"
+        - name: CYBER_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: CYBER_SERVICE_PORT
+          value: "8210"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8210
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8210
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

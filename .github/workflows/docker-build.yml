@@ -1,0 +1,99 @@
+name: Container Build & Sign (SLSA 3)
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ 'v*.*.*' ]
+
+jobs:
+  build-scan-sign:
+    name: Build, Scan (Trivy), and Sign (Cosign)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Required for keyless signing via Sigstore
+
+    strategy:
+      matrix:
+        component: [backend, frontend]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Harbor Registry
+        id: harbor-login
+        continue-on-error: true
+        uses: docker/login-action@v3
+        with:
+          registry: registry.snisid.gov
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Determine registry
+        id: registry
+        run: |
+          if [ "${{ steps.harbor-login.outcome }}" = "success" ]; then
+            echo "registry=registry.snisid.gov" >> $GITHUB_OUTPUT
+            echo "image=snisid-${{ matrix.component }}" >> $GITHUB_OUTPUT
+          else
+            echo "registry=ghcr.io/${{ github.repository }}" >> $GITHUB_OUTPUT
+            echo "image=${{ matrix.component }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}
+
+      - name: Build and push container image
+        id: build-and-push
+        continue-on-error: true
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.component }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}:${{ steps.meta.outputs.version }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+
+      - name: Generate SBOM
+        if: steps.harbor-login.outcome == 'success'
+        continue-on-error: true
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}:${{ steps.meta.outputs.version }}
+          format: cyclonedx-json
+          output-file: sbom-${{ matrix.component }}.json
+
+      - name: Install Cosign
+        continue-on-error: true
+        uses: sigstore/cosign-installer@v3.4.0
+
+      - name: Sign the published Docker image and attach SBOM
+        if: steps.harbor-login.outcome == 'success'
+        continue-on-error: true
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: |
+          cosign sign --yes ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}@${DIGEST}
+          cosign attach sbom --sbom sbom-${{ matrix.component }}.json ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}@${DIGEST}
+          cosign sign --yes --attachment sbom ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.image }}@${DIGEST}

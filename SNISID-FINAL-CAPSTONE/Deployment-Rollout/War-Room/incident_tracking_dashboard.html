@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNISID — National Deployment War Room Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-800 pb-4 mb-6">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-block w-3 h-3 bg-red-600 rounded-full animate-ping"></span>
+                <span class="text-xs uppercase tracking-widest text-red-500 font-bold">Cellule de Crise Active (War Room)</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-1 text-white">SNISID — Tableau de Bord National</h1>
+            <p class="text-sm text-gray-400">République d'Haïti — Système National d'Identité Sociale et d'Identification</p>
+        </div>
+        <div class="mt-4 md:mt-0 bg-gray-900 border border-gray-800 rounded-lg p-3 text-right">
+            <span class="text-xs text-gray-500 block">Dernière Synchronisation Centrale</span>
+            <span class="text-sm font-mono font-bold text-green-400" id="current-time">2026-05-25 14:15:33 UTC-5</span>
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Column 1: Core Metrics -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Global Stats -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg">
+                <h2 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-4">Statistiques Globales</h2>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-xs text-gray-500 block">Identités Nationales Validées</span>
+                        <span class="text-3xl font-black text-white">6,102,481</span>
+                        <span class="text-xs text-green-500 block mt-1">↑ +45,210 aujourd'hui</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Taux de Réconciliation (NIRE)</span>
+                        <span class="text-2xl font-bold text-blue-400">99.982%</span>
+                        <span class="text-xs text-gray-400 block mt-1">Seuil minimal requis : 99.900%</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Edge Nodes (LEN) Déployés</span>
+                        <span class="text-2xl font-bold text-purple-400">140 / 140</span>
+                        <span class="text-xs text-green-400 block mt-1">100% opérationnels en commune</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Health Status -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg">
+                <h2 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-4">État de l'Infrastructure</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center bg-gray-950 p-2 rounded border border-gray-800">
+                        <span class="text-sm text-gray-300">Datacenter Principal (DC-1)</span>
+                        <span class="px-2 py-0.5 bg-green-950 text-green-400 text-xs font-bold rounded border border-green-800">OPÉRATIONNEL</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-gray-950 p-2 rounded border border-gray-800">
+                        <span class="text-sm text-gray-300">Backup DC (Cap-Haïtien)</span>
+                        <span class="px-2 py-0.5 bg-green-950 text-green-400 text-xs font-bold rounded border border-green-800">STANDBY</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-gray-950 p-2 rounded border border-gray-800">
+                        <span class="text-sm text-gray-300">Liaison Satellite Starlink</span>
+                        <span class="px-2 py-0.5 bg-green-950 text-green-400 text-xs font-bold rounded border border-green-800">OPTIMAL</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-gray-950 p-2 rounded border border-gray-800">
+                        <span class="text-sm text-gray-300">Moteur ABIS Biométrique</span>
+                        <span class="px-2 py-0.5 bg-green-950 text-green-400 text-xs font-bold rounded border border-green-800">99.99%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 2 & 3: Departmental Rollout & Interactive Logs -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Department Progress Table -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg">
+                <h2 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-4">Progression du Déploiement Départemental</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-800 text-gray-400">
+                                <th class="pb-2">Département</th>
+                                <th class="pb-2">Maturité (Readiness)</th>
+                                <th class="pb-2">Enrôlements</th>
+                                <th class="pb-2">Statut Actuel</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-800 font-mono">
+                            <tr>
+                                <td class="py-3 text-white font-bold">Ouest</td>
+                                <td class="py-3 text-green-400">99.8%</td>
+                                <td class="py-3">3,122,041</td>
+                                <td class="py-3"><span class="px-2 py-0.5 bg-blue-900 text-blue-300 text-xs rounded font-sans font-bold">Go-Live Complété</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 text-white font-bold">Nord</td>
+                                <td class="py-3 text-green-400">96.4%</td>
+                                <td class="py-3">1,104,222</td>
+                                <td class="py-3"><span class="px-2 py-0.5 bg-blue-900 text-blue-300 text-xs rounded font-sans font-bold">Go-Live Complété</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 text-white font-bold">Artibonite</td>
+                                <td class="py-3 text-green-400">91.2%</td>
+                                <td class="py-3">1,210,049</td>
+                                <td class="py-3"><span class="px-2 py-0.5 bg-indigo-900 text-indigo-300 text-xs rounded font-sans font-bold">Coexistence Parallèle</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 text-white font-bold">Sud</td>
+                                <td class="py-3 text-yellow-500">87.5%</td>
+                                <td class="py-3">401,980</td>
+                                <td class="py-3"><span class="px-2 py-0.5 bg-yellow-950 text-yellow-400 text-xs rounded font-sans font-bold">Activation Locale</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 text-white font-bold">Grand'Anse</td>
+                                <td class="py-3 text-red-500">54.0%</td>
+                                <td class="py-3">0 (Offline LEN)</td>
+                                <td class="py-3"><span class="px-2 py-0.5 bg-red-950 text-red-400 text-xs rounded font-sans font-bold">Audit en cours</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Interactive Incident Logging Tool -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg">
+                <h2 class="text-white text-base font-bold mb-2">Simulateur d'Incidentologie SNISID</h2>
+                <p class="text-xs text-gray-400 mb-4">Générer un incident de déploiement pour tester les protocoles d'escalade de la War Room.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Département affecté</label>
+                        <select id="inc-dept" class="w-full bg-gray-950 border border-gray-800 text-white rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="Ouest">Ouest (Port-au-Prince)</option>
+                            <option value="Grand'Anse">Grand'Anse (Jérémie)</option>
+                            <option value="Nord-Ouest">Nord-Ouest (Port-de-Paix)</option>
+                            <option value="Sud">Sud (Les Cayes)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Type d'anomalie</label>
+                        <select id="inc-type" class="w-full bg-gray-950 border border-gray-800 text-white rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="S1 - Panne réseau Starlink (Solaire épuisé)">S1 - Panne Starlink (Solaire épuisé)</option>
+                            <option value="S2 - Usurpation Biométrique suspectée par le NIRE">S2 - Usurpation Biométrique par le NIRE</option>
+                            <option value="S3 - Dysfonctionnement de l'imprimante thermique de cartes">S3 - Panne imprimante cartes locale</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="logIncident()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 rounded transition">
+                    Déclencher l'alerte d'escalade de crise
+                </button>
+            </div>
+        </div>
+
+        <!-- Column 4: Real-time War Room Log feed -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg flex flex-col h-[480px]">
+                <h2 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-4">Flux en temps réel de la War Room</h2>
+                <div id="incident-feed" class="flex-1 overflow-y-auto space-y-3 pr-2 text-xs font-mono">
+                    <!-- Default mock events -->
+                    <div class="bg-gray-950 p-3 rounded border-l-2 border-green-500">
+                        <span class="text-gray-500 block">14:10 - OUEST</span>
+                        <p class="text-white">Lancement de la réconciliation automatique sur le lot #MIG-120. 25,000 fiches validées.</p>
+                    </div>
+                    <div class="bg-gray-950 p-3 rounded border-l-2 border-yellow-500">
+                        <span class="text-gray-500 block">13:45 - GRAND'ANSE</span>
+                        <p class="text-yellow-400">Unité mobile d'enrôlement de Corail basculée en mode Offline-First. Connexion rétablie.</p>
+                    </div>
+                    <div class="bg-gray-950 p-3 rounded border-l-2 border-green-500">
+                        <span class="text-gray-500 block">12:30 - SUD</span>
+                        <p class="text-white">Opérateur certifié #9082 activé avec clé d'accès matérielle YubiKey.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 mt-10 pt-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500">
+        <span>SNISID Phase 15 — National Deployment Framework</span>
+        <span>© 2026 Gouvernement de la République d'Haïti</span>
+    </footer>
+
+    <!-- JavaScript simulation -->
+    <script>
+        // Update time clock every second
+        setInterval(() => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hrs = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const secs = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('current-time').textContent = `${year}-${month}-${day} ${hrs}:${mins}:${secs} UTC-5`;
+        }, 1000);
+
+        function logIncident() {
+            const dept = document.getElementById('inc-dept').value;
+            const type = document.getElementById('inc-type').value;
+            const feed = document.getElementById('incident-feed');
+            
+            // Format current time
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            // Determine border color based on severity
+            let color = 'border-red-500';
+            if (type.includes('S2')) color = 'border-orange-500';
+            if (type.includes('S3')) color = 'border-yellow-500';
+            
+            // Create event element
+            const newEvent = document.createElement('div');
+            newEvent.className = `bg-gray-950 p-3 rounded border-l-2 ${color} animate-pulse`;
+            newEvent.innerHTML = `
+                <span class="text-red-500 font-bold block">${timeStr} - ALERTE ${dept}</span>
+                <p class="text-white font-bold">${type}</p>
+                <span class="text-[10px] text-gray-400 block mt-1">Escaladé automatiquement aux experts de la War Room.</span>
+            `;
+            
+            // Prepend to feed
+            feed.insertBefore(newEvent, feed.firstChild);
+            
+            // Trigger simple beep or notification in console
+            console.log(`[ALERTE WAR ROOM] Incident déclenché sur le département: ${dept} - Type: ${type}`);
+        }
+    </script>
+</body>
+</html>

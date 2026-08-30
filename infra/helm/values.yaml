@@ -1,0 +1,30 @@
+# Chart.yaml
+apiVersion: v2
+name: snisid
+description: Sovereign National Identity and Security Intelligence Database
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+# values.yaml
+global:
+  namespace: nexus-system
+  imageRegistry: ghcr.io/snisid
+
+riskEngine:
+  replicas: 2
+  image: risk-engine
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+identityService:
+  replicas: 2
+  image: identity-service
+
+persistence:
+  postgres:
+    storage: 5Gi
+  neo4j:
+    storage: 10Gi

@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "snisid.fullname" . }}-identity-api
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/role: "snisid-role"
+    vault.hashicorp.com/agent-inject-secret-config: "secret/data/snisid/identity-api"
+    vault.hashicorp.com/agent-inject-template-config: |
+      {{`{{- with secret "secret/data/snisid/identity-api" -}}
+      export DB_PASSWORD="{{ .Data.data.db_password }}"
+      export JWT_SECRET=your-jwt-secret .Data.data.jwt_secret }}"
+      {{- end -}}`}}
+spec:
+  template:
+    spec:
+      serviceAccountName: identity-api-sa
+      containers:
+        - name: identity-api
+          # ...

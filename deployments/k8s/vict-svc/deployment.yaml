@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vict-svc
+  namespace: snisid-core
+  labels:
+    app: vict-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vict-svc
+  template:
+    metadata:
+      labels:
+        app: vict-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8123"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: vict-svc
+        image: snisid/vict-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8123
+        env:
+        - name: PORT
+          value: "8123"
+        - name: ENV
+          value: "prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: postgres-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8123
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8123
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

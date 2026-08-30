@@ -1,0 +1,50 @@
+image:
+  repository: kong
+  tag: "3.6-ubuntu"
+  pullPolicy: IfNotPresent
+
+# DB-less mode (GitOps)
+env:
+  database: "off"
+  declarative_config: "/kong_dbless/kong-declarative.yaml"
+  # Enable NGINX ModSecurity module
+  nginx_proxy_include: "/etc/kong/waf/modsecurity.conf"
+  # Performance tuning
+  nginx_worker_processes: "auto"
+  mem_cache_size: "256m"
+
+ingressController:
+  enabled: true
+  installCRDs: false
+
+# Mount declarative config and WAF rules
+secretVolumes:
+  - kong-declarative-config
+  - modsecurity-rules
+
+extraVolumeMounts:
+  - name: kong-declarative-config
+    mountPath: /kong_dbless/
+  - name: modsecurity-rules
+    mountPath: /etc/kong/waf/
+
+proxy:
+  type: LoadBalancer
+  http:
+    enabled: false # Strict HTTPS only
+  tls:
+    enabled: true
+    parameters:
+      - "http2"
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+
+# Enable prometheus scraping
+serviceMonitor:
+  enabled: true
+
+# Hardened security context
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000

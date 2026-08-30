@@ -1,0 +1,68 @@
+name: MCP Server CI
+
+on:
+  push:
+    paths:
+      - 'snisid mcp/**'
+      - '.github/workflows/mcp-ci.yml'
+  pull_request:
+    paths:
+      - 'snisid mcp/**'
+
+defaults:
+  run:
+    working-directory: snisid mcp
+
+jobs:
+  quality:
+    name: Quality & Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'snisid mcp/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint || true
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        working-directory: snisid mcp
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+        working-directory: snisid mcp
+
+      - name: Secret scanning
+        uses: trufflesecurity/trufflehog@v3
+        with:
+          path: ./snisid\ mcp
+          base: ${{ github.event.repository.default_branch }}

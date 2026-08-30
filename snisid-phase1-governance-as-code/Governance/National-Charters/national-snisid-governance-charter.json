@@ -1,0 +1,71 @@
+{
+  "document": "National SNISID Governance Charter",
+  "version": "1.0.0",
+  "status": "draft-for-adoption",
+  "authority_level": "national-strategic-supreme",
+  "mission": "Établir l'autorité stratégique suprême, les responsabilités, les droits de veto, l'escalade et la gestion de crise pour SNISID.",
+  "governing_bodies": [
+    {
+      "name": "Conseil National SNISID",
+      "function": "Décision stratégique",
+      "authority": "Autorité stratégique suprême",
+      "veto_right": true,
+      "crisis_role": "Déclare la crise nationale SNISID et valide les mesures exceptionnelles"
+    },
+    {
+      "name": "Direction Générale SNISID",
+      "function": "Exécution",
+      "authority": "Autorité exécutive nationale",
+      "veto_right": false,
+      "crisis_role": "Coordonne l'exécution opérationnelle 24/7"
+    },
+    {
+      "name": "Conseil Cyber National",
+      "function": "Défense cyber",
+      "authority": "Autorité de sécurité cyber nationale sur SNISID",
+      "veto_right": true,
+      "crisis_role": "Peut recommander confinement, isolement, shutdown contrôlé"
+    },
+    {
+      "name": "Conseil PKI National",
+      "function": "Confiance numérique",
+      "authority": "Autorité de confiance et certificats numériques",
+      "veto_right": true,
+      "crisis_role": "Peut suspendre, révoquer ou mettre en quarantaine des autorités de certification"
+    },
+    {
+      "name": "Conseil Interopérabilité",
+      "function": "APIs nationales",
+      "authority": "Autorité standards API, événements et interopérabilité inter-agences",
+      "veto_right": true,
+      "crisis_role": "Peut bloquer une intégration non conforme"
+    },
+    {
+      "name": "Conseil Juridique",
+      "function": "Conformité",
+      "authority": "Autorité légale, protection citoyenne, consentement et accès judiciaire",
+      "veto_right": true,
+      "crisis_role": "Valide les mesures exceptionnelles au regard du droit"
+    },
+    {
+      "name": "Conseil Audit & Risque",
+      "function": "Contrôle",
+      "authority": "Autorité de contrôle, audit permanent et risque institutionnel",
+      "veto_right": true,
+      "crisis_role": "Déclenche audits d'urgence et rapports au Conseil National"
+    }
+  ],
+  "decision_principles": [
+    "Aucune agence ne domine totalement le système",
+    "Toute mise en production critique exige validation gouvernance, cyber, juridique et audit",
+    "Toute décision critique possède un responsable Accountable unique",
+    "Tout accès sensible est journalisé, auditable et justifiable",
+    "Le citoyen dispose de droits de consultation, correction, contestation et recours"
+  ],
+  "crisis_management": {
+    "levels": ["L1-minor", "L2-major", "L3-national-critical", "L4-sovereign-emergency"],
+    "incident_commander": "Direction Générale SNISID / Incident Command",
+    "mandatory_notifications": ["Conseil National SNISID", "Conseil Cyber National", "Conseil Audit & Risque", "Conseil Juridique"],
+    "shutdown_authority": "Conseil Cyber National avec ratification du Conseil National SNISID sauf urgence vitale"
+  }
+}

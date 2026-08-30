@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package sivc.v1;
+
+option go_package = "github.com/snisid/vehicle-criminal-svc/internal/api/grpc";
+
+message CheckPlateRequest {
+  string plate_number = 1;
+}
+
+message CheckPlateResponse {
+  string plate_number = 1;
+  bool has_criminal_alert = 2;
+  bool has_stolen_plate = 3;
+  string alert_level = 4;
+  string crime_category = 5;
+  bool armed_and_dangerous = 6;
+  bool do_not_stop_alone = 7;
+  string officer_safety_notes = 8;
+  string make = 9;
+  string model = 10;
+  string color_primary = 11;
+  string last_seen_location = 12;
+  string source = 13;
+}
+
+message GetAlertRequest {
+  string alert_id = 1;
+}
+
+message GetAlertResponse {
+  string alert_id = 1;
+  string plate_number = 2;
+  string crime_category = 3;
+  string alert_level = 4;
+  string status = 5;
+  bool armed_and_dangerous = 6;
+  string reporting_unit = 7;
+  string make = 8;
+  string model = 9;
+  string color_primary = 10;
+}
+
+service AlertService {
+  rpc CheckPlate(CheckPlateRequest) returns (CheckPlateResponse);
+  rpc GetAlert(GetAlertRequest) returns (GetAlertResponse);
+}

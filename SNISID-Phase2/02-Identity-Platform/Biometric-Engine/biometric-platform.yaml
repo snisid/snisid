@@ -1,0 +1,308 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snisid-biometric-engine
+  namespace: snisid-biometrics
+  labels:
+    app: biometric-engine
+    component: identity-platform
+    classification: top-secret
+    version: "2.0.0"
+  annotations:
+    snisid.gouv.ht/criticality: "CRITIQUE-NATIONAL"
+    snisid.gouv.ht/data-type: "BIOMETRIC-SENSITIVE"
+    snisid.gouv.ht/legal-basis: "Loi-Biométrie-2024"
+    snisid.gouv.ht/audit: "full"
+    snisid.gouv.ht/encryption: "AES-256-GCM"
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: biometric-engine
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: biometric-engine
+        security-zone: red
+      annotations:
+        snisid.gouv.ht/audit-log: "full"
+        snisid.gouv.ht/data-classification: "TOP-SECRET-BIOMETRIC"
+    spec:
+      serviceAccountName: biometric-engine-sa
+      tolerations:
+        - key: "workload"
+          value: "identity-critical"
+          effect: "NoSchedule"
+          operator: "Equal"
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+      nodeSelector:
+        security-zone: red
+        workload-class: identity
+        nvidia.com/gpu.present: "true"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: biometric-model-loader
+          image: snisid-registry.gouv.ht/biometric/model-loader:2.0.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Chargement modèles biométriques chiffrés..."
+              for model in /models/*.model; do
+                echo "Vérification: $model"
+                openssl dgst -sha512 -verify /pki/model-signing.pub -signature "$model.sig" "$model"
+                if [ $? -ne 0 ]; then
+                  echo "ERREUR CRITIQUE: Modèle biométrique corrompu ou non signé: $model"
+                  exit 1
+                fi
+                echo "Modèle vérifié: $model"
+              done
+              echo "Tous les modèles biométriques validés"
+          volumeMounts:
+            - name: biometric-models
+              mountPath: /models
+              readOnly: true
+            - name: pki-certs
+              mountPath: /pki
+              readOnly: true
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: fingerprint-processor
+          image: snisid-registry.gouv.ht/biometric/fingerprint:2.0.0
+          ports:
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+            - name: metrics
+              containerPort: 9100
+              protocol: TCP
+          env:
+            - name: BIOMETRIC_TYPE
+              value: "FINGERPRINT"
+            - name: MATCHING_ALGORITHM
+              value: "MINUTIAE_ISO_19794"
+            - name: MATCHING_THRESHOLD
+              value: "0.98"
+            - name: LIVENESS_DETECTION
+              value: "ENABLED"
+            - name: TEMPLATE_ENCRYPTION
+              value: "AES-256-GCM"
+            - name: TEMPLATE_SIGNING
+              value: "ECDSA-P384"
+            - name: GPU_ENABLED
+              value: "true"
+            - name: MAX_CONCURRENT_MATCHES
+              value: "1000"
+            - name: AUDIT_ALL_REQUESTS
+              value: "true"
+            - name: TEMPLATE_STORAGE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: biometric-encryption-keys
+                  key: template-aes-key
+          resources:
+            requests:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "16"
+              memory: "64Gi"
+              nvidia.com/gpu: "1"
+          livenessProbe:
+            grpc:
+              port: 9090
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            grpc:
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: biometric-models
+              mountPath: /models/fingerprint
+              readOnly: true
+            - name: pki-certs
+              mountPath: /pki
+              readOnly: true
+            - name: biometric-temp
+              mountPath: /tmp/biometric
+        - name: iris-processor
+          image: snisid-registry.gouv.ht/biometric/iris:2.0.0
+          ports:
+            - name: grpc
+              containerPort: 9091
+              protocol: TCP
+          env:
+            - name: BIOMETRIC_TYPE
+              value: "IRIS"
+            - name: MATCHING_ALGORITHM
+              value: "IRIS_ISO_19794-6"
+            - name: MATCHING_THRESHOLD
+              value: "0.99"
+            - name: LIVENESS_DETECTION
+              value: "ENABLED"
+            - name: TEMPLATE_ENCRYPTION
+              value: "AES-256-GCM"
+          resources:
+            requests:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "16"
+              memory: "64Gi"
+              nvidia.com/gpu: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: biometric-models
+              mountPath: /models/iris
+              readOnly: true
+            - name: pki-certs
+              mountPath: /pki
+              readOnly: true
+            - name: biometric-temp
+              mountPath: /tmp/biometric
+        - name: face-processor
+          image: snisid-registry.gouv.ht/biometric/face:2.0.0
+          ports:
+            - name: grpc
+              containerPort: 9092
+              protocol: TCP
+          env:
+            - name: BIOMETRIC_TYPE
+              value: "FACE"
+            - name: MATCHING_ALGORITHM
+              value: "DEEPFACE_ISO_19794-5"
+            - name: MATCHING_THRESHOLD
+              value: "0.97"
+            - name: LIVENESS_DETECTION
+              value: "ENABLED"
+            - name: ANTI_SPOOFING
+              value: "ENABLED"
+            - name: DEMOGRAPHIC_INFERENCE
+              value: "DISABLED"
+          resources:
+            requests:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: "2"
+            limits:
+              cpu: "16"
+              memory: "64Gi"
+              nvidia.com/gpu: "2"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: biometric-models
+              mountPath: /models/face
+              readOnly: true
+            - name: biometric-temp
+              mountPath: /tmp/biometric
+        - name: biometric-orchestrator
+          image: snisid-registry.gouv.ht/biometric/orchestrator:2.0.0
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+            - name: metrics
+              containerPort: 9000
+              protocol: TCP
+          env:
+            - name: FUSION_MODE
+              value: "MULTI_MODAL_WEIGHTED"
+            - name: FINGERPRINT_WEIGHT
+              value: "0.40"
+            - name: IRIS_WEIGHT
+              value: "0.40"
+            - name: FACE_WEIGHT
+              value: "0.20"
+            - name: DECISION_THRESHOLD
+              value: "0.98"
+            - name: CONSENT_REQUIRED
+              value: "true"
+            - name: CONSENT_SERVICE_URL
+              value: "https://consent.snisid-identity-core.svc:8443"
+            - name: AUDIT_DESTINATION
+              value: "kafka://kafka.snisid-kafka.svc:9093/topic/biometric-audit"
+            - name: REQUEST_TIMEOUT_MS
+              value: "5000"
+            - name: MAX_RETRY
+              value: "2"
+          resources:
+            requests:
+              cpu: "4"
+              memory: "8Gi"
+            limits:
+              cpu: "8"
+              memory: "16Gi"
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 9000
+              scheme: HTTPS
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 9000
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: server-certs
+              mountPath: /certs
+              readOnly: true
+            - name: pki-certs
+              mountPath: /pki
+              readOnly: true
+      volumes:
+        - name: biometric-models
+          persistentVolumeClaim:
+            claimName: biometric-models-pvc
+        - name: server-certs
+          secret:
+            secretName: biometric-server-tls
+        - name: pki-certs
+          secret:
+            secretName: national-pki-chain
+        - name: biometric-temp
+          emptyDir:
+            medium: Memory
+            sizeLimit: "4Gi"

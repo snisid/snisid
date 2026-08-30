@@ -1,0 +1,290 @@
+# SNISID — E2E Infrastructure Override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.e2e.override.yml up -d
+
+version: "3.8"
+
+x-e2e-healthcheck: &e2e-healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 10
+  start_period: 30s
+
+services:
+  # --- Database (e2e ports) ---
+  postgres:
+    ports:
+      - "95432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snisid"]
+      <<: *e2e-healthcheck
+
+  cockroach:
+    ports:
+      - "92657:26257"
+      - "18081:8080"
+
+  redis:
+    ports:
+      - "96379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      <<: *e2e-healthcheck
+
+  neo4j:
+    ports:
+      - "97687:7687"
+      - "17474:7474"
+
+  kafka:
+    ports:
+      - "99092:9092"
+
+  milvus:
+    ports:
+      - "99530:19530"
+
+  clickhouse:
+    ports:
+      - "99000:9000"
+      - "18123:8123"
+
+  # --- HT Services with e2e healthchecks + ports ---
+  id-core: &ht-e2e
+    ports:
+      - "98201:8201"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8201/healthz"]
+      <<: *e2e-healthcheck
+    depends_on:
+      cockroach:
+        condition: service_started
+      kafka:
+        condition: service_started
+
+  civil-ht:
+    <<: *ht-e2e
+    ports:
+      - "98202:8202"
+
+  bio-ht:
+    <<: *ht-e2e
+    ports:
+      - "98203:8203"
+
+  card-ht:
+    <<: *ht-e2e
+    ports:
+      - "98204:8204"
+
+  pki-ht:
+    <<: *ht-e2e
+    ports:
+      - "98206:8206"
+
+  iam-ht:
+    <<: *ht-e2e
+    ports:
+      - "98207:8207"
+
+  interop-ht:
+    <<: *ht-e2e
+    ports:
+      - "98208:8208"
+
+  infra-ht:
+    <<: *ht-e2e
+    ports:
+      - "98209:8209"
+
+  cyber-ht:
+    <<: *ht-e2e
+    ports:
+      - "98210:8210"
+
+  offline-ht:
+    <<: *ht-e2e
+    ports:
+      - "98211:8211"
+
+  field-ht:
+    <<: *ht-e2e
+    ports:
+      - "98212:8212"
+
+  data-ht:
+    <<: *ht-e2e
+    ports:
+      - "98213:8213"
+
+  api-ht:
+    <<: *ht-e2e
+    ports:
+      - "98214:8214"
+
+  foves-ht:
+    <<: *ht-e2e
+    ports:
+      - "98215:8215"
+
+  lapi-ht:
+    <<: *ht-e2e
+    ports:
+      - "98216:8216"
+
+  fpr-ht:
+    <<: *ht-e2e
+    ports:
+      - "98205:8205"
+
+  # --- National Security Services ---
+  sigint-ht:
+    <<: *ht-e2e
+    ports:
+      - "98301:8301"
+
+  humint-ht:
+    <<: *ht-e2e
+    ports:
+      - "98302:8302"
+
+  air-defense-ht:
+    <<: *ht-e2e
+    ports:
+      - "98303:8303"
+
+  mil-c2-ht:
+    <<: *ht-e2e
+    ports:
+      - "98304:8304"
+
+  bio-surveillance-ht:
+    <<: *ht-e2e
+    ports:
+      - "98305:8305"
+
+  executive-protection-ht:
+    <<: *ht-e2e
+    ports:
+      - "98306:8306"
+
+  transport-security-ht:
+    <<: *ht-e2e
+    ports:
+      - "98307:8307"
+
+  radiation-safety-svc:
+    <<: *ht-e2e
+    ports:
+      - "98308:8308"
+
+  all-source-fusion-ht:
+    <<: *ht-e2e
+    ports:
+      - "98309:8309"
+
+  counterintel-ht:
+    <<: *ht-e2e
+    ports:
+      - "98310:8310"
+
+  critical-infra-protection-ht:
+    <<: *ht-e2e
+    ports:
+      - "98311:8311"
+
+  fisa-court-svc:
+    <<: *ht-e2e
+    ports:
+      - "98312:8312"
+
+  classification-mgmt-ht:
+    <<: *ht-e2e
+    ports:
+      - "98313:8313"
+
+  # --- Backend Services ---
+  identity-api:
+    ports:
+      - "98081:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      <<: *e2e-healthcheck
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  fraud-engine:
+    ports:
+      - "98082:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      <<: *e2e-healthcheck
+
+  enrollment-service:
+    ports:
+      - "98083:8083"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/healthz"]
+      <<: *e2e-healthcheck
+
+  identity-mesh:
+    ports:
+      - "98084:8084"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/healthz"]
+      <<: *e2e-healthcheck
+
+  entity-resolution:
+    ports:
+      - "98095:8095"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8095/healthz"]
+      <<: *e2e-healthcheck
+
+  offline-sync-engine:
+    ports:
+      - "98090:8090"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/healthz"]
+      <<: *e2e-healthcheck
+
+  backend-python:
+    ports:
+      - "98000:8000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/healthz"]
+      <<: *e2e-healthcheck
+
+  identity-provider:
+    ports:
+      - "98096:8096"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8096/healthz"]
+      <<: *e2e-healthcheck
+
+  frontend:
+    ports:
+      - "93000:80"
+
+  # --- Test Data Seeder ---
+  e2e-seed:
+    image: postgres:16-alpine
+    command: >
+      sh -c "
+        until pg_isready -h postgres -U snisid; do sleep 2; done;
+        until pg_isready -h cockroach -p 26257 -U root; do sleep 2; done;
+        echo 'Seeding e2e test data...'
+      "
+    environment:
+      PGPASSWORD: dev_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cockroach:
+        condition: service_started
+    profiles:
+      - e2e-seed

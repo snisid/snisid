@@ -1,0 +1,80 @@
+openapi: "3.0.3"
+info:
+  title: "DATA-HT API"
+  description: "HT National ID Platform - Data & Analytics"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8213/api/v1/data"
+paths:
+  /pipelines:
+    get:
+      summary: "List data pipelines"
+      operationId: listPipelines
+      responses:
+        '200':
+          description: "Pipeline list"
+  /models/register:
+    post:
+      summary: "Register an ML model"
+      operationId: registerModel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterModelRequest"
+      responses:
+        '201':
+          description: "Model registered"
+        '400':
+          description: "Invalid request"
+  /models/{id}/bias-audit:
+    get:
+      summary: "Get model bias audit"
+      operationId: getBiasAudit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Bias audit result"
+        '404':
+          description: "Model not found"
+  /dashboards/national:
+    get:
+      summary: "Get national dashboard data"
+      operationId: getNationalDashboard
+      responses:
+        '200':
+          description: "Dashboard data"
+components:
+  schemas:
+    RegisterModelRequest:
+      type: object
+      required:
+        - name
+        - model_type
+        - version
+        - mlflow_run_id
+      properties:
+        name:
+          type: string
+        model_type:
+          type: string
+        version:
+          type: string
+        mlflow_run_id:
+          type: string
+        bias_metric:
+          type: string
+        bias_score:
+          type: number
+          format: float
+        training_date:
+          type: string
+          format: date-time

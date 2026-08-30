@@ -1,0 +1,25 @@
+# SPIRE Server Configuration (Conceptual)
+# This manifest defines the trust domain and node attestation for SNISID
+apiVersion: spire.spiffe.io/v1
+kind: SpireServerConfig
+metadata:
+  name: snisid-trust-domain
+spec:
+  trustDomain: snisid.gov
+  nodeAttestor:
+    k8s_sat:
+      cluster: snisid-primary
+
+# Workload Registration Entry for Nexus Orchestrator
+# spiffe-helper-nexus.yaml
+---
+apiVersion: spire.spiffe.io/v1
+kind: ClusterRegistrationEntry
+metadata:
+  name: nexus-orchestrator
+spec:
+  spiffeId: spiffe://snisid.gov/ns/nexus/sa/nexus-orchestrator
+  selector:
+    - k8s:ns:nexus
+    - k8s:sa:nexus-orchestrator
+    - k8s:pod-label:app:nexus-orchestrator

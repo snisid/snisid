@@ -1,0 +1,181 @@
+# SNISID — Kubernetes Default Deny + Tier Isolation NetworkPolicies
+# Classification: SECRET
+# Role: Complément Cilium L3-L7 avec Kubernetes standard NetworkPolicy (defense in depth)
+# Note: CiliumNetworkPolicies (L3-L7) sont le contrôle principal. Ces policies sont fallback baseline.
+
+# ───────────────────────────────────────────────
+# Baseline: Deny ALL ingress/egress dans tout namespace SNISID
+# (CiliumClusterwideNetworkPolicy fait le vrai boulot — ceci est fallback documenté)
+# ───────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: snisid-default-deny-ingress
+  namespace: snisid-core
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/service: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  # Pas de ingress rules = DENY all
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: snisid-default-deny-egress
+  namespace: snisid-core
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/service: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  # Pas de egress rules = DENY all
+
+---
+# ───────────────────────────────────────────────
+# Tier-0 Identity : Isolation maximale — uniquement intra-Tier-0 + API gateway explicit
+# ───────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: snisid-identity-deny-all
+  namespace: snisid-identity
+  labels:
+    snisid.gov/tier: tier-0
+    snisid.gov/service: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# ───────────────────────────────────────────────
+# Tier-1 Data : Autoriser egress vers Vault Identity uniquement (namespace tier-0)
+# ───────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: snisid-data-allow-vault
+  namespace: snisid-data
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/service: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      snisid.gov/service: data-platform
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              snisid.gov/tier: tier-0
+              snisid.gov/service: identity
+      ports:
+        - protocol: TCP
+          port: 8200
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              k8s:io.kubernetes.pod.namespace: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              snisid.gov/tier: tier-3
+              snisid.gov/service: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+
+---
+# ───────────────────────────────────────────────
+# Tier-3 Observability : Allow Prometheus scrape FROM all tiers (ingress), deny egress
+# ───────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: snisid-obs-allow-scrape
+  namespace: snisid-obs
+  labels:
+    snisid.gov/tier: tier-3
+    snisid.gov/service: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 9100
+        - protocol: TCP
+          port: 10250
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+
+---
+# ───────────────────────────────────────────────
+# Tier-4 Edge : Restrict egress (no direct internet, sync via Core approved paths)
+# ───────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: snisid-edge-regional-restricted-egress
+  namespace: snisid-edge-regional
+  labels:
+    snisid.gov/tier: tier-4
+    snisid.gov/service: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              snisid.gov/tier: tier-1
+              snisid.gov/service: data-platform
+      ports:
+        - protocol: TCP
+          port: 9093
+        - protocol: TCP
+          port: 443
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              k8s:io.kubernetes.pod.namespace: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              snisid.gov/tier: tier-3
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318

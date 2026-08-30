@@ -1,0 +1,56 @@
+{
+  "title": "Employee Verify Dashboard (Golden Signals)",
+  "uid": "employee-verify-svc",
+  "tags": ["golden-signals", "employee-verify", "platform"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Employer Verify Request Rate (QPS)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"employee-verify-svc\"}[1m]))",
+          "legendFormat": "employee-verify-svc QPS"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Employer Verify Error Rate (HTTP 5xx)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(kong_http_requests_total{service=\"employee-verify-svc\",status=~\"5..\"}[1m])) / sum(rate(kong_http_requests_total{service=\"employee-verify-svc\"}[1m]))",
+          "legendFormat": "Error %"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Employer Verify P99 Latency",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(kong_latency_bucket{service=\"employee-verify-svc\"}[5m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "E-Verify Case Outcomes",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(everify_cases_total[1m])",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

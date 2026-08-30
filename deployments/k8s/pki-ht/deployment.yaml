@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pki-ht
+  namespace: snisid-core
+  labels:
+    app: pki-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pki-ht
+  template:
+    metadata:
+      labels:
+        app: pki-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8206"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: pki-ht
+        image: snisid/pki-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8206
+        env:
+        - name: PKI_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: PKI_DB_PORT
+          value: "26257"
+        - name: PKI_DB_NAME
+          value: "snisid_pki"
+        - name: PKI_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: PKI_DB_SSLMODE
+          value: "disable"
+        - name: PKI_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: PKI_SERVICE_PORT
+          value: "8206"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8206
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8206
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

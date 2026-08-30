@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cybre-svc
+  namespace: snisid-core
+  labels:
+    app: cybre-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8132
+    targetPort: 8132
+    protocol: TCP
+    name: http
+  selector:
+    app: cybre-svc

@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: snisid-services
+  namespace: snisid-observability
+  labels:
+    app.kubernetes.io/part-of: snisid
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: snisid
+  namespaceSelector:
+    matchNames:
+    - snisid
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+  - port: http
+    interval: 30s
+    path: /healthz
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: snisid-workloads
+  namespace: snisid-observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: snisid
+  namespaceSelector:
+    matchNames:
+    - snisid
+  podMetricsEndpoints:
+  - port: metrics
+    interval: 15s

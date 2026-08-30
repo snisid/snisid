@@ -1,0 +1,131 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-identity-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: services
+spec:
+  project: snisid-services
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/services.git'
+    path: deploy/helm/services/identity
+    targetRevision: main
+    helm:
+      valuesFiles:
+      - values.yaml
+      - values-${ENV}.yaml
+  destination:
+    namespace: snisid
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-biometrics-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: services
+spec:
+  project: snisid-services
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/services.git'
+    path: deploy/helm/services/biometrics
+    targetRevision: main
+    helm:
+      valuesFiles:
+      - values.yaml
+      - values-${ENV}.yaml
+  destination:
+    namespace: snisid
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-fraud-engine
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: services
+spec:
+  project: snisid-services
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/services.git'
+    path: deploy/helm/services/fraud-engine
+    targetRevision: main
+    helm:
+      valuesFiles:
+      - values.yaml
+      - values-${ENV}.yaml
+  destination:
+    namespace: snisid
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-audit-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: services
+spec:
+  project: snisid-services
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/services.git'
+    path: deploy/helm/services/audit
+    targetRevision: main
+    helm:
+      valuesFiles:
+      - values.yaml
+      - values-${ENV}.yaml
+  destination:
+    namespace: snisid
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-gateway-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: services
+spec:
+  project: snisid-services
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/services.git'
+    path: deploy/helm/services/gateway
+    targetRevision: main
+    helm:
+      valuesFiles:
+      - values.yaml
+      - values-${ENV}.yaml
+  destination:
+    namespace: snisid
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,702 @@
+---
+# sigint-ht: Ingress from fisa-court-svc only (8301). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: sigint-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: sigint-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: fisa-court-svc
+    toPorts:
+    - ports:
+      - port: "8301"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# humint-ht: Ingress from all-source-fusion-ht only (8302). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: humint-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: humint-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: all-source-fusion-ht
+    toPorts:
+    - ports:
+      - port: "8302"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# air-defense-ht: Ingress from mil-c2-ht + frontend (8303). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: air-defense-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: air-defense-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: mil-c2-ht
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    toPorts:
+    - ports:
+      - port: "8303"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# mil-c2-ht: Ingress from frontend + air-defense-ht + humint-ht (8304). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: mil-c2-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: mil-c2-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    - matchLabels:
+        app: air-defense-ht
+    - matchLabels:
+        app: humint-ht
+    toPorts:
+    - ports:
+      - port: "8304"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# bio-surveillance-ht: Ingress from frontend + critical-infra-protection-ht (8305). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: bio-surveillance-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: bio-surveillance-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    - matchLabels:
+        app: critical-infra-protection-ht
+    toPorts:
+    - ports:
+      - port: "8305"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# executive-protection-ht: Ingress from frontend only (8306). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: executive-protection-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: executive-protection-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    toPorts:
+    - ports:
+      - port: "8306"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# transport-security-ht: Ingress from frontend + border-control (8307). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: transport-security-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: transport-security-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    - matchLabels:
+        app: border-control
+        namespace: snisid-national-security
+    toPorts:
+    - ports:
+      - port: "8307"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# radiation-safety-svc: Ingress from frontend + port-svc (8308). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: radiation-safety-svc-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: radiation-safety-svc
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    - matchLabels:
+        app: port-svc
+        namespace: snisid-national-security
+    toPorts:
+    - ports:
+      - port: "8308"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# all-source-fusion-ht: Ingress from ALL other NS services (8309) — fusion center.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: all-source-fusion-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: all-source-fusion-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: sigint-ht
+    - matchLabels:
+        app: humint-ht
+    - matchLabels:
+        app: air-defense-ht
+    - matchLabels:
+        app: mil-c2-ht
+    - matchLabels:
+        app: bio-surveillance-ht
+    - matchLabels:
+        app: executive-protection-ht
+    - matchLabels:
+        app: transport-security-ht
+    - matchLabels:
+        app: radiation-safety-svc
+    - matchLabels:
+        app: counterintel-ht
+    - matchLabels:
+        app: critical-infra-protection-ht
+    - matchLabels:
+        app: fisa-court-svc
+    - matchLabels:
+        app: classification-mgmt-ht
+    toPorts:
+    - ports:
+      - port: "8309"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# counterintel-ht: Ingress from all-source-fusion-ht + frontend (8310). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: counterintel-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: counterintel-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: all-source-fusion-ht
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    toPorts:
+    - ports:
+      - port: "8310"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# critical-infra-protection-ht: Ingress from frontend + bio-surveillance-ht (8311). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: critical-infra-protection-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: critical-infra-protection-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    - matchLabels:
+        app: bio-surveillance-ht
+    toPorts:
+    - ports:
+      - port: "8311"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# fisa-court-svc: Ingress from sigint-ht + frontend + counterintel-ht (8312). Egress to kafka, cockroach.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: fisa-court-svc-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: fisa-court-svc
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: sigint-ht
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    - matchLabels:
+        app: counterintel-ht
+    toPorts:
+    - ports:
+      - port: "8312"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+---
+# classification-mgmt-ht: Ingress from ALL services (8313) — classification applies globally.
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: classification-mgmt-ht-policy
+  namespace: snisid-national-security
+spec:
+  endpointSelector:
+    matchLabels:
+      app: classification-mgmt-ht
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: sigint-ht
+    - matchLabels:
+        app: humint-ht
+    - matchLabels:
+        app: air-defense-ht
+    - matchLabels:
+        app: mil-c2-ht
+    - matchLabels:
+        app: bio-surveillance-ht
+    - matchLabels:
+        app: executive-protection-ht
+    - matchLabels:
+        app: transport-security-ht
+    - matchLabels:
+        app: radiation-safety-svc
+    - matchLabels:
+        app: all-source-fusion-ht
+    - matchLabels:
+        app: counterintel-ht
+    - matchLabels:
+        app: critical-infra-protection-ht
+    - matchLabels:
+        app: fisa-court-svc
+    - matchLabels:
+        app: frontend
+        namespace: snisid-ingress
+    toPorts:
+    - ports:
+      - port: "8313"
+        protocol: TCP
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        app: kafka
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        app: cockroachdb
+        namespace: snisid-data
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "9092"
+        protocol: TCP
+  - toCIDR:
+    - 10.0.0.0/8
+    toPorts:
+    - ports:
+      - port: "26257"
+        protocol: TCP

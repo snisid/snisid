@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "snisid.fullname" . }}-twin-sync
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: twin-sync
+  template:
+    metadata:
+      labels:
+        app: twin-sync
+    spec:
+      serviceAccountName: {{ include "snisid.fullname" . }}-twin-sync-sa
+      containers:
+        - name: twin-sync
+          image: snisid/twin-sync:latest
+          env:
+            - name: NEO4J_URI
+              value: "bolt://{{ .Release.Name }}-neo4j:7687"
+            - name: NEO4J_USER
+              value: "neo4j"
+            - name: NEO4J_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-neo4j-auth
+                  key: neo4j-password
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "snisid.fullname" . }}-twin-sync-sa
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "snisid.fullname" . }}-twin-sync-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "services", "namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "snisid.fullname" . }}-twin-sync-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "snisid.fullname" . }}-twin-sync-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "snisid.fullname" . }}-twin-sync-sa
+    namespace: {{ .Release.Namespace }}

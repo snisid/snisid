@@ -1,0 +1,54 @@
+# global_topology.yaml
+# Multi-Region active-active Cyber Defense Fabric
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: security-federation
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: strict-mtls-global
+  namespace: security-federation
+spec:
+  mtls:
+    mode: STRICT
+---
+# Example: Regional Intelligence Engine Deployment (Global Distribution)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: regional-intel-brain
+  namespace: security-federation
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: intel-brain
+        topology.kubernetes.io/region: global
+    spec:
+      containers:
+      - name: brain
+        image: snisid/sr-gcdo-intel:latest
+        env:
+        - name: GLOBAL_COORDINATION_MODE
+          value: "FEDERATED"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka-federated:9092"
+        ports:
+        - containerPort: 8080
+---
+# Cross-Regional Event Gateway (GSOS Nerve Center)
+apiVersion: v1
+kind: Service
+metadata:
+  name: gsos-federation-gateway
+  namespace: security-federation
+spec:
+  selector:
+    app: intel-brain
+  ports:
+  - port: 443
+    targetPort: 8080

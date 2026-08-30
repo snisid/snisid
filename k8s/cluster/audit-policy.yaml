@@ -1,0 +1,36 @@
+---
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages:
+  - "RequestReceived"
+rules:
+  # Log complete payload for mutations on critical core resources
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["pods", "secrets", "configmaps", "serviceaccounts"]
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["create", "update", "patch", "delete"]
+  
+  # Log metadata only for reads on secrets to avoid logging sensitive data
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+
+  # Log metadata for all other mutations
+  - level: Metadata
+    verbs: ["create", "update", "patch", "delete"]
+
+  # Log none for high-volume non-critical read operations
+  - level: None
+    users: ["system:kube-proxy"]
+    verbs: ["get", "list", "watch"]
+  - level: None
+    users: ["system:unsecured"]
+    namespaces: ["kube-system"]
+
+  # Default fallback
+  - level: Metadata

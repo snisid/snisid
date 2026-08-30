@@ -1,0 +1,60 @@
+# Analysis of Haitian Identity Documents for SNISID
+
+## 1. DCPJ - Certificat de Police (Police Certificate)
+- **Institution:** Direction Centrale de la Police Judiciaire (DCPJ) / Bureau de Renseignements Judiciaires (BRJ).
+- **Key Fields:** 
+  - Certificate Number (at the top, e.g., DCPJ/BRJ/3-CIE/...).
+  - Date of Issue and Expiry.
+  - Full Name (Monsieur/Madame).
+  - Date and Place of Birth.
+  - Nationality.
+  - National Identification Number (NIN).
+  - Physical Description (Taille, Poids, Couleur, Cheveux, Yeux).
+  - Digital Formula (Formule Digitale).
+  - Signatures of Officials (Resp. de l'Identité Judiciaire, Responsable du BRJ, Directeur Central).
+  - Security Features: Official stamps, unique numbering.
+
+## 2. ONI - Carte d'Identification Nationale (CIN)
+- **Institution:** Office National d'Identification (ONI).
+- **Face Fields:**
+  - Card Number (Numéro de carte).
+  - First Name (Prénom).
+  - Last Name (Nom).
+  - Gender (Sexe).
+  - Nationality.
+  - Date of Birth.
+  - Place of Birth (Department, Commune).
+  - Date of Issue and Expiry.
+  - Unique Identification Number (Numéro d'identification unique).
+  - Photo and Signature.
+- **Back Fields:**
+  - Barcode (PDF417).
+  - Machine Readable Zone (MRZ).
+  - Address.
+  - Serial Number.
+
+## 3. ANH - Extrait de Naissance (Birth Certificate)
+- **Institution:** Archives Nationales d'Haïti (ANH).
+- **Key Fields:**
+  - Act Number (Acte n°).
+  - Year, Register, Page.
+  - Date of Birth (written in letters and numbers).
+  - Full Name of the Child.
+  - Parents' Names and details.
+  - Official Signature and Stamp.
+  - Barcode and unique ID (e.g., A1964829).
+
+## 4. DIE/DGI - Passeport (Passport)
+- **Institution:** Direction de l'Immigration et de l'Émigration (DIE) / DGI for payment.
+- **Key Fields:**
+  - Passport Number.
+  - Type, Country Code.
+  - Surname and Given Names.
+  - Nationality.
+  - Date of Birth.
+  - Gender.
+  - Place of Birth.
+  - Date of Issue and Expiry.
+  - Personal NIF (Numéro d'Identification Fiscale).
+  - Authority (e.g., DIE Bureau Aquin).
+  - MRZ at the bottom.

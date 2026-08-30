@@ -1,0 +1,24 @@
+{
+  "job_id": "snisid_biometric_high_velocity",
+  "description": "Detects sudden, massive spikes in 1:N biometric search requests from a specific agency, indicating potential data scraping or abuse.",
+  "analysis_config": {
+    "bucket_span": "5m",
+    "detectors": [
+      {
+        "detector_description": "High count of 1:N matching requests",
+        "function": "high_count",
+        "partition_field_name": "client.id"
+      }
+    ],
+    "influencers": [
+      "client.id",
+      "event.action"
+    ]
+  },
+  "data_description": {
+    "time_field": "@timestamp"
+  },
+  "custom_settings": {
+    "created_by": "snisid_soc_architect"
+  }
+}

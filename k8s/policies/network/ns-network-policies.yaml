@@ -1,0 +1,478 @@
+---
+# Default Deny-All Ingress for snisid-national-security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: snisid-national-security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+# Allow DNS egress for all pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: snisid-national-security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+# Allow frontend namespace to reach NS services on their respective ports
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-ingress
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - air-defense-ht
+      - mil-c2-ht
+      - bio-surveillance-ht
+      - executive-protection-ht
+      - transport-security-ht
+      - radiation-safety-svc
+      - counterintel-ht
+      - critical-infra-protection-ht
+      - fisa-court-svc
+      - classification-mgmt-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+---
+# Allow fisa-court-svc -> sigint-ht (8301)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-fisa-to-sigint
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: sigint-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fisa-court-svc
+    ports:
+    - protocol: TCP
+      port: 8301
+---
+# Allow all-source-fusion-ht -> humint-ht (8302)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-fusion-to-humint
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: humint-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: all-source-fusion-ht
+    ports:
+    - protocol: TCP
+      port: 8302
+---
+# Allow mil-c2-ht + frontend -> air-defense-ht (8303)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mil-frontend-to-air-defense
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: air-defense-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: mil-c2-ht
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8303
+---
+# Allow frontend + air-defense-ht + humint-ht -> mil-c2-ht (8304)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-mil-c2
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: mil-c2-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: air-defense-ht
+    - podSelector:
+        matchLabels:
+          app: humint-ht
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8304
+---
+# Allow frontend + critical-infra-protection-ht -> bio-surveillance-ht (8305)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-bio-surveillance
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: bio-surveillance-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: critical-infra-protection-ht
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8305
+---
+# Allow frontend -> executive-protection-ht (8306)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-exec-protection
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: executive-protection-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8306
+---
+# Allow frontend + border-control -> transport-security-ht (8307)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-transport-security
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: transport-security-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: border-control
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8307
+---
+# Allow frontend + port-svc -> radiation-safety-svc (8308)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-radiation-safety
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: radiation-safety-svc
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: port-svc
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8308
+---
+# Allow ALL NS services -> all-source-fusion-ht (8309)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-to-fusion
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: all-source-fusion-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - sigint-ht
+          - humint-ht
+          - air-defense-ht
+          - mil-c2-ht
+          - bio-surveillance-ht
+          - executive-protection-ht
+          - transport-security-ht
+          - radiation-safety-svc
+          - counterintel-ht
+          - critical-infra-protection-ht
+          - fisa-court-svc
+          - classification-mgmt-ht
+    ports:
+    - protocol: TCP
+      port: 8309
+---
+# Allow all-source-fusion-ht + frontend -> counterintel-ht (8310)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-counterintel
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: counterintel-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: all-source-fusion-ht
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8310
+---
+# Allow frontend + bio-surveillance-ht -> critical-infra-protection-ht (8311)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-critical-infra
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: critical-infra-protection-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: bio-surveillance-ht
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8311
+---
+# Allow sigint-ht + frontend + counterintel-ht -> fisa-court-svc (8312)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-fisa-court
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: fisa-court-svc
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: sigint-ht
+    - podSelector:
+        matchLabels:
+          app: counterintel-ht
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8312
+---
+# Allow ALL services -> classification-mgmt-ht (8313)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-to-classification
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchLabels:
+      app: classification-mgmt-ht
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - sigint-ht
+          - humint-ht
+          - air-defense-ht
+          - mil-c2-ht
+          - bio-surveillance-ht
+          - executive-protection-ht
+          - transport-security-ht
+          - radiation-safety-svc
+          - all-source-fusion-ht
+          - counterintel-ht
+          - critical-infra-protection-ht
+          - fisa-court-svc
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-ingress
+      podSelector:
+        matchLabels:
+          app: frontend
+    ports:
+    - protocol: TCP
+      port: 8313
+---
+# Allow egress to kafka and cockroachdb for all NS services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-kafka-cockroach
+  namespace: snisid-national-security
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - sigint-ht
+      - humint-ht
+      - air-defense-ht
+      - mil-c2-ht
+      - bio-surveillance-ht
+      - executive-protection-ht
+      - transport-security-ht
+      - radiation-safety-svc
+      - all-source-fusion-ht
+      - counterintel-ht
+      - critical-infra-protection-ht
+      - fisa-court-svc
+      - classification-mgmt-ht
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-data
+      podSelector:
+        matchLabels:
+          app: kafka
+    ports:
+    - protocol: TCP
+      port: 9092
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: snisid-data
+      podSelector:
+        matchLabels:
+          app: cockroachdb
+    ports:
+    - protocol: TCP
+      port: 26257

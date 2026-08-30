@@ -1,0 +1,53 @@
+{
+  "document": "SNISID National PKI Governance",
+  "version": "1.0.0",
+  "objective": "Créer l'autorité de confiance nationale.",
+  "absolute_rule": "Le Root CA doit être offline.",
+  "hierarchy": [
+    "Root CA Governance",
+    "Intermediate CA Governance",
+    "Agency CA Governance",
+    "Citizen Certificate Governance"
+  ],
+  "domains": [
+    {
+      "domain": "Root CA ownership",
+      "description": "Autorité",
+      "owner": "Conseil PKI National",
+      "controls": ["offline root", "multi-person control", "hardware-backed keys", "audit vidéo et journalisé"]
+    },
+    {
+      "domain": "Key ceremonies",
+      "description": "Procédures",
+      "owner": "PKI Operations + Audit Office",
+      "controls": ["script cérémonie", "témoins", "M of N", "preuves scellées", "rapport signé"]
+    },
+    {
+      "domain": "Certificate lifecycle",
+      "description": "Gestion",
+      "owner": "PKI Operations",
+      "controls": ["émission", "renouvellement", "suspension", "révocation", "expiration"]
+    },
+    {
+      "domain": "Revocation",
+      "description": "Contrôle",
+      "owner": "Conseil PKI National",
+      "controls": ["CRL", "OCSP", "révocation d'urgence", "notification agences"]
+    },
+    {
+      "domain": "HSM governance",
+      "description": "Sécurité",
+      "owner": "Security HSM Custodians",
+      "controls": ["dual control", "inventaire", "scellés", "rotation custodians", "backup sécurisé"]
+    },
+    {
+      "domain": "Offline root policy",
+      "description": "Résilience",
+      "owner": "Conseil PKI National",
+      "controls": ["root hors ligne", "stockage coffre", "activation uniquement cérémonie", "DR site"]
+    }
+  ],
+  "production_gate": {
+    "required_before_issuing": ["CP/CPS approuvé", "HSM certifié", "cérémonie de clé auditée", "OCSP/CRL opérationnels", "plan révocation", "test restauration"]
+  }
+}

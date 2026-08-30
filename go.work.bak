@@ -1,0 +1,13 @@
+go 1.26.0
+
+use (
+	.
+	./services/fraud-engine
+	./services/bio-adn
+	./services/entity-resolution
+	./services/identity-provider
+	./services/critical-runtime
+	./services/vehicle-criminal-svc
+	./services/vehicle-alert-svc
+	./services/interpol-sync-svc
+)

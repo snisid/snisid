@@ -1,0 +1,30 @@
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws
+spec:
+  package: xpkg.upbound.io/crossplane/provider-aws:v0.40.0
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: sovereign-db-composition
+spec:
+  compositeTypeRef:
+    apiVersion: snisid.io/v1alpha1
+    kind: XDatabase
+  resources:
+    - name: rds-instance
+      base:
+        apiVersion: database.aws.crossplane.io/v1beta1
+        kind: RDSInstance
+        spec:
+          forProvider:
+            engine: postgres
+            region: us-east-1
+            instanceClass: db.t3.medium
+            allocatedStorage: 20
+            dbInstanceIdentifier: snisid-core-db
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+            name: db-conn

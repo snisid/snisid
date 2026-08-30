@@ -1,0 +1,92 @@
+{
+  "title": "SIGINT — Signals Intelligence Operations",
+  "uid": "ns-sigint",
+  "tags": ["ns", "sigint", "intelligence"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Active Interception Targets by Type",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(sigint_interception_targets_active) by (type)",
+          "legendFormat": "{{type}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Communications Intercepted per Hour",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(sigint_communications_intercepted_total[1h]))",
+          "legendFormat": "Intercepted/hr"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "FISA Warrant Status Breakdown",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(sigint_fisa_warrants) by (status)",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Emergency Authorizations (72h)",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(sigint_emergency_authorizations_total[24h]))",
+          "legendFormat": "Last 24h"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 4, "x": 8, "y": 8 }
+    },
+    {
+      "title": "CDR Analysis — Unique Callers",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sigint_cdr_unique_callers",
+          "legendFormat": "Unique Callers"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 8 }
+    },
+    {
+      "title": "CDR Analysis — Average Call Duration",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sigint_cdr_avg_call_duration_seconds",
+          "legendFormat": "Avg Duration (s)"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 8 }
+    },
+    {
+      "title": "CDR Analysis — Top Cell Towers",
+      "type": "barchart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "topk(10, sigint_cdr_tower_hits_total)",
+          "legendFormat": "Tower {{$labels.tower_id}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 12, "y": 12 }
+    }
+  ]
+}

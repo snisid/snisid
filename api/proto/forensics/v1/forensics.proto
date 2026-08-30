@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package snisid.forensics.v1;
+option go_package = "github.com/snisid/snisid/api/proto/forensics/v1";
+
+service Forensics {
+    rpc AnalyzeDeepfake(DeepfakeAnalysisRequest) returns (DeepfakeAnalysisResponse);
+}
+
+message DeepfakeAnalysisRequest {
+    bytes  media_data     = 1;
+    string media_type     = 2;
+    string model_version  = 3;
+}
+
+message DeepfakeAnalysisResponse {
+    double fake_probability      = 1;
+    repeated string detected_anomalies = 2;
+    string model_version         = 3;
+    int64  processing_time_ms    = 4;
+}

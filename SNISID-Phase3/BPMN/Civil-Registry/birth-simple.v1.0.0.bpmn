@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SNISID - Civil Registry / Birth - Simple
+  Workflow ID : civil-registry.birth.simple
+  Version     : 1.0.0
+  Criticité   : CRITIQUE
+  SLA         : 24h
+  Signé PKI   : sha384:<remplir au build>
+  Approuvé WGO: 2026-05-15
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_civil_birth_simple_v1"
+                  targetNamespace="https://snisid.gouv.ht/bpmn/civil-registry"
+                  exporter="Camunda Modeler" exporterVersion="5.20.0">
+
+  <bpmn:process id="civil-registry.birth.simple"
+                name="Naissance — Simple (Standard)"
+                isExecutable="true"
+                zeebe:versionTag="1.0.0">
+
+    <bpmn:documentation>
+      Workflow national pour la déclaration de naissance standard.
+      Sources légales : Code civil HT, Loi n° 2021-XXX sur l'état civil.
+    </bpmn:documentation>
+
+    <!-- ============== EVENTS ============== -->
+    <bpmn:startEvent id="StartEvent_BirthDeclared" name="Naissance déclarée">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_BirthDeclared" messageRef="Msg_BirthDeclared"/>
+    </bpmn:startEvent>
+
+    <!-- ============== AUDIT START ============== -->
+    <bpmn:serviceTask id="Task_AuditStart" name="Audit trail (start)">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="audit.emit"/>
+        <zeebe:ioMapping>
+          <zeebe:input source="= &#34;civil-registry.birth.simple&#34;" target="workflowId"/>
+          <zeebe:input source="= &#34;START&#34;" target="phase"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ============== VALIDATION FORMELLE ============== -->
+    <bpmn:serviceTask id="Task_ValidateData" name="Validation données déclaration">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="civil.birth.validate"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ============== FRAUD DETECTION ============== -->
+    <bpmn:callActivity id="Call_FraudCheck" name="Détection fraude">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="fraud.detection.automated" propagateAllChildVariables="false"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+    </bpmn:callActivity>
+
+    <!-- ============== GATEWAY FRAUD ============== -->
+    <bpmn:exclusiveGateway id="Gw_FraudResult" name="Fraude détectée ?">
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+      <bpmn:outgoing>Flow_FraudNo</bpmn:outgoing>
+      <bpmn:outgoing>Flow_FraudYes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ============== HUMAN VALIDATION (Agent ONI) ============== -->
+    <bpmn:userTask id="UserTask_AgentReview" name="Revue agent ONI (4-eyes)">
+      <bpmn:extensionElements>
+        <zeebe:assignmentDefinition candidateGroups="oni-agents-l1"/>
+        <zeebe:taskSchedule dueDate="= now() + duration(&#34;PT8H&#34;)"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_FraudNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_06</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="UserTask_SupervisorReview" name="Validation superviseur (2nd œil)">
+      <bpmn:extensionElements>
+        <zeebe:assignmentDefinition candidateGroups="oni-supervisors"/>
+        <zeebe:taskSchedule dueDate="= now() + duration(&#34;PT4H&#34;)"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_06</bpmn:incoming>
+      <bpmn:outgoing>Flow_07</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ============== PKI SIGNATURE ============== -->
+    <bpmn:serviceTask id="Task_PkiSign" name="Signature PKI acte de naissance">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="pki.sign.qualified"/>
+        <zeebe:ioMapping>
+          <zeebe:input source="= &#34;BIRTH_ACT&#34;" target="documentType"/>
+          <zeebe:input source="= &#34;TSA_RFC3161&#34;" target="timestamping"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_07</bpmn:incoming>
+      <bpmn:outgoing>Flow_08</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ============== ATTRIBUTION NUMÉRO ÉTAT CIVIL ============== -->
+    <bpmn:serviceTask id="Task_AssignNumber" name="Attribution N° état civil">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="civil.birth.assign-number"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_08</bpmn:incoming>
+      <bpmn:outgoing>Flow_09</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ============== ENROLLMENT IDENTITÉ ============== -->
+    <bpmn:callActivity id="Call_IdentityEnroll" name="Enrôlement identité national">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="identity.enrollment.standard"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_09</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:callActivity>
+
+    <!-- ============== EVENT EMISSION ============== -->
+    <bpmn:serviceTask id="Task_EmitEvent" name="Émission événement birth.created">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="kafka.emit"/>
+        <zeebe:ioMapping>
+          <zeebe:input source="= &#34;civil.birth.created.v1&#34;" target="topic"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ============== NOTIFICATIONS ============== -->
+    <bpmn:serviceTask id="Task_Notify" name="Notification citoyen (SMS/Email/Push)">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="notification.send"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ============== AUDIT END ============== -->
+    <bpmn:serviceTask id="Task_AuditEnd" name="Audit trail (end)">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="audit.emit"/>
+        <zeebe:ioMapping>
+          <zeebe:input source="= &#34;END_SUCCESS&#34;" target="phase"/>
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_BirthRegistered" name="Naissance enregistrée">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ============== BRANCHE FRAUDE ============== -->
+    <bpmn:callActivity id="Call_FraudInvestigation" name="Enquête fraude">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="judicial.investigation.fraud"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_FraudYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_FraudEnd</bpmn:outgoing>
+    </bpmn:callActivity>
+
+    <bpmn:endEvent id="EndEvent_FraudHalt" name="Suspension fraude">
+      <bpmn:incoming>Flow_FraudEnd</bpmn:incoming>
+      <bpmn:terminateEventDefinition/>
+    </bpmn:endEvent>
+
+    <!-- ============== SLA TIMER (24h) ============== -->
+    <bpmn:boundaryEvent id="Boundary_SLA24h" name="SLA 24h dépassé" attachedToRef="UserTask_AgentReview" cancelActivity="false">
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT24H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+      <bpmn:outgoing>Flow_Escalate</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:callActivity id="Call_Escalate" name="Escalation SLA">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="escalation.sla.breach"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Escalate</bpmn:incoming>
+      <bpmn:outgoing>Flow_EscalateEnd</bpmn:outgoing>
+    </bpmn:callActivity>
+
+    <bpmn:endEvent id="EndEvent_Escalated" name="Escaladé">
+      <bpmn:incoming>Flow_EscalateEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ============== FLOWS ============== -->
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="StartEvent_BirthDeclared" targetRef="Task_AuditStart"/>
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_AuditStart"        targetRef="Task_ValidateData"/>
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Task_ValidateData"      targetRef="Call_FraudCheck"/>
+    <bpmn:sequenceFlow id="Flow_04" sourceRef="Call_FraudCheck"        targetRef="Gw_FraudResult"/>
+    <bpmn:sequenceFlow id="Flow_FraudNo"  sourceRef="Gw_FraudResult"   targetRef="UserTask_AgentReview">
+      <bpmn:conditionExpression>= fraudScore &lt; 0.7</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_FraudYes" sourceRef="Gw_FraudResult"   targetRef="Call_FraudInvestigation">
+      <bpmn:conditionExpression>= fraudScore &gt;= 0.7</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_06" sourceRef="UserTask_AgentReview"   targetRef="UserTask_SupervisorReview"/>
+    <bpmn:sequenceFlow id="Flow_07" sourceRef="UserTask_SupervisorReview" targetRef="Task_PkiSign"/>
+    <bpmn:sequenceFlow id="Flow_08" sourceRef="Task_PkiSign"           targetRef="Task_AssignNumber"/>
+    <bpmn:sequenceFlow id="Flow_09" sourceRef="Task_AssignNumber"      targetRef="Call_IdentityEnroll"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Call_IdentityEnroll"    targetRef="Task_EmitEvent"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_EmitEvent"         targetRef="Task_Notify"/>
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_Notify"            targetRef="Task_AuditEnd"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_AuditEnd"          targetRef="EndEvent_BirthRegistered"/>
+    <bpmn:sequenceFlow id="Flow_FraudEnd"    sourceRef="Call_FraudInvestigation" targetRef="EndEvent_FraudHalt"/>
+    <bpmn:sequenceFlow id="Flow_Escalate"    sourceRef="Boundary_SLA24h"         targetRef="Call_Escalate"/>
+    <bpmn:sequenceFlow id="Flow_EscalateEnd" sourceRef="Call_Escalate"           targetRef="EndEvent_Escalated"/>
+
+  </bpmn:process>
+
+  <bpmn:message id="Msg_BirthDeclared" name="civil.birth.declared.v1"/>
+
+</bpmn:definitions>

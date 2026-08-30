@@ -1,0 +1,56 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: snisid-auditor
+  labels:
+    governance: audit
+rules:
+- apiGroups: [""]
+  resources: ["pods/log", "events"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["falco.security.io"]
+  resources: ["falcorules", "falcoevents"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: snisid-secops
+  labels:
+    governance: cybersecurity
+rules:
+- apiGroups: ["cilium.io"]
+  resources: ["ciliumnetworkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["policy.linkerd.io"]
+  resources: ["serverauthorizations"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: audit-team-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: snisid-auditor
+subjects:
+- kind: Group
+  name: "oidc:snisid-audit-board"
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: secops-team-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: snisid-secops
+subjects:
+- kind: Group
+  name: "oidc:snisid-cyber-defense"
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pki-ht
+  namespace: snisid-core
+  labels:
+    app: pki-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8206
+    targetPort: 8206
+    protocol: TCP
+    name: http
+  selector:
+    app: pki-ht

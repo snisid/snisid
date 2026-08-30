@@ -1,0 +1,32 @@
+# risk-engine-kill.yaml
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: snisid-resilience-test
+  namespace: nexus-system
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    labelSelectors:
+      app: risk-engine
+  scheduler:
+    cron: "@every 5m"
+  duration: "30s"
+---
+# network-latency.yaml
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: snisid-latency-stress
+  namespace: nexus-system
+spec:
+  action: delay
+  mode: all
+  selector:
+    labelSelectors:
+      app: risk-engine
+  delay:
+    latency: "200ms"
+    jitter: "50ms"
+  duration: "10m"

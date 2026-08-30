@@ -1,0 +1,322 @@
+---
+# Deny-all default for snisid-national-security
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ns-deny-all
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels: {}
+  action: DENY
+  rules:
+  - to:
+    - operation:
+        notMethods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+---
+# Allow DNS egress for all services
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ns-allow-dns-egress
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels: {}
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        hosts: ["*.kube-system.svc.cluster.local"]
+---
+# sigint-ht: ingress from fisa-court-svc only (8301)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: sigint-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: sigint-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/fisa-court-svc"]
+    to:
+    - operation:
+        ports: ["8301"]
+---
+# humint-ht: ingress from all-source-fusion-ht only (8302)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: humint-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: humint-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/all-source-fusion-ht"]
+    to:
+    - operation:
+        ports: ["8302"]
+---
+# air-defense-ht: ingress from mil-c2-ht + frontend (8303)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: air-defense-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: air-defense-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/mil-c2-ht"]
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    to:
+    - operation:
+        ports: ["8303"]
+---
+# mil-c2-ht: ingress from frontend + air-defense-ht + humint-ht (8304)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: mil-c2-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: mil-c2-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/air-defense-ht"]
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/humint-ht"]
+    to:
+    - operation:
+        ports: ["8304"]
+---
+# bio-surveillance-ht: ingress from frontend + critical-infra-protection-ht (8305)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: bio-surveillance-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: bio-surveillance-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/critical-infra-protection-ht"]
+    to:
+    - operation:
+        ports: ["8305"]
+---
+# executive-protection-ht: ingress from frontend only (8306)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: executive-protection-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: executive-protection-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    to:
+    - operation:
+        ports: ["8306"]
+---
+# transport-security-ht: ingress from frontend + border-control (8307)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: transport-security-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: transport-security-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/border-control"]
+    to:
+    - operation:
+        ports: ["8307"]
+---
+# radiation-safety-svc: ingress from frontend + port-svc (8308)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: radiation-safety-svc-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: radiation-safety-svc
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/port-svc"]
+    to:
+    - operation:
+        ports: ["8308"]
+---
+# all-source-fusion-ht: ingress from ALL other NS services (8309)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: all-source-fusion-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: all-source-fusion-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/snisid-national-security/sa/sigint-ht"
+        - "cluster.local/ns/snisid-national-security/sa/humint-ht"
+        - "cluster.local/ns/snisid-national-security/sa/air-defense-ht"
+        - "cluster.local/ns/snisid-national-security/sa/mil-c2-ht"
+        - "cluster.local/ns/snisid-national-security/sa/bio-surveillance-ht"
+        - "cluster.local/ns/snisid-national-security/sa/executive-protection-ht"
+        - "cluster.local/ns/snisid-national-security/sa/transport-security-ht"
+        - "cluster.local/ns/snisid-national-security/sa/radiation-safety-svc"
+        - "cluster.local/ns/snisid-national-security/sa/counterintel-ht"
+        - "cluster.local/ns/snisid-national-security/sa/critical-infra-protection-ht"
+        - "cluster.local/ns/snisid-national-security/sa/fisa-court-svc"
+        - "cluster.local/ns/snisid-national-security/sa/classification-mgmt-ht"
+    to:
+    - operation:
+        ports: ["8309"]
+---
+# counterintel-ht: ingress from all-source-fusion-ht + frontend (8310)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: counterintel-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: counterintel-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/all-source-fusion-ht"]
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    to:
+    - operation:
+        ports: ["8310"]
+---
+# critical-infra-protection-ht: ingress from frontend + bio-surveillance-ht (8311)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: critical-infra-protection-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: critical-infra-protection-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/bio-surveillance-ht"]
+    to:
+    - operation:
+        ports: ["8311"]
+---
+# fisa-court-svc: ingress from sigint-ht + frontend + counterintel-ht (8312)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: fisa-court-svc-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: fisa-court-svc
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/sigint-ht"]
+    - source:
+        principals: ["cluster.local/ns/snisid-ingress/sa/frontend"]
+    - source:
+        principals: ["cluster.local/ns/snisid-national-security/sa/counterintel-ht"]
+    to:
+    - operation:
+        ports: ["8312"]
+---
+# classification-mgmt-ht: ingress from ALL services (8313) — classification applies globally
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: classification-mgmt-ht-authz
+  namespace: snisid-national-security
+spec:
+  selector:
+    matchLabels:
+      app: classification-mgmt-ht
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/snisid-national-security/sa/sigint-ht"
+        - "cluster.local/ns/snisid-national-security/sa/humint-ht"
+        - "cluster.local/ns/snisid-national-security/sa/air-defense-ht"
+        - "cluster.local/ns/snisid-national-security/sa/mil-c2-ht"
+        - "cluster.local/ns/snisid-national-security/sa/bio-surveillance-ht"
+        - "cluster.local/ns/snisid-national-security/sa/executive-protection-ht"
+        - "cluster.local/ns/snisid-national-security/sa/transport-security-ht"
+        - "cluster.local/ns/snisid-national-security/sa/radiation-safety-svc"
+        - "cluster.local/ns/snisid-national-security/sa/all-source-fusion-ht"
+        - "cluster.local/ns/snisid-national-security/sa/counterintel-ht"
+        - "cluster.local/ns/snisid-national-security/sa/critical-infra-protection-ht"
+        - "cluster.local/ns/snisid-national-security/sa/fisa-court-svc"
+        - "cluster.local/ns/snisid-ingress/sa/frontend"
+    to:
+    - operation:
+        ports: ["8313"]

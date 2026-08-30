@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- civil-registry.birth.late-declaration v1.0.0 — SLA 30j — Régularisation -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_birth_late" targetNamespace="https://snisid.gouv.ht/bpmn/civil-registry">
+  <bpmn:process id="civil-registry.birth.late-declaration"
+                name="Naissance — Déclaration tardive (régularisation)"
+                isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="Start"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="Audit1" name="Audit start">
+      <bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="DocCollect" name="Collecte preuves (témoins, médicaux, école)">
+      <bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="oni-agents-l2"/></bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:callActivity id="Fraud" name="Anti-fraude renforcée">
+      <bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements>
+      <bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:userTask id="JudgeReview" name="Validation juge état civil">
+      <bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="civil-judges"/></bpmn:extensionElements>
+      <bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Sign" name="Signature PKI + TSA">
+      <bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements>
+      <bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:callActivity id="Enroll" name="Enrôlement identité">
+      <bpmn:extensionElements><zeebe:calledElement processId="identity.enrollment.standard"/></bpmn:extensionElements>
+      <bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:serviceTask id="Emit" name="Kafka birth.late-regularized">
+      <bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements>
+      <bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End"><bpmn:incoming>f8</bpmn:incoming></bpmn:endEvent>
+
+    <bpmn:boundaryEvent id="Sla30j" attachedToRef="JudgeReview" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P30D</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="Esc">
+      <bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fE</bpmn:incoming><bpmn:outgoing>fE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="EndEsc"><bpmn:incoming>fE2</bpmn:incoming></bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="f1" sourceRef="Start" targetRef="Audit1"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="Audit1" targetRef="DocCollect"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="DocCollect" targetRef="Fraud"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Fraud" targetRef="JudgeReview"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="JudgeReview" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Sign" targetRef="Enroll"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Enroll" targetRef="Emit"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="Emit" targetRef="End"/>
+    <bpmn:sequenceFlow id="fE" sourceRef="Sla30j" targetRef="Esc"/>
+    <bpmn:sequenceFlow id="fE2" sourceRef="Esc" targetRef="EndEsc"/>
+  </bpmn:process>
+</bpmn:definitions>

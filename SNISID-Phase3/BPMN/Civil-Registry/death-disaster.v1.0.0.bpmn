@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- civil-registry.death.disaster v1.0.0 — SLA 7j — Décès en masse (catastrophe naturelle, séisme, ouragan) -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_death_dis" targetNamespace="https://snisid.gouv.ht/bpmn/civil-registry">
+  <bpmn:process id="civil-registry.death.disaster" name="Décès — Catastrophe"
+                isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S" name="Décès collectif déclaré"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A" name="Audit start"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Crisis" name="Déclenchement plan crise national"><bpmn:extensionElements><zeebe:taskDefinition type="crisis.activate"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="BatchIngest" name="Ingestion batch DGPC"><bpmn:extensionElements><zeebe:taskDefinition type="death.batch.ingest"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:userTask id="MoH" name="Validation Ministère Santé"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="moh-officers"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="OniBatch" name="Validation batch ONI"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="oni-supervisors"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="Sign" name="PKI batch sign"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified.batch"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K" name="Kafka civil.death.mass"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f8</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="Crisis"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Crisis" targetRef="BatchIngest"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="BatchIngest" targetRef="MoH"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="MoH" targetRef="OniBatch"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="OniBatch" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Sign" targetRef="K"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="K" targetRef="E"/>
+      <bpmn:boundaryEvent id="SlaBE" attachedToRef="OniBatch" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P7D</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fSlaE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="SlaEsc"><bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fSlaE</bpmn:incoming><bpmn:outgoing>fSlaE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="SlaEnd"><bpmn:incoming>fSlaE2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="fSlaE" sourceRef="SlaBE" targetRef="SlaEsc"/>
+    <bpmn:sequenceFlow id="fSlaE2" sourceRef="SlaEsc" targetRef="SlaEnd"/>
+    <bpmn:serviceTask id="Notify" name="Notification citoyen"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements></bpmn:serviceTask>
+</bpmn:process>
+</bpmn:definitions>

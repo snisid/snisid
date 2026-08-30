@@ -1,0 +1,59 @@
+replicas: 3
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: 24.0.0
+  pullPolicy: IfNotPresent
+
+# High Availability (Infinispan over JGroups)
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--cache=ispn"
+  - "--cache-stack=kubernetes"
+  - "--metrics-enabled=true"
+  - "--health-enabled=true"
+
+# Backend database connection
+env:
+  - name: KC_DB
+    value: postgres
+  - name: KC_DB_URL_HOST
+    value: "snisid-postgres.snisid-data.svc.cluster.local"
+  - name: KC_DB_URL_DATABASE
+    value: "keycloak"
+  - name: KC_DB_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-db-secret
+        key: username
+  - name: KC_DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-db-secret
+        key: password
+
+# Auto-import the predefined sovereign realm
+extraVolumes:
+  - name: realm-config
+    configMap:
+      name: keycloak-realm-config
+extraVolumeMounts:
+  - name: realm-config
+    mountPath: /opt/keycloak/data/import
+    readOnly: true
+
+# Hardened security context
+podSecurityContext:
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+resources:
+  requests:
+    cpu: "1000m"
+    memory: "2Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"

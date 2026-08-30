@@ -1,0 +1,29 @@
+{
+  "namespace": "snisid.identity.v1",
+  "type": "record",
+  "name": "DuplicateAlert",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "primaryIdentityId", "type": "string"},
+    {"name": "duplicateIdentityId", "type": "string"},
+    {"name": "confidenceScore", "type": "int"},
+    {
+      "name": "matchEvidence",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ]
+}

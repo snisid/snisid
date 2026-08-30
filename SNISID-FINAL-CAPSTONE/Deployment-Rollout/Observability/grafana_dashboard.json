@@ -1,0 +1,207 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 150,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "National Verified Citizens (SNISID Master)",
+      "type": "singlestat",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "editorMode": "code",
+          "expr": "sum(snisid_citizen_enrollments_total)",
+          "legendFormat": "Enrolled Citizens",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "format": "none",
+      "valueMaps": [],
+      "sparkline": {
+        "show": true,
+        "full": true
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "title": "NIRE Identity Match Accuracy",
+      "type": "singlestat",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "snisid_identity_reconciliation_accuracy * 100",
+          "refId": "A"
+        }
+      ],
+      "format": "percent",
+      "valueMaps": []
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "title": "Active Local Edge Nodes (LEN)",
+      "type": "singlestat",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "count(snisid_offline_sync_delay_seconds < 86400)",
+          "refId": "A"
+        }
+      ],
+      "format": "short"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "title": "Active Migration Factory Pipelines",
+      "type": "singlestat",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(snisid_migration_pipelines_active_count)",
+          "refId": "A"
+        }
+      ],
+      "format": "short"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 5,
+      "title": "National Rollout Onboarding Progression (By Department)",
+      "type": "graph",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(snisid_citizen_enrollments_total[1h])) by (department)",
+          "legendFormat": "{{department}}",
+          "refId": "A"
+        }
+      ],
+      "xaxis": {
+        "show": true,
+        "mode": "time"
+      },
+      "yaxis": {
+        "format": "short"
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 6,
+      "title": "Offline Local Sync Latency & Queues",
+      "type": "graph",
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "snisid_offline_sync_delay_seconds",
+          "legendFormat": "Sync Delay {{node_id}} (seconds)",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "snisid_offline_unsynced_records_count",
+          "legendFormat": "Unsynced Queue {{node_id}} (records)",
+          "refId": "B"
+        }
+      ],
+      "xaxis": {
+        "show": true,
+        "mode": "time"
+      },
+      "yaxis": {
+        "format": "s"
+      }
+    }
+  ],
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": [
+    "snisid",
+    "deployment",
+    "rollout",
+    "haiti"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "value": "All"
+        },
+        "name": "department",
+        "query": "label_values(snisid_citizen_enrollments_total, department)",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m"
+    ]
+  },
+  "timezone": "browser",
+  "title": "SNISID — National Deployment Observability Master Dashboard",
+  "version": 4
+}

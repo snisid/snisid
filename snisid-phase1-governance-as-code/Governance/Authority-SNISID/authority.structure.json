@@ -1,0 +1,23 @@
+{
+  "document": "Autorité Nationale SNISID — Structure Opératrice 24/7",
+  "version": "1.0.0",
+  "operating_model": "24/7/365",
+  "departments": [
+    {"name": "Engineering", "function": "Architecture", "availability": "business-hours + on-call critical"},
+    {"name": "Platform Ops", "function": "Kubernetes, plateformes, cloud/national data centers", "availability": "24/7"},
+    {"name": "Cybersecurity", "function": "SOC, défense, détection, réponse", "availability": "24/7"},
+    {"name": "Identity Operations", "function": "IAM, identité, biométrie, registres", "availability": "24/7"},
+    {"name": "Workflow Operations", "function": "BPMN, processus, SLA workflow", "availability": "24/7"},
+    {"name": "Field Operations", "function": "Terrain, agences, enrôlement, support régional", "availability": "24/7 regional rota"},
+    {"name": "Legal & Compliance", "function": "Conformité, avis légaux, protection citoyenne", "availability": "business-hours + legal emergency on-call"},
+    {"name": "Audit Office", "function": "Contrôle, audit permanent, preuves", "availability": "continuous monitoring + on-call"},
+    {"name": "Training & Academy", "function": "Formation nationale et certification agents", "availability": "business-hours"}
+  ],
+  "minimum_controls": [
+    "Astreinte nationale documentée",
+    "Rotation d'incident commander",
+    "Runbooks critiques approuvés",
+    "Séparation des tâches sur opérations sensibles",
+    "Journalisation immuable des actions administratives"
+  ]
+}

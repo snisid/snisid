@@ -1,0 +1,97 @@
+openapi: "3.0.3"
+info:
+  title: "FIELD-HT API"
+  description: "HT National ID Platform - Field Operations"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8212/api/v1/field"
+paths:
+  /missions:
+    post:
+      summary: "Create a field mission"
+      operationId: createMission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMissionRequest"
+      responses:
+        '201':
+          description: "Mission created"
+        '400':
+          description: "Invalid request"
+  /missions/active:
+    get:
+      summary: "Get active missions"
+      operationId: getActiveMissions
+      responses:
+        '200':
+          description: "Active missions list"
+  /missions/{id}/log:
+    post:
+      summary: "Add a mission log entry"
+      operationId: createMissionLog
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMissionLogRequest"
+      responses:
+        '201':
+          description: "Log entry created"
+        '400':
+          description: "Invalid request"
+  /stats/coverage:
+    get:
+      summary: "Get coverage statistics"
+      operationId: getCoverageStats
+      responses:
+        '200':
+          description: "Coverage stats"
+components:
+  schemas:
+    CreateMissionRequest:
+      type: object
+      required:
+        - title
+        - dept_code
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        assigned_unit_id:
+          type: string
+        dept_code:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+    CreateMissionLogRequest:
+      type: object
+      required:
+        - action
+        - logged_by
+      properties:
+        action:
+          type: string
+        logged_by:
+          type: string
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        notes:
+          type: string

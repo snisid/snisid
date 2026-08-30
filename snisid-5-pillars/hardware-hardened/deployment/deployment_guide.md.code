@@ -1,0 +1,176 @@
+# GUIDE DE DÉPLOIEMENT MATÉRIEL SNISID
+
+## Timeline de Déploiement
+
+### Mois 1-2: Préparation
+- Finalisation des appels d'offres
+- Sélection des fournisseurs
+- Signature des contrats
+- Planification logistique
+
+### Mois 3-6: Livraison Phase 1
+- Réception HSM et serveurs critiques
+- Installation Datacenter central
+- Configuration réseau coeur
+- Tests d'intégration
+
+### Mois 7-12: Déploiement Régional
+- Installation 10 hubs régionaux
+- Déploiement kits biométriques
+- Formation équipes locales
+- Mise en service progressive
+
+### Mois 13-18: Extension Nationale
+- Installation agences locales
+- Déploiement terminaux vérification
+- Tests de charge grandeur nature
+- Audit de sécurité final
+
+## Procédure de Réception
+
+### Checklist de Réception
+```markdown
+- [ ] Vérification scellés emballage
+- [ ] Contrôle numéros de série vs bon de livraison
+- [ ] Inspection dommages physiques
+- [ ] Test d'allumage immédiat
+- [ ] Vérification versions firmware
+- [ ] Documentation complète (manuels, certificats)
+- [ ] Signature procès-verbal de réception
+```
+
+### En cas d'Anomalie
+1. Photographier les dommages
+2. Ne pas mettre sous tension
+3. Contacter immédiatement le fournisseur
+4. Ouvrir un ticket incident
+5. Conserver l'emballage original
+
+## Installation Datacenter
+
+### Prérequis Site
+- Surface: 500 m² minimum
+- Hauteur sous plafond: ≥ 3m
+- Charge au sol: ≥ 1500 kg/m²
+- Climatisation: Capacité 800 kW
+- Électricité: Double feed 400V triphasé
+- Réseau: Fibre noire diverse
+
+### Séquence d'Installation
+1. **Infrastructure passive**
+   - Installation racks et baies
+   - Câblage structuré (cuivre + fibre)
+   - Système de refroidissement
+   
+2. **Infrastructure active**
+   - Installation UPS et générateurs
+   - Mise en place switches et firewalls
+   - Rack des serveurs
+   
+3. **Sécurité physique**
+   - Installation contrôles d'accès
+   - Caméras de surveillance
+   - Système d'extinction incendie
+   
+4. **Tests de validation**
+   - Test de charge électrique
+   - Test de refroidissement
+   - Test de bascule UPS/générateur
+   - Test d'intrusion physique
+
+## Configuration Initiale
+
+### Hardening Serveurs
+```bash
+#!/bin/bash
+# Script de hardening post-installation
+source /opt/snisid/scripts/security-hardening.sh
+
+apply_kernel_hardening
+configure_tpm2_secure_boot
+setup_disk_encryption_luks2
+enable_fips_mode
+configure_auditd_compliance
+install_apparmor_profiles
+setup_usbguard
+configure_nftables_firewall
+enable_auto_security_updates
+generate_host_keys_hsm
+```
+
+### Intégration HSM
+```bash
+# Configuration client PKCS#11
+export LD_PRELOAD=/usr/local/lib/libCryptoki2.so
+
+# Initialisation partition HSM
+/usr/safenet/lunaclient/bin/lunacmd \
+  -partition init \
+  -name snisid_root_partition \
+  -pedip initialize \
+  -domain snisid_domain
+  
+# Génération clés racines
+openssl genpkey -engine pkcs11 \
+  -keyform engine \
+  -out pkcs11:id=%01 \
+  -algorithm rsa \
+  -pkeyopt rsa_keygen_bits:4096
+```
+
+## Tests de Validation
+
+### Tests de Performance
+```bash
+# Test débit réseau
+iperf3 -c snisid-core-01 -t 60 -P 8
+
+# Test performance stockage
+fio --name=randwrite --ioengine=libaio --rw=randwrite \
+    --bs=4k --numjobs=8 --size=10G --runtime=300
+
+# Test performance HSM
+openssl speed -engine pkcs11 rsa2048
+```
+
+### Tests de Résilience
+- Déconnexion électrique simulée
+- Défaillance réseau test
+- Panne serveur unique
+- Test restauration backup
+
+## Documentation à Produire
+
+1. **As-Built Documentation**
+   - Schémas réseau finaux
+   - Inventaire matériel détaillé
+   - Configurations de tous les équipements
+   
+2. **Procédures Opérationnelles**
+   - Démarrage/arrêt séquentiel
+   - Procédures de maintenance
+   - Gestion des incidents
+   
+3. **Plans de Reprise**
+   - PRA (Plan de Reprise d'Activité)
+   - PCA (Plan de Continuité d'Activité)
+   - Procédures de restauration
+
+## Formation des Équipes
+
+### Programme de Formation
+- **Semaine 1**: Architecture SNISID
+- **Semaine 2**: Administration serveurs Linux
+- **Semaine 3**: Gestion HSM et cryptographie
+- **Semaine 4**: Sécurité et réponse aux incidents
+- **Semaine 5**: Travaux pratiques en environnement réel
+
+### Certification du Personnel
+Tous les administrateurs doivent obtenir:
+- Certification SNISID Administrator Level 1
+- Habilitation secret-défense
+- Formation continue annuelle (40 heures)
+
+---
+*Guide de déploiement officiel - Niveau Confidentiel*
+*Projet SNISID - République d'Haïti*

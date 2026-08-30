@@ -1,0 +1,408 @@
+openapi: 3.0.3
+info:
+  title: SIVC-HT API
+  description: Système d'Intelligence Véhiculaire et Criminalité d'Haïti
+  version: 1.0.0
+  contact:
+    name: DCPJ - Direction Centrale de la Police Judiciaire
+    email: dcpj@pnh.gov.ht
+
+servers:
+  - url: /api/v1/sivc
+
+paths:
+  /alerts:
+    post:
+      summary: Créer une alerte criminelle
+      tags: [Alertes]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRequest'
+      responses:
+        '201':
+          description: Alerte créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CriminalAlert'
+    get:
+      summary: Lister les alertes
+      tags: [Alertes]
+      parameters:
+        - name: dept
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: level
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Liste des alertes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CriminalAlert'
+                  total:
+                    type: integer
+
+  /alerts/{id}:
+    get:
+      summary: Détails d'une alerte
+      tags: [Alertes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Alerte trouvée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CriminalAlert'
+        '404':
+          description: Alerte non trouvée
+
+  /alerts/{id}/status:
+    patch:
+      summary: Changer le statut d'une alerte
+      tags: [Alertes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, SUSPENDED, RESOLVED, EXPIRED, CANCELLED]
+      responses:
+        '204':
+          description: Statut mis à jour
+
+  /check/plate/{plate}:
+    get:
+      summary: Vérification rapide d'une plaque
+      tags: [Vérification]
+      description: Endpoint critique utilisé par LAPI (MP-16) pour vérifier chaque plaque lue
+      parameters:
+        - name: plate
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Résultat de la vérification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlateCheckResult'
+
+  /check/vin/{vin}:
+    get:
+      summary: Vérification par NIV/VIN
+      tags: [Vérification]
+      parameters:
+        - name: vin
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Résultat de la vérification
+
+  /stolen-plates:
+    post:
+      summary: Déclarer une plaque volée
+      tags: [Plaques]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeclareStolenPlateRequest'
+      responses:
+        '201':
+          description: Plaque déclarée volée
+
+  /stolen-plates/{plate}:
+    get:
+      summary: Vérifier si une plaque est volée
+      tags: [Plaques]
+      parameters:
+        - name: plate
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Résultat de la vérification
+
+  /stolen-plates/{id}/recovered:
+    patch:
+      summary: Marquer une plaque comme récupérée
+      tags: [Plaques]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                location:
+                  type: string
+                dept_code:
+                  type: string
+      responses:
+        '204':
+          description: Plaque récupérée
+
+  /search:
+    get:
+      summary: Recherche fulltext multi-critères
+      tags: [Recherche]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: dept
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Résultats de recherche
+
+  /intel-reports:
+    post:
+      summary: Créer un rapport de renseignement
+      tags: [Renseignement]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntelligenceReport'
+      responses:
+        '201':
+          description: Rapport créé
+
+  /interpol/sync-status:
+    get:
+      summary: Statut synchronisation INTERPOL SMV
+      tags: [INTERPOL]
+      responses:
+        '200':
+          description: Statut de la synchronisation
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    CriminalAlert:
+      type: object
+      properties:
+        alert_id:
+          type: string
+          format: uuid
+        plate_number:
+          type: string
+        plate_category:
+          type: string
+          enum: [PP, PL, M, TC, SE, CD, OA, AG, MD, TX]
+        vin:
+          type: string
+        vehicle_type:
+          type: string
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        color_primary:
+          type: string
+        crime_category:
+          type: string
+          enum: [VOL_VEHICULE, VOL_PLAQUE, TRAFIC_STUPEFIANTS, ENLEVEMENT, GANG, TRAFIC_ARMES, VEHICULE_ETATIQUE_CLONE, FAUX_POLICIER, TRAITE_PERSONNES, AUTRE_CRIME_GRAVE]
+        alert_level:
+          type: string
+          enum: [INFO, CAUTION, WANTED, CRITICAL]
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, RESOLVED, EXPIRED, CANCELLED]
+        armed_and_dangerous:
+          type: boolean
+        do_not_stop_alone:
+          type: boolean
+        officer_safety_notes:
+          type: string
+        reporting_unit:
+          type: string
+        last_seen_location:
+          type: string
+        last_seen_dept_code:
+          type: string
+
+    CreateAlertRequest:
+      type: object
+      required: [plate_number, make, model, color_primary, crime_category, reporting_unit, incident_date]
+      properties:
+        plate_number:
+          type: string
+        plate_category:
+          type: string
+        vin:
+          type: string
+        vehicle_type:
+          type: string
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        color_primary:
+          type: string
+        crime_category:
+          type: string
+        alert_level:
+          type: string
+        armed_and_dangerous:
+          type: boolean
+        do_not_stop_alone:
+          type: boolean
+        officer_safety_notes:
+          type: string
+        reporting_unit:
+          type: string
+        incident_date:
+          type: string
+          format: date-time
+
+    PlateCheckResult:
+      type: object
+      properties:
+        plate_number:
+          type: string
+        checked_at:
+          type: string
+          format: date-time
+        has_criminal_alert:
+          type: boolean
+        has_stolen_plate:
+          type: boolean
+        alert:
+          $ref: '#/components/schemas/CriminalAlert'
+        alert_level:
+          type: string
+        source:
+          type: string
+
+    DeclareStolenPlateRequest:
+      type: object
+      required: [plate_number, plate_category, theft_date, theft_dept_code, reporting_unit]
+      properties:
+        plate_number:
+          type: string
+        plate_category:
+          type: string
+        original_make:
+          type: string
+        original_model:
+          type: string
+        original_vin:
+          type: string
+        theft_date:
+          type: string
+          format: date-time
+        theft_location:
+          type: string
+        theft_dept_code:
+          type: string
+        theft_commune:
+          type: string
+        reporting_unit:
+          type: string
+        is_state_plate_clone:
+          type: boolean
+        impersonated_agency:
+          type: string
+
+    IntelligenceReport:
+      type: object
+      properties:
+        report_id:
+          type: string
+          format: uuid
+        report_number:
+          type: string
+        title:
+          type: string
+        report_type:
+          type: string
+          enum: [INCIDENT, PATTERN, ANALYTICAL, ALERT_BULLETIN]
+        classification:
+          type: string
+        summary:
+          type: string
+        originating_unit:
+          type: string

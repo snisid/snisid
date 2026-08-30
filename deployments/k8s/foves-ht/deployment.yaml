@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: foves-ht
+  namespace: snisid-core
+  labels:
+    app: foves-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: foves-ht
+  template:
+    metadata:
+      labels:
+        app: foves-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8215"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: foves-ht
+        image: snisid/foves-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8215
+        env:
+        - name: FOVES_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: FOVES_DB_PORT
+          value: "26257"
+        - name: FOVES_DB_NAME
+          value: "snisid_foves"
+        - name: FOVES_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: FOVES_DB_SSLMODE
+          value: "disable"
+        - name: FOVES_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: FOVES_SERVICE_PORT
+          value: "8215"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8215
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8215
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

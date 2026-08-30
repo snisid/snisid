@@ -1,0 +1,299 @@
+openapi: 3.0.3
+info:
+  title: Military Command & Control API
+  version: 1.0.0
+  description: C2 operations, unit management, and tactical reporting for SNISID
+servers:
+  - url: http://localhost:8304/api/v1/milc2
+paths:
+  /units:
+    post:
+      summary: Register military unit
+      tags: [Units]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUnitRequest'
+      responses:
+        '201':
+          description: Unit created
+  /units/deployed:
+    get:
+      summary: List deployed units
+      tags: [Units]
+      responses:
+        '200':
+          description: Deployed units
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MilitaryUnit'
+  /operations:
+    post:
+      summary: Create operation
+      tags: [Operations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOperationRequest'
+      responses:
+        '201':
+          description: Operation created
+  /operations/active:
+    get:
+      summary: Get active operations
+      tags: [Operations]
+      responses:
+        '200':
+          description: Active operations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Operation'
+  /operations/{id}/reports:
+    post:
+      summary: Submit tactical report
+      tags: [Reports]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitReportRequest'
+      responses:
+        '201':
+          description: Report submitted
+  /operations/{id}/timeline:
+    get:
+      summary: Get operation timeline
+      tags: [Reports]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Timeline of tactical reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TacticalReport'
+  /common-operating-picture:
+    get:
+      summary: Get full operational view
+      tags: [COP]
+      responses:
+        '200':
+          description: Common Operating Picture
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonOperatingPicture'
+components:
+  schemas:
+    MilitaryUnit:
+      type: object
+      properties:
+        unit_id:
+          type: string
+          format: uuid
+        unit_name:
+          type: string
+        branch:
+          type: string
+          enum: [ARMY, NAVY, AIR_FORCE, SPECIAL_FORCES, NATIONAL_POLICE]
+        parent_unit_id:
+          type: string
+          format: uuid
+          nullable: true
+        commander_name:
+          type: string
+        personnel_count:
+          type: integer
+        location_lat:
+          type: number
+        location_lng:
+          type: number
+        operational_status:
+          type: string
+          enum: [STANDBY, ACTIVE, DEPLOYED, REST, RESERVE]
+        equipment_summary:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateUnitRequest:
+      type: object
+      required: [unit_name, branch]
+      properties:
+        unit_name:
+          type: string
+        branch:
+          type: string
+        parent_unit_id:
+          type: string
+          format: uuid
+        commander_name:
+          type: string
+        personnel_count:
+          type: integer
+        location_lat:
+          type: number
+        location_lng:
+          type: number
+        operational_status:
+          type: string
+        equipment_summary:
+          type: string
+    Operation:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+        operation_name:
+          type: string
+        operation_type:
+          type: string
+          enum: [SECURITY, ANTI_GANG, SEARCH_RESCUE, BORDER_PATROL, DISASTER_RESPONSE]
+        status:
+          type: string
+          enum: [PLANNING, ACTIVE, COMPLETED, CANCELLED]
+        commander_id:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+          format: date-time
+        expected_end_date:
+          type: string
+          format: date-time
+          nullable: true
+        operational_area:
+          type: string
+        rules_of_engagement:
+          type: string
+        mission_objective:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateOperationRequest:
+      type: object
+      required: [operation_name, operation_type, commander_id, start_date]
+      properties:
+        operation_name:
+          type: string
+        operation_type:
+          type: string
+        commander_id:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+          format: date-time
+        expected_end_date:
+          type: string
+          format: date-time
+        operational_area:
+          type: string
+        rules_of_engagement:
+          type: string
+        mission_objective:
+          type: string
+    TacticalReport:
+      type: object
+      properties:
+        report_id:
+          type: string
+          format: uuid
+        operation_id:
+          type: string
+          format: uuid
+        reporting_unit_id:
+          type: string
+          format: uuid
+        report_type:
+          type: string
+          enum: [SITREP, INTREP, SPOTREP, PATROL]
+        position_lat:
+          type: number
+        position_lng:
+          type: number
+        enemy_activity:
+          type: string
+        civilian_interactions:
+          type: string
+        casualties:
+          type: integer
+        detainees:
+          type: integer
+        equipment_status:
+          type: string
+        submitted_at:
+          type: string
+          format: date-time
+    SubmitReportRequest:
+      type: object
+      required: [reporting_unit_id, report_type]
+      properties:
+        reporting_unit_id:
+          type: string
+          format: uuid
+        report_type:
+          type: string
+        position_lat:
+          type: number
+        position_lng:
+          type: number
+        enemy_activity:
+          type: string
+        civilian_interactions:
+          type: string
+        casualties:
+          type: integer
+        detainees:
+          type: integer
+        equipment_status:
+          type: string
+    CommonOperatingPicture:
+      type: object
+      properties:
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/MilitaryUnit'
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Operation'
+        reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/TacticalReport'

@@ -1,0 +1,29 @@
+groups:
+- name: nexus-alerts
+  rules:
+  - alert: HighTaskFailureRate
+    expr: rate(nexus_tasks_failed_total[5m]) / rate(nexus_tasks_submitted_total[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High task failure rate in Nexus"
+      description: "Nexus task failure rate is above 10% for the last 5 minutes."
+
+  - alert: AgentOffline
+    expr: nexus_agents_online == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "No Kai agents online"
+      description: "The Nexus orchestrator has no registered Kai agents available for execution."
+
+  - alert: HighInferenceLatency
+    expr: rate(ai_inference_duration_seconds_sum[5m]) / rate(ai_inference_duration_seconds_count[5m]) > 0.5
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High AI inference latency"
+      description: "AI inference latency is above 500ms for the last 5 minutes."

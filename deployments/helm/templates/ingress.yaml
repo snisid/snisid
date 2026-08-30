@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "snisid.fullname" . }}-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.global.domain }}
+      secretName: {{ include "snisid.fullname" . }}-tls
+  rules:
+    - host: {{ .Values.global.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "snisid.fullname" . }}-web
+                port:
+                  number: 80
+          - path: /api/v1/identities
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "snisid.fullname" . }}-identity-api
+                port:
+                  number: 80
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "snisid.fullname" . }}-alert-feed
+                port:
+                  number: 80

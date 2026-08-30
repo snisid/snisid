@@ -1,0 +1,25 @@
+{
+  "namespace": "snisid.audit.v1",
+  "type": "record",
+  "name": "AuditRecord",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+          {"name": "actor", "type": "string"},
+          {"name": "source", "type": "string"}
+        ]
+      }
+    },
+    {"name": "action", "type": "string"},
+    {"name": "resource", "type": "string"},
+    {"name": "status", "type": "string"},
+    {"name": "payload", "type": "string"}
+  ]
+}

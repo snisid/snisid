@@ -1,0 +1,13 @@
+{
+  "document": "SNISID Escalation Ownership Map",
+  "version": "1.0.0",
+  "ownership": [
+    {"domain": "Identity", "primary_owner": "Identity Operations", "final_accountable": "Direction Générale SNISID", "escalation_body": "Conseil National SNISID"},
+    {"domain": "Biometrics", "primary_owner": "Identity Operations", "final_accountable": "Direction Générale SNISID", "escalation_body": "Conseil Cyber National + Conseil Juridique"},
+    {"domain": "PKI", "primary_owner": "PKI Operations", "final_accountable": "Conseil PKI National", "escalation_body": "Conseil National SNISID"},
+    {"domain": "Cybersecurity", "primary_owner": "National SOC", "final_accountable": "Conseil Cyber National", "escalation_body": "Conseil National SNISID"},
+    {"domain": "Workflow", "primary_owner": "Workflow Operations", "final_accountable": "Direction Générale SNISID", "escalation_body": "Conseil Interopérabilité"},
+    {"domain": "Elections", "primary_owner": "CEP", "final_accountable": "CEP + Conseil National SNISID", "escalation_body": "Conseil National SNISID"},
+    {"domain": "Judicial", "primary_owner": "Justice", "final_accountable": "Conseil Juridique", "escalation_body": "Conseil National SNISID si crise"}
+  ]
+}

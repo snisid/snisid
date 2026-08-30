@@ -1,0 +1,29 @@
+apiVersion: v2
+kind: ConfigMap
+metadata:
+  name: teleport-cluster-config
+  namespace: snisid-security
+data:
+  teleport.yaml: |
+    teleport:
+      nodename: snisid-pam-gateway
+      data_dir: /var/lib/teleport
+      log:
+        output: stderr
+        severity: INFO
+    auth_service:
+      enabled: "yes"
+      cluster_name: "teleport.snisid.gov"
+      # OIDC integration with Keycloak
+      authentication:
+        type: oidc
+      # Force session recording at the node level
+      session_recording: "node"
+    proxy_service:
+      enabled: "yes"
+      web_listen_addr: 0.0.0.0:3080
+      public_addr: teleport.snisid.gov:443
+    # Configure K8s proxy to record kubectl exec sessions
+    kubernetes_service:
+      enabled: "yes"
+      listen_addr: 0.0.0.0:3026

@@ -1,0 +1,27 @@
+{
+  "namespace": "ht.gouv.snisid.identity",
+  "name": "IdentityEnrolledV1",
+  "type": "record",
+  "fields": [
+    {"name": "eventId", "type": "string"},
+    {"name": "eventType", "type": "string", "default": "identity.enrolled.v1"},
+    {"name": "occurredAt", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "nin", "type": "string"},
+    {"name": "biometricRefId", "type": "string"},
+    {"name": "biometricQuality", "type": {
+      "type": "record", "name": "BioQuality",
+      "fields": [
+        {"name": "nfiq2", "type": "int"},
+        {"name": "faceQuality", "type": "float"},
+        {"name": "irisQuality", "type": "float"}
+      ]
+    }},
+    {"name": "issuedCardSerial", "type": ["null","string"], "default": null},
+    {"name": "channel", "type": {"type": "enum", "name": "Channel", "symbols": ["ONLINE","KIOSK","FIELD","MOBILE"]}},
+    {"name": "agentId", "type": "string"},
+    {"name": "supervisorId", "type": "string"},
+    {"name": "signature", "type": "string"},
+    {"name": "tsa", "type": "string"},
+    {"name": "schemaVersion","type": "string", "default": "1.0.0"}
+  ]
+}

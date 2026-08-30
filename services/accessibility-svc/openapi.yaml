@@ -1,0 +1,113 @@
+openapi: "3.0.3"
+info:
+  title: "Accessibility Audit API"
+  description: "WCAG accessibility audit tooling"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8101/api/v1/accessibility"
+paths:
+  /audits:
+    post:
+      summary: "Run accessibility audit"
+      operationId: runAudit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_url
+                - wcag_level
+              properties:
+                target_url:
+                  type: string
+                wcag_level:
+                  type: string
+      responses:
+        '201':
+          description: "Audit started"
+        '400':
+          description: "Invalid request"
+    get:
+      summary: "List audit history"
+      operationId: listAudits
+      responses:
+        '200':
+          description: "Audit list"
+  /audits/{id}:
+    get:
+      summary: "Get audit results"
+      operationId: getAuditResult
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Audit results"
+        '404':
+          description: "Not found"
+  /violations/{id}/remediate:
+    post:
+      summary: "Mark violation as remediated"
+      operationId: markRemediated
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Violation remediated"
+        '400':
+          description: "Invalid request"
+  /compliance:
+    get:
+      summary: "Get compliance overview per WCAG level"
+      operationId: getCompliance
+      responses:
+        '200':
+          description: "Compliance overview"
+  /schedules:
+    post:
+      summary: "Schedule recurring audit"
+      operationId: createSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_url
+                - wcag_level
+                - cron_expr
+              properties:
+                target_url:
+                  type: string
+                wcag_level:
+                  type: string
+                cron_expr:
+                  type: string
+      responses:
+        '201':
+          description: "Schedule created"
+        '400':
+          description: "Invalid request"
+  /dashboard:
+    get:
+      summary: "Accessibility dashboard"
+      operationId: getDashboard
+      responses:
+        '200':
+          description: "Dashboard data"
+components:
+  schemas: {}

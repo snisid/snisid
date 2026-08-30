@@ -1,0 +1,200 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: entity-resolution
+  namespace: snisid-core
+  labels:
+    app: entity-resolution
+    snisid.dev/service: identity
+    snisid.dev/tier: core
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: entity-resolution
+  template:
+    metadata:
+      labels:
+        app: entity-resolution
+        snisid.dev/tier: core
+        snisid.dev/lifecycle: critical
+      annotations:
+        snisid.dev/security: "strict"
+        snisid.dev/compliance: "gdpr"
+    spec:
+      serviceAccountName: entity-resolution
+      containers:
+      - name: entity-resolution
+        image: snisid/entity-resolution:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8095
+          protocol: TCP
+        env:
+        - name: GIN_MODE
+          value: "release"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: db_host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: db_port
+        - name: DB_NAME
+          value: "snisid"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-secret
+              key: password
+        - name: NEO4J_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: neo4j_host
+        - name: NEO4J_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: snisid-neo4j-secret
+              key: password
+        - name: KAFKA_BROKERS
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: kafka_brokers
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: redis_host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: snisid-config
+              key: redis_port
+        - name: PORT
+          value: "8095"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8095
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8095
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop: ["ALL"]
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: entity-resolution
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: entity-resolution
+  namespace: snisid-core
+  labels:
+    app: entity-resolution
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: entity-resolution
+  namespace: snisid-core
+  labels:
+    app: entity-resolution
+    snisid.dev/service: identity
+spec:
+  selector:
+    app: entity-resolution
+  ports:
+  - port: 8095
+    targetPort: 8095
+    name: http
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: entity-resolution-network-policy
+  namespace: snisid-core
+spec:
+  podSelector:
+    matchLabels:
+      app: entity-resolution
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-core
+      podSelector:
+        matchLabels:
+          snisid.dev/gateway: "true"
+    ports:
+    - port: 8095
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-infra
+      podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - port: 5432
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-infra
+      podSelector:
+        matchLabels:
+          app: neo4j
+    ports:
+    - port: 7687
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: snisid-infra
+      podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - port: 6379

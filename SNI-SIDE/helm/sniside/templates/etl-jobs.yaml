@@ -1,0 +1,32 @@
+{{- if .Values.etl.jobs.fullMigration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sniside-etl-full-migration
+  namespace: sniside
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    spec:
+      serviceAccountName: sniside-sa
+      restartPolicy: Never
+      containers:
+        - name: etl
+          image: "{{ .Values.global.imageRegistry }}/sniside-etl:{{ .Values.global.imageTag }}"
+          args:
+            - "--pipeline"
+            - "/app/pipelines/full_15_database_migration.json"
+            - "--kafka-events"
+            - "true"
+            - "--neo4j-update"
+            - "true"
+          env:
+            {{- include "sniside.env.common" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.etl.resources | nindent 12 }}
+      backoffLimit: 3
+      ttlSecondsAfterFinished: 86400
+{{- end }}

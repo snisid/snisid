@@ -1,0 +1,21 @@
+[DEFAULT]
+# Ban IP addresses for 24 hours (86400 seconds)
+bantime  = 86400
+
+# Window in which failures are counted (10 minutes)
+findtime  = 600
+
+# Max failures before a ban is triggered
+maxretry = 3
+
+# Do not ban internal SNISID network blocks
+ignoreip = 127.0.0.1/8 ::1 10.244.0.0/16 192.168.0.0/16
+
+# Use UFW directly to ban the IPs at the firewall layer
+banaction = ufw
+
+[sshd]
+enabled = true
+port    = 2222
+logpath = /var/log/auth.log
+backend = systemd

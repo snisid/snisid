@@ -1,0 +1,24 @@
+{
+  "namespace": "snisid.infra.v1",
+  "type": "record",
+  "name": "DLQEvent",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "originalTopic", "type": "string"},
+    {"name": "originalKey", "type": "string"},
+    {"name": "payload", "type": "string"},
+    {"name": "errorReason", "type": "string"},
+    {"name": "retryCount", "type": "int"}
+  ]
+}

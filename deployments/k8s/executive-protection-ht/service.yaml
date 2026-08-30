@@ -1,0 +1,16 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: executive-protection-ht
+  namespace: snisid-national-security
+  labels:
+    app: executive-protection-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8306
+    targetPort: 8306
+    protocol: TCP
+    name: http
+  selector:
+    app: executive-protection-ht

@@ -1,0 +1,58 @@
+# SNISID — Recording rules : workflows
+groups:
+
+  - name: snisid.workflow.aggregates
+    interval: 30s
+    rules:
+
+      # ============ TAUX ============
+      - record: snisid:workflow_started:rate5m
+        expr: sum by (workflow_id, version, region) (rate(snisid_workflow_started_total[5m]))
+
+      - record: snisid:workflow_completed:rate5m
+        expr: sum by (workflow_id, version, region, result) (rate(snisid_workflow_completed_total[5m]))
+
+      - record: snisid:workflow_failures:rate5m
+        expr: sum by (workflow_id, version, region, error_type) (rate(snisid_workflow_failures_total[5m]))
+
+      - record: snisid:workflow_failure_ratio:5m
+        expr: |
+          sum by (workflow_id, version, region) (rate(snisid_workflow_failures_total[5m]))
+          /
+          clamp_min(sum by (workflow_id, version, region) (rate(snisid_workflow_started_total[5m])), 0.001)
+
+      - record: snisid:workflow_success_ratio:5m
+        expr: 1 - snisid:workflow_failure_ratio:5m
+
+      # ============ DURÉE / SLO ============
+      - record: snisid:workflow_duration:p50:5m
+        expr: histogram_quantile(0.50, sum by (workflow_id, le, region) (rate(snisid_workflow_duration_seconds_bucket[5m])))
+
+      - record: snisid:workflow_duration:p95:5m
+        expr: histogram_quantile(0.95, sum by (workflow_id, le, region) (rate(snisid_workflow_duration_seconds_bucket[5m])))
+
+      - record: snisid:workflow_duration:p99:5m
+        expr: histogram_quantile(0.99, sum by (workflow_id, le, region) (rate(snisid_workflow_duration_seconds_bucket[5m])))
+
+      # ============ SLA BREACHES ============
+      - record: snisid:workflow_sla_breach:rate5m
+        expr: sum by (workflow_id, severity, region) (rate(snisid_workflow_sla_breach_total[5m]))
+
+      # ============ USER TASKS (goulots d'étranglement humains) ============
+      - record: snisid:user_task_age:p95:5m
+        expr: histogram_quantile(0.95, sum by (workflow_id, task_id, assignee_group, le) (rate(snisid_user_task_age_seconds_bucket[5m])))
+
+      # ============ FRAUD ============
+      - record: snisid:fraud_detected:rate5m
+        expr: sum by (workflow_id, action, region) (rate(snisid_fraud_detected_total[5m]))
+
+      - record: snisid:fraud_score:p95:5m
+        expr: histogram_quantile(0.95, sum by (workflow_id, le) (rate(snisid_fraud_score_bucket[5m])))
+
+      # ============ PKI ============
+      - record: snisid:pki_sign_duration:p99:5m
+        expr: histogram_quantile(0.99, sum by (purpose, le) (rate(snisid_pki_sign_duration_seconds_bucket[5m])))
+
+      # ============ CITIZEN ============
+      - record: snisid:citizen_request_duration:p95:5m
+        expr: histogram_quantile(0.95, sum by (channel, domain, le) (rate(snisid_citizen_request_duration_seconds_bucket[5m])))

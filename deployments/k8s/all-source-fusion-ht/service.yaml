@@ -1,0 +1,16 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: all-source-fusion-ht
+  namespace: snisid-national-security
+  labels:
+    app: all-source-fusion-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8309
+    targetPort: 8309
+    protocol: TCP
+    name: http
+  selector:
+    app: all-source-fusion-ht

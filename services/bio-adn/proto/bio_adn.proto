@@ -1,0 +1,178 @@
+syntax = "proto3";
+package ht.gov.snisid.bio;
+option go_package = "github.com/snisid/bio-adn/proto";
+
+import "google/protobuf/timestamp.proto";
+
+service DNAMatchingService {
+    rpc SubmitProfile   (SubmitProfileRequest)  returns (SubmitProfileResponse);
+    rpc SearchProfile   (SearchProfileRequest)  returns (SearchProfileResponse);
+    rpc GetHitDetails   (HitDetailsRequest)     returns (HitDetailsResponse);
+    rpc ExpungeProfile  (ExpungeRequest)        returns (ExpungeResponse);
+}
+
+service WantedPersonsService {
+    rpc CreateRecord    (CreateWantedRequest)    returns (WantedRecord);
+    rpc QueryRecord     (QueryWantedRequest)     returns (QueryWantedResponse);
+    rpc UpdateStatus    (UpdateStatusRequest)    returns (WantedRecord);
+    rpc VerifyHit       (VerifyHitRequest)       returns (VerifyHitResponse);
+}
+
+service LAPIQueryService {
+    rpc QueryPlate      (PlateQueryRequest)      returns (PlateQueryResponse);
+    rpc QueryVIN        (VINQueryRequest)        returns (VINQueryResponse);
+}
+
+message SubmitProfileRequest {
+    string specimen_number    = 1;
+    string index_type         = 2;
+    bytes  loci_data          = 3;
+    float  quality_score      = 4;
+    string lab_id             = 5;
+    string case_number        = 6;
+    string collected_date     = 7;
+    string correlation_id     = 8;
+}
+
+message SubmitProfileResponse {
+    string sample_id          = 1;
+    bool   accepted           = 2;
+    string rejection_reason   = 3;
+}
+
+message SearchProfileRequest {
+    bytes  loci_data          = 1;
+    string index_type         = 2;
+    string case_number        = 3;
+    string requesting_agency  = 4;
+    string officer_niu        = 5;
+    string purpose            = 6;
+    float  min_confidence     = 7;
+    bool   include_familial   = 8;
+}
+
+message SearchProfileResponse {
+    repeated MatchResult hits = 1;
+    int32    total_hits       = 2;
+    int32    search_duration_ms = 3;
+}
+
+message MatchResult {
+    string hit_id             = 1;
+    string match_sample_id    = 2;
+    string match_type         = 3;
+    float  confidence         = 4;
+    int32  matched_loci       = 5;
+    int32  total_loci         = 6;
+    string alert_level        = 7;
+    string match_index_type   = 8;
+    string case_number        = 9;
+    string mco_contact        = 10;
+}
+
+message HitDetailsRequest {
+    string hit_id = 1;
+}
+
+message HitDetailsResponse {
+    string hit_id             = 1;
+    string query_sample_id    = 2;
+    string match_sample_id    = 3;
+    string match_type         = 4;
+    float  confidence         = 5;
+    int32  matched_loci       = 6;
+    int32  total_loci         = 7;
+    string hit_level          = 8;
+    bool   alert_sent         = 9;
+    string created_at         = 10;
+}
+
+message ExpungeRequest {
+    string sample_id          = 1;
+    string court_order_ref    = 2;
+    string ordered_by         = 3;
+    string reason             = 4;
+    string officer_niu        = 5;
+}
+
+message ExpungeResponse {
+    bool   success            = 1;
+    string expunge_id         = 2;
+    string timestamp          = 3;
+}
+
+message CreateWantedRequest {
+    string last_name          = 1;
+    string first_name         = 2;
+    string niu                = 3;
+    string warrant_type       = 4;
+    string issuing_court      = 5;
+    string issuing_date       = 6;
+    repeated string charges   = 7;
+    string danger_level       = 8;
+    string mco_contact        = 9;
+    string entering_agency    = 10;
+}
+
+message WantedRecord {
+    string record_id          = 1;
+    string record_number      = 2;
+    string status             = 3;
+    string created_at         = 4;
+}
+
+message QueryWantedRequest {
+    string last_name          = 1;
+    string first_name         = 2;
+    string niu                = 3;
+    string plate_number       = 4;
+}
+
+message QueryWantedResponse {
+    repeated WantedRecord records = 1;
+    int32 total                  = 2;
+}
+
+message UpdateStatusRequest {
+    string record_id          = 1;
+    string status             = 2;
+}
+
+message VerifyHitRequest {
+    string hit_id             = 1;
+    string verifying_agency   = 2;
+    string officer_niu        = 3;
+}
+
+message VerifyHitResponse {
+    bool   confirmed          = 1;
+    string verified_at        = 2;
+}
+
+message PlateQueryRequest {
+    string plate_number       = 1;
+    string camera_id          = 2;
+    string location           = 3;
+    string query_id           = 4;
+}
+
+message PlateQueryResponse {
+    string query_id           = 1;
+    bool   hit_found          = 2;
+    string hit_type           = 3;
+    string record_number      = 4;
+    string alert_level        = 5;
+    string mco_contact        = 6;
+    int32  response_ms        = 7;
+}
+
+message VINQueryRequest {
+    string vin                = 1;
+}
+
+message VINQueryResponse {
+    string query_id           = 1;
+    bool   hit_found          = 2;
+    string hit_type           = 3;
+    string record_number      = 4;
+}

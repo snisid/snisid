@@ -1,0 +1,217 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: identity-core-isolation
+  namespace: snisid-identity-core
+  labels:
+    security-zone: "red"
+    classification: "top-secret"
+    snisid.gouv.ht/audit: "true"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: snisid-api-gateway
+          podSelector:
+            matchLabels:
+              role: "authorized-gateway"
+      ports:
+        - protocol: TCP
+          port: 8443
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: snisid-pki
+      ports:
+        - protocol: TCP
+          port: 9443
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: snisid-soc
+          podSelector:
+            matchLabels:
+              role: "monitor-readonly"
+      ports:
+        - protocol: TCP
+          port: 9090
+  
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: snisid-databases
+          podSelector:
+            matchLabels:
+              db-type: "identity"
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: snisid-kafka
+      ports:
+        - protocol: TCP
+          port: 9093
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: snisid-biometrics
+      ports:
+        - protocol: TCP
+          port: 8443
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: "kube-dns"
+      ports:
+        - protocol: UDP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pki-hsm-strict-isolation
+  namespace: snisid-pki
+  labels:
+    security-zone: "hsm-isolated"
+    classification: "top-secret"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              snisid.gouv.ht/pki-authorized: "true"
+      ports:
+        - protocol: TCP
+          port: 8443
+  
+  egress:
+    - to:
+        - ipBlock:
+            cidr: "10.0.100.0/28"
+      ports:
+        - protocol: TCP
+          port: 1792
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: "kube-dns"
+      ports:
+        - protocol: UDP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inter-agency-controlled-access
+  namespace: snisid-inter-agency
+  labels:
+    security-zone: "yellow"
+    classification: "secret"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: "172.16.0.0/12"
+            except:
+              - "172.16.255.0/24"
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8443
+  
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: snisid-api-gateway
+      ports:
+        - protocol: TCP
+          port: 8443
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: national-network-segments
+  namespace: snisid-infrastructure
+data:
+  network-design.yaml: |
+    segments:
+      red-zone:
+        name: "Zone Rouge — Ultra-Critique"
+        cidr: "10.0.0.0/16"
+        description: "Identity Core, PKI, Biometrics"
+        access: "Zéro accès externe direct"
+        encryption: "mTLS obligatoire"
+        monitoring: "Permanent SOC"
+      orange-zone:
+        name: "Zone Orange — Critique"
+        cidr: "10.1.0.0/16"
+        description: "Workflow Engine, Kafka, SOC"
+        access: "Interne contrôlé uniquement"
+        encryption: "TLS 1.3 minimum"
+        monitoring: "Continu"
+      yellow-zone:
+        name: "Zone Jaune — Sensible"
+        cidr: "10.2.0.0/16"
+        description: "API Gateway, Inter-Agency"
+        access: "Agences gouvernementales"
+        encryption: "TLS 1.3 + certificats agences"
+        monitoring: "Actif"
+      green-zone:
+        name: "Zone Verte — Public Contrôlé"
+        cidr: "10.3.0.0/16"
+        description: "Portail citoyen, APIs publiques"
+        access: "Citoyens authentifiés"
+        encryption: "TLS 1.3"
+        monitoring: "Actif"
+      hsm-zone:
+        name: "Zone HSM — Isolée"
+        cidr: "10.0.100.0/28"
+        description: "Hardware Security Modules"
+        access: "ZÉRO — Air Gap Partiel"
+        encryption: "N/A — Réseau physique dédié"
+        monitoring: "Audit physique + logique"
+      management-zone:
+        name: "Zone Management"
+        cidr: "192.168.0.0/24"
+        description: "Administration infra"
+        access: "Admins SNISID uniquement"
+        encryption: "mTLS + bastion"
+        monitoring: "Full session recording"
+    vpn-government:
+      protocol: "WireGuard + IPSec"
+      encryption: "AES-256-GCM"
+      authentication: "Certificate-based mTLS"
+      cidr: "172.16.0.0/12"
+      agencies:
+        - oni: "172.16.1.0/24"
+        - anh: "172.16.2.0/24"
+        - dgi: "172.16.3.0/24"
+        - dcpj: "172.16.4.0/24"
+        - dgie: "172.16.5.0/24"
+        - cep: "172.16.6.0/24"
+        - justice: "172.16.7.0/24"
+        - sante: "172.16.8.0/24"
+        - education: "172.16.9.0/24"

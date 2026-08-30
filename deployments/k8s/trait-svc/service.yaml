@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: trait-svc
+  namespace: snisid-core
+  labels:
+    app: trait-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8122
+    targetPort: 8122
+    protocol: TCP
+    name: http
+  selector:
+    app: trait-svc

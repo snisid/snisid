@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorization-service
+  namespace: snisid-core
+  labels:
+    app: authorization-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: authorization-service
+  template:
+    metadata:
+      labels:
+        app: authorization-service
+    spec:
+      containers:
+      - name: authorization-service
+        image: snisid/authorization-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8084
+        env:
+        - name: PORT
+          value: "8084"
+        - name: ENV
+          value: "prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: postgres-url
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8084
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8084
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "128Mi"
+          limits:
+            cpu: "2000m" # High CPU for rego evaluation
+            memory: "256Mi"

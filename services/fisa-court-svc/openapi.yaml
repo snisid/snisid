@@ -1,0 +1,224 @@
+openapi: "3.0.3"
+info:
+  title: "FISA-COURT-SVC API"
+  description: "HT National ID Platform - FISA Court / Surveillance Authorization"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8312/api/v1/fisa"
+paths:
+  /warrants:
+    post:
+      summary: "File a warrant application"
+      operationId: fileWarrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileWarrantRequest"
+      responses:
+        '201':
+          description: "Warrant filed"
+        '400':
+          description: "Invalid request"
+  /warrants/{id}/approve:
+    patch:
+      summary: "Approve a warrant (judge action)"
+      operationId: approveWarrant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveWarrantRequest"
+      responses:
+        '200':
+          description: "Warrant approved"
+        '400':
+          description: "Invalid request"
+  /warrants/active:
+    get:
+      summary: "Get active warrants"
+      operationId: getActiveWarrants
+      responses:
+        '200':
+          description: "Active warrants list"
+  /warrants/{id}/renew:
+    post:
+      summary: "Renew a warrant"
+      operationId: renewWarrant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenewWarrantRequest"
+      responses:
+        '200':
+          description: "Warrant renewed"
+        '400':
+          description: "Invalid request"
+  /reports:
+    post:
+      summary: "File a surveillance report"
+      operationId: fileReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileReportRequest"
+      responses:
+        '201':
+          description: "Report filed"
+        '400':
+          description: "Invalid request"
+  /docket/{term}:
+    get:
+      summary: "Get court docket statistics by term"
+      operationId: getDocketByTerm
+      parameters:
+        - name: term
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Docket statistics"
+        '404':
+          description: "Docket not found"
+  /emergency:
+    post:
+      summary: "Emergency authorization (72hr retroactive)"
+      operationId: emergencyAuthorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmergencyAuthorizationRequest"
+      responses:
+        '201':
+          description: "Emergency authorized"
+        '400':
+          description: "Invalid request"
+components:
+  schemas:
+    FileWarrantRequest:
+      type: object
+      required:
+        - warrant_type
+        - target_identity
+        - issuing_court
+        - judge_name
+        - applicant_agency
+        - applicant_officer
+        - duration_days
+      properties:
+        warrant_type:
+          type: string
+          enum: ["TITLE_III_PHONE","TITLE_III_INTERNET","FISA_ELECTRONIC","FISA_PHYSICAL","PEN_REGISTER","TRAP_TRACE"]
+        target_identity:
+          type: string
+        target_details:
+          type: string
+        issuing_court:
+          type: string
+        judge_name:
+          type: string
+        applicant_agency:
+          type: string
+        applicant_officer:
+          type: string
+          format: uuid
+        probable_cause_summary:
+          type: string
+        duration_days:
+          type: integer
+    ApproveWarrantRequest:
+      type: object
+      required:
+        - judge_name
+      properties:
+        judge_name:
+          type: string
+    RenewWarrantRequest:
+      type: object
+      required:
+        - duration_days
+      properties:
+        duration_days:
+          type: integer
+    FileReportRequest:
+      type: object
+      required:
+        - warrant_id
+        - reporting_period_start
+        - reporting_period_end
+        - submitted_by
+      properties:
+        warrant_id:
+          type: string
+          format: uuid
+        reporting_period_start:
+          type: string
+          format: date-time
+        reporting_period_end:
+          type: string
+          format: date-time
+        communications_intercepted:
+          type: integer
+        minimization_applied:
+          type: boolean
+        incidental_collection:
+          type: integer
+        us_person_identities:
+          type: integer
+        results_summary:
+          type: string
+        submitted_by:
+          type: string
+          format: uuid
+    EmergencyAuthorizationRequest:
+      type: object
+      required:
+        - warrant_type
+        - target_identity
+        - applicant_agency
+        - applicant_officer
+        - probable_cause
+        - approved_by
+      properties:
+        warrant_type:
+          type: string
+        target_identity:
+          type: string
+        target_details:
+          type: string
+        applicant_agency:
+          type: string
+        applicant_officer:
+          type: string
+          format: uuid
+        probable_cause:
+          type: string
+        approved_by:
+          type: string
+          format: uuid

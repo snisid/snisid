@@ -1,0 +1,33 @@
+{
+  "namespace": "sn.sniside.financial",
+  "type": "record",
+  "name": "SuspiciousTransactionEvent",
+  "version": 1,
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "event_type", "type": {"type": "enum", "name": "FinancialEventType", "symbols": ["TRANSACTION_SUSPICIOUS", "AML_ALERT", "PEP_IDENTIFIED", "NETWORK_DETECTED", "BENEFICIAL_OWNER_FOUND"]}},
+    {"name": "transaction_ref", "type": "string"},
+    {"name": "transaction_date", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "transaction_type", "type": "string"},
+    {"name": "amount", "type": "double"},
+    {"name": "currency", "type": "string"},
+    {"name": "amount_usd", "type": "double"},
+    {"name": "source_country", "type": "string"},
+    {"name": "destination_country", "type": "string"},
+    {"name": "sender_name", "type": "string"},
+    {"name": "sender_niu", "type": ["null", "string"], "default": null},
+    {"name": "beneficiary_name", "type": "string"},
+    {"name": "beneficiary_niu", "type": ["null", "string"], "default": null},
+    {"name": "risk_score", "type": "double"},
+    {"name": "mlro_filed", "type": "boolean", "default": false},
+    {"name": "aml_factors", "type": {"type": "array", "items": {"type": "record", "name": "AMLFactor", "fields": [
+      {"name": "factor_type", "type": "string"},
+      {"name": "score", "type": "double"},
+      {"name": "description", "type": "string"}
+    ]}}, "default": []},
+    {"name": "related_entities", "type": {"type": "array", "items": "string"}, "default": []},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "correlation_id", "type": "string"},
+    {"name": "source", "type": "string"}
+  ]
+}

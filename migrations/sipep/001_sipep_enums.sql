@@ -1,0 +1,25 @@
+BEGIN;
+
+CREATE TYPE inmate_status AS ENUM (
+    'AWAITING_TRIAL',
+    'ON_TRIAL',
+    'SENTENCED',
+    'APPEAL_PENDING',
+    'CONDEMNED'
+);
+
+CREATE TYPE detention_type AS ENUM (
+    'PREVENTIVE',
+    'SENTENCED',
+    'ADMINISTRATIVE',
+    'CONTEMPT'
+);
+
+CREATE TYPE facility_type AS ENUM (
+    'NATIONAL',
+    'DEPARTMENTAL',
+    'LOCAL',
+    'SPECIALIZED'
+);
+
+COMMIT;

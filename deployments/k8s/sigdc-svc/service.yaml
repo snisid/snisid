@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sigdc-svc
+  namespace: snisid-core
+  labels:
+    app: sigdc-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8126
+    targetPort: 8126
+    protocol: TCP
+    name: http
+  selector:
+    app: sigdc-svc

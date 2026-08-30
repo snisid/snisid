@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package snisid.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/snisid/platform/backend/api/proto/snisid/v1";
+
+message Envelope {
+    Metadata metadata = 1;
+    google.protobuf.Struct payload = 2;
+}
+
+message Metadata {
+    string event_id = 1;         // UUIDv7
+    string event_type = 2;       // domain.entity.action
+    int32 schema_version = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    string correlation_id = 5;
+    string producer_service = 6;
+    string agency_context = 7;
+}

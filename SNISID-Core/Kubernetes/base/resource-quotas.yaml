@@ -1,0 +1,72 @@
+# SNISID Resource Quotas per namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-system-quota
+  namespace: snisid-system
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    persistentvolumeclaims: "20"
+    services: "30"
+    configmaps: "50"
+    secrets: "50"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-identity-quota
+  namespace: snisid-identity
+spec:
+  hard:
+    requests.cpu: "16"
+    requests.memory: 32Gi
+    limits.cpu: "32"
+    limits.memory: 64Gi
+    persistentvolumeclaims: "10"
+    services: "15"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-api-gateway-quota
+  namespace: snisid-api-gateway
+spec:
+  hard:
+    requests.cpu: "16"
+    requests.memory: 32Gi
+    limits.cpu: "32"
+    limits.memory: 64Gi
+    persistentvolumeclaims: "5"
+    services: "10"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-event-bus-quota
+  namespace: snisid-event-bus
+spec:
+  hard:
+    requests.cpu: "24"
+    requests.memory: 48Gi
+    limits.cpu: "48"
+    limits.memory: 96Gi
+    persistentvolumeclaims: "30"
+    services: "15"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: snisid-databases-quota
+  namespace: snisid-databases
+spec:
+  hard:
+    requests.cpu: "32"
+    requests.memory: 64Gi
+    limits.cpu: "64"
+    limits.memory: 128Gi
+    persistentvolumeclaims: "50"
+    services: "20"

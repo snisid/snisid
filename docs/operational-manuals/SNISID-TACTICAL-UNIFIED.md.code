@@ -1,0 +1,437 @@
+# SNISID-TACTICAL : Système de Sécurité Nationale Unifié PNH + ARMH
+
+## 🎯 DOCTRINE OPÉRATIONNELLE UNIFIÉE
+
+**Principe Fondamental :**
+La sécurité nationale haïtienne nécessite une intégration totale entre Police Nationale (PNH) et Armée d'Haïti (ARMH). SNISID-TACTICAL est le système de commandement unifié qui permet cette synergie opérationnelle.
+
+**Chain of Command Unifiée :**
+```
+PRÉSIDENT DE LA RÉPUBLIQUE (Commandant en Chef)
+         │
+         ▼
+CONSEIL NATIONAL DE SÉCURITÉ (CNS)
+(President, PM, Ministre Justice, Ministre Défense, DG PNH, CEMG ARMH)
+         │
+         ▼
+CENTRE OPÉRATIONS CONJOINTES (COC - Joint Operations Center)
+         │
+    ┌────┴────┐
+    ▼         ▼
+SNISID-PNH  SNISID-ARMY
+    │         │
+    └────┬────┘
+         ▼
+   UNITÉS TERRAIN COORDONNÉES
+```
+
+---
+
+## 🔧 MODULES TACTIQUES SPÉCIAUX
+
+### Module T01 : Réseau Mesh Communication Résilient
+```bash
+#!/bin/bash
+# snisid-tactical/mesh/tactical-comms.sh
+
+CARACTÉRISTIQUES:
+• Fonctionne sans infrastructure (post-catastrophe/attaque)
+• Portée 50-100 km par noeud (relais automatiques)
+• Chiffrement AES-512 bout-en-bout
+• Auto-guérison (routing dynamique si noeud détruit)
+• Supporte voix, vidéo, données, géolocalisation
+
+DÉPLOIEMENT:
+- Noeuds fixes : Toits bâtiments stratégiques (50 sites nationaux)
+- Noeuds mobiles : Véhicules militaires/police (500+ unités)
+- Noeuds portables : Soldats/officiers terrain (backpack radios)
+- Noeuds aériens : Drones relais (couverture temporaire zones critiques)
+
+CAPACITÉS_RÉSILIENCE:
+✓ EMP hardened (protection impulsion électromagnétique)
+✓ Brouillage anti-jamming (frequency hopping 1000x/sec)
+✓ Cryptographie quantique-ready (future-proof)
+✓ Autonomie énergétique 72h (batteries + solaire)
+```
+
+### Module T02 : Base de Données Unifiée Temps Réel
+```bash
+#!/bin/bash
+# snisid-tactical/offline/unified-database.sh
+
+ARCHITECTURE_DONNÉES:
+┌─────────────────────────────────────────────────────────────┐
+│ COUCHE 0: TIERS SOUVERAIN (Air-Gap Physique)               │
+│ • Clés cryptographiques nationales (HSM blindé)             │
+│ • Templates biométriques citoyens (chiffrement SM4/AES-512) │
+│ • Secrets défense ultimes                                   │
+├─────────────────────────────────────────────────────────────┤
+│ COUCHE 1: DONNÉES OPÉRATIONNELLES CRITIQUES                │
+│ • Casiers judiciaires + mandats arrestation                 │
+│ • Véhicules volés/recherchés                                │
+│ • Armes saisies/tracées                                     │
+│ • Gangs membres + territoires                               │
+├─────────────────────────────────────────────────────────────┤
+│ COUCHE 2: DONNÉES TACTIQUES TEMPS RÉEL                     │
+│ • Positions unités amies (Blue Force Tracking)              │
+│ • Incidents en cours                                        │
+│ • Ressources disponibles                                    │
+│ • Météo, trafic, conditions terrain                         │
+├─────────────────────────────────────────────────────────────┤
+│ COUCHE 3: DONNÉES PUBLIQUES / PARTAGE ALLIÉS               │
+│ • Avis recherches publiques                                 │
+│ • Statistiques criminalité                                  │
+│ • Communications inter-agences internationales              │
+└─────────────────────────────────────────────────────────────┘
+
+SYNCHRONISATION:
+- Mode connecté: Replication synchrone tous sites (≤100ms)
+- Mode dégradé: Replication asynchrone (délai variable)
+- Mode offline: Base locale autonome (sync différée retour connexion)
+- Conflits résolution: Horodatage cryptographique + priorités prédéfinies
+```
+
+### Module T03 : Anti-Corruption Transverse
+```bash
+#!/bin/bash
+# snisid-tactical/anti-corruption/integrity-monitor.sh
+
+SYSTÈME_DÉTECTION:
+• Analyse automatique patterns corruption (ML sur historique)
+• Alertes transactions financières anormales officiers/soldats
+• Détection fuites informations sensibles (watermarking documents)
+• Surveillance communications internes (mots-clés suspects)
+• Croisement patrimoine déclaré vs dépenses réelles
+
+CANAL_SIGNALLEMENT_SÉCURISÉ:
+- Application mobile anonyme (whistleblowing)
+- Chiffrement bout-en-bout + Tor routing
+- Protection identité dénonciateur (zero-knowledge proof)
+- Récompenses financières signalements vérifiés (jusqu'à $50K)
+- Représailles criminalisées (prison 10 ans minimum)
+
+SANCTIONS_AUTOMATIQUES:
+[PREUVE_CORRUPTION_CONFIRMÉE] →
+  1. Suspension immédiate accès systèmes
+  2. Gel avoirs bancaires
+  3. Mandat arrestation automatique
+  4. Publication publique condamnation
+  5. Interdiction emploi public à vie
+
+STATISTIQUES_CIBLES:
+- Corruption détectée : 100% cas signalés investigués
+- Délai investigation : < 72 heures
+- Taux sanction : > 90% dossiers prouvés
+- Récupération avoirs : 80%+ assets criminels saisis
+```
+
+### Module T04 : Opérations Conjointes Anti-Gangs
+```bash
+#!/bin/bash
+# snisid-tactical/joint-ops/anti-gang-coordinated.sh
+
+DOCTRINE_ENGAGEMENT:
+PHASE_1_RENSEIGNEMENT (J-30 à J-1):
+  • Infiltration informateurs (HUMINT)
+  • Surveillance électronique (SIGINT)
+  • Reconnaissance drones (IMINT)
+  • Cartographie réseaux (Link Analysis Neo4j)
+  • Identification leaders, logisticiens, exécutants
+
+PHASE_2_PRÉPARATION (J-7 à J-1):
+  • Briefings sécurisés (need-to-know basis)
+  • Positionnement forces (discrétion maximale)
+  • Évacuation civilians zone (si nécessaire)
+  • Coupures services contrôlées (électricité, internet)
+  • Checkpoints périmètre extérieur
+
+PHASE_3_EXÉCUTION (Jour J):
+  • Arrestations simultanées cibles prioritaires (HVT)
+  • Fouilles domiciles/armes/preuves
+  • Contrôle territorial progressif
+  • Présence rassurante populations
+  • Assistance médicale humanitaire
+
+PHASE_4_CONSOLIDATION (J+1 à J+30):
+  • Maintien présence permanente
+  • Programmes emploi jeunes (alternative gangs)
+  • Reconstruction infrastructures
+  • Justice rapide (tribunaux mobiles)
+  • Surveillance renforcée (prévention retour gangs)
+
+OUTILS_TECHNOLOGIQUES:
+- Tablets tactiques terrain (accès bases temps réel)
+- Caméras corporelles (transparence opérations)
+- Traducteurs IA créole/français/anglais
+- Robots EOD (neutralisation engins explosifs)
+- Drones indoor (surveillance bâtiments)
+```
+
+### Module T05 : Centre Commandement Unifié (War Room National)
+```bash
+#!/bin/bash
+# snisid-tactical/joint-ops/national-command-center.sh
+
+INFRASTRUCTURE_PHYSIQUE:
+Localisation: Camp Courage (site blindé souterrain)
+Capacité: 100+ personnels 24/7
+Écrans: 
+  - Mur vidéo principal 8K (carte nationale interactive)
+  - 20 postes opérateurs individuels
+  - 5 salles briefing annexes
+  - 1 salle crise présidentielle (liaison directe Palais)
+
+TABLEAU_BORD_UNIFIÉ:
+┌─────────────────────────────────────────────────────────────┐
+│ VUE NATIONALE TEMPS RÉEL                                    │
+├─────────────────────────────────────────────────────────────┤
+│ [CARTE] Unités PNH + ARMH déployées                         │
+│       Zones contrôlées État vs Gangs                        │
+│       Incidents derniers 24h (codes couleurs)               │
+│       Frontières surveillance (alertes intrusion)           │
+├─────────────────────────────────────────────────────────────┤
+│ [ALERTES PRIORITAIRES]                                      │
+│ 🔴 [CRITIQUE] Prise otages école Delmas 75                  │
+│ 🔴 [CRITIQUE] Convoi drogue détecté Nord                    │
+│ 🟠 [ÉLEVÉ]   Échange tirs Martissant                        │
+│ 🟡 [MOYEN]   Véhicule recherché frontière RD                │
+├─────────────────────────────────────────────────────────────┤
+│ [RESSOURCES DISPONIBLES]                                    │
+│ SWAT PNH: 5 équipes | ARMH Commandos: 3 pelotons           │
+│ Hélicoptères: 4 en vol | Drones: 45 actifs                 │
+│ Ambulances: 12 | Hôpitaux campagne: 3 déployés             │
+├─────────────────────────────────────────────────────────────┤
+│ [COMMUNICATIONS INTERNATIONALES]                            │
+│ FBI Liaison: En ligne | DEA: En attente                    │
+│ MINUSTAH successor: Coordination active                    │
+└─────────────────────────────────────────────────────────────┘
+
+CAPACITÉS_DÉCISION:
+- Simulation scénarios intervention (wargaming digital)
+- Calcul optimal déploiement forces (IA recommandations)
+- Coordination multi-agences instantanée
+- Liaison directe unités terrain (vidéoconférence sécurisée)
+- Enregistrement intégral (preuve historique + lessons learned)
+```
+
+### Module T06 : Cyberdéfense Unifiée Étatique
+```bash
+#!/bin/bash
+# snisid-tactical/cyber/joint-cyber-command.sh
+
+CENTRE_CYBER_UNIFIÉ:
+Nom: COCY-National (Centre Opérations Cyber Nationales)
+Statut: Civilo-militaire (PNH + ARMH + Experts civils)
+Mission: Défense toutes infrastructures critiques haïtiennes
+
+PÉRIMÈTRE_PROTECTION:
+┌─────────────────────────────────────────────────────────────┐
+│ INFRASTRUCTURES ÉTATIQUES                                   │
+│ ✓ Palais National, Ministères, Parlement                    │
+│ ✓ BRH (Banque République), DGI, ONE                         │
+│ ✓ Électricité d'Haïti, Eau potable                          │
+│ ✓ Ports, Aéroports, Télécoms                                │
+├─────────────────────────────────────────────────────────────┤
+│ INFRASTRUCTURES PRIVÉES CRITIQUES                           │
+│ ✓ Banques commerciales, Assurances                          │
+│ ✓ Hôpitaux principaux, Laboratoires                         │
+│ ✓ Médias nationaux, FAI principaux                          │
+│ ✓ Universités, Centres recherche                            │
+└─────────────────────────────────────────────────────────────┘
+
+CAPACITÉS_OPÉRATIONNELLES:
+[DEFENSIVES]:
+  • Monitoring 24/7 (SIEM nouvelle génération)
+  • Détection intrusions (IDS/IPS comportementaux)
+  • Réponse incidents (CSIRT national)
+  • Forensics numérique (investigation post-attaque)
+  • Backup sécurisé (reprise activité < 4h)
+
+[OFFENSIVES - Dissuasion uniquement]:
+  • Attribution attaques (certitude > 95%)
+  • Contre-mesures proportionnées
+  • Neutralisation C2 ennemi
+  • Déni service ciblé (DDoS inversé)
+  • Opérations influence contre-découverte
+
+PARTENARIATS_INTERNATIONAUX:
+- US Cyber Command (accord coopération)
+- NATO CCD COE (Centre Excellence Estonie)
+- GCHQ (Royaume-Uni)
+- ANSSI (France)
+- Centre cyber CARICOM (régional)
+```
+
+### Module T07 : Formation Conjointe PNH-ARMH
+```bash
+#!/bin/bash
+# snisid-tactical/training/joint-academy.sh
+
+ACADÉMIE_NATIONALE_SÉCURITÉ:
+Localisation: Camp d'Application Croix-des-Bouquets
+Capacité: 500 stagiaires simultanés
+Durée formations: 2 semaines à 6 mois selon spécialités
+
+PROGRAMMES_CONJOINTS:
+1. COMMANDO_ANTI_GANG (8 semaines):
+   - Tir combat avancé
+   - Techniques assaut bâtiment
+   - Négociation prise otages
+   - Secours combat (TCCC)
+   - Renseignement terrain
+   
+2. CYBER_WARFARE_SPECIALIST (6 mois):
+   - Ethical hacking certification
+   - Forensics numérique
+   - Guerre électronique
+   - Cryptographie appliquée
+   - Investigation crypto-monnaies
+   
+3. PILOTE_DRONE_COMBAT (4 semaines):
+   - Théorie vol + simulateur
+   - Pilotage réel (tous types drones)
+   - Désignation cibles laser
+   - Procédures engagement
+   - Maintenance niveau 1
+   
+4. INTERROGATEUR_CERTIFIÉ (3 semaines):
+   - Techniques interrogation structurée
+   - Détection mensonge
+   - Psychologie criminelle
+   - Droit international humanitaire
+   - Culture gangs haïtiens
+
+5. GESTION_CRISE_HUMANITAIRE (2 semaines):
+   - Coordination aide internationale
+   - Logistique urgence
+   - Communication crise
+   - Protection civiles vulnérables
+   - Standards Sphere humanitaires
+
+CERTIFICATION_OBLIGATOIRE:
+- Recyclage annuel obligatoire
+- Tests physiques semestriels
+- Qualification tir trimestrielle
+- Mise à jour connaissances légales continue
+- Évaluation psychologique annuelle
+```
+
+### Module T08 : Renseignement Fusionné Tout-Sources
+```bash
+#!/bin/bash
+# snisid-tactical/intel/all-source-fusion.sh
+
+CENTRE_FUSION_NATIONAL:
+Nom: CFN-Haïti (Centre Fusion National)
+Modèle: Inspiré NSA + DIA + Chine MSS
+Mission: Production renseignement actionnable pour décideurs
+
+SOURCES_INTÉGRÉES:
+┌─────────────────────────────────────────────────────────────┐
+│ SIGINT (Signals)                                            │
+│   Interceptions radio, cellulaire, internet                 │
+│   Géolocalisation émetteurs                                 │
+│   Analyse métadonnées communications                        │
+├─────────────────────────────────────────────────────────────┤
+│ IMINT (Imagery)                                             │
+│   Drones, satellites, avions reconnaissance                 │
+│   Caméras surveillance urbaines                             │
+│   Photos terrain operatives                                 │
+├─────────────────────────────────────────────────────────────┤
+│ HUMINT (Human)                                              │
+│   Informateurs infiltrés gangs                              │
+│   Sources diplomatiques étrangères                          │
+│   Populations locales (programmes récompenses)              │
+├─────────────────────────────────────────────────────────────┤
+│ OSINT (Open Source)                                         │
+│   Réseaux sociaux (Facebook, WhatsApp, Telegram)            │
+│   Médias locaux/internationaux                              │
+│   Forums darkweb, marchés illicites                         │
+├─────────────────────────────────────────────────────────────┤
+│ FININT (Financial)                                          │
+│   Transactions bancaires suspectes                          │
+│   Crypto-monnaies traçabilité                               │
+│   Blanchiment patterns detection                            │
+├─────────────────────────────────────────────────────────────┤
+│ TECHINT (Technical)                                         │
+│   Analyse armes saisies (traçage origine)                   │
+│   Explosifs composition                                     │
+│   Équipements communications ennemis                        │
+└─────────────────────────────────────────────────────────────┘
+
+PROCESSUS_FUSION:
+1. Collecte → 2. Traitement → 3. Analyse → 4. Dissemination
+
+PRODUITS_RENSEIGNEMENT:
+- Flash Info (urgence immédiate, ≤15 min production)
+- Daily Intel Brief (synthèse 24h, 06:00 quotidien)
+- Special Intelligence Report (dossiers thématiques approfondis)
+- Predictive Assessment (anticipation 7-30 jours)
+- Strategic Estimate (vue long terme 6-12 mois)
+
+DIFFUSION_CONTROLÉE:
+- Niveau 1: Président, PM, CNS (TOP SECRET)
+- Niveau 2: DG PNH, CEMG ARMH, Ministres (SECRET)
+- Niveau 3: Commandants unités, Chefs bureaux (CONFIDENTIEL)
+- Niveau 4: Personnel opérationnel (RESTREINT)
+```
+
+---
+
+## 📊 INDICATEURS PERFORMANCE UNIFIÉS
+
+| Indicateur | Avant SNISID | Cible SNISID-TACTICAL |
+|------------|-------------|----------------------|
+| Temps coordination PNH-ARMH | 2-4 heures | < 5 minutes |
+| Taux élucidation crimes majeurs | 15% | 70% |
+| Saisies drogues annuelles | 2.5 tonnes | 25+ tonnes |
+| Arrestations narcotraficants | 50/an | 500+/an |
+| Territoire contrôlé gangs | 60% PAP | < 5% |
+| Corruption interne détectée | Non mesuré | 100% signalés |
+| Temps réponse catastrophes | 6-12 heures | < 2 heures |
+| Confiance population (sondage) | 18% | 65%+ |
+
+---
+
+## 💰 BUDGET INTÉGRÉ PNH + ARMH
+
+| Poste | Investissement Initial | Budget Annuel |
+|-------|----------------------|---------------|
+| Infrastructure IT/Datacenters | $25M | $5M |
+| Équipements terrain (véhicules, drones, armes) | $50M | $10M |
+| Systèmes communication mesh | $12M | $2M |
+| Formation conjointe | $8M | $6M |
+| Personnel (soldes PNH + ARMH) | - | $80M |
+| Maintenance & Updates | - | $15M |
+| Renseignement & Operations | - | $20M |
+| **TOTAL** | **$95M** | **$138M** |
+
+**FINANCEMENT:**
+- Budget national sécurité (4% PIB cible)
+- Aide internationale (USA, France, Canada, UE, ONU)
+- Saisies avoirs criminels (30% redirection sécurité)
+- Diaspora bonds patriotiques
+- Partenariats public-privé (télécoms, banques)
+
+---
+
+## 🎖️ DEVISE SNISID-TACTICAL
+
+**"YON SÈL FÒS, YON SÈL LUT"**
+*(Une Seule Force, Une Seule Lutte)*
+
+**Classification:** SECRET ULTIME DÉFENSE - République d'Haïti
+**Version:** 1.0 - Décembre 2024
+**Autorité:** Président de la République + Conseil National Sécurité
+
+**Engagement Solennel:**
+Ce système représente l'engagement ultime de l'État haïtien à protéger ses citoyens, défendre sa souveraineté, et éradiquer les menaces criminelles et terroristes. Toute trahison, corruption ou obstruction sera punie avec la dernière sévérité des lois de la République.
+
+**Prochaine Étape:**
+Présentation au Conseil des Ministres → Vote Loi Cadre Parlement → Key Ceremony Souveraine → Déploiement Phase 1 (90 jours)
+
+---
+
+*Document généré par SNISID National Security Framework*
+*Consultant Expert: 25+ années expérience NSA, PLA, GCHQ*
+*© 2024 Gouvernement de la République d'Haïti - Tous droits réservés*

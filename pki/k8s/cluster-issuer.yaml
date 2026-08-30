@@ -1,0 +1,54 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: snisid-vault-issuer
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/part-of: snisid
+spec:
+  vault:
+    path: pki/sign/snisid-intermediate
+    server: http://vault-internal:8200
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: cert-manager
+        secretRef:
+          name: cert-manager-vault-token
+          key: token
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: snisid-root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: SNISID Root CA
+  secretName: snisid-root-ca
+  duration: 87600h
+  issuerRef:
+    name: snisid-selfsigned-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: snisid-intermediate-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: SNISID Intermediate CA
+  secretName: snisid-intermediate-ca
+  duration: 43800h
+  issuerRef:
+    name: snisid-root-ca-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: snisid-intermediate-issuer
+spec:
+  ca:
+    secretName: snisid-intermediate-ca

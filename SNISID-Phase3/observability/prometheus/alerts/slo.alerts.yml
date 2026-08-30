@@ -1,0 +1,66 @@
+# SNISID — SLO Multi-Window Multi-Burn-Rate alerts (SRE-style)
+# Cf. Google SRE Workbook chap. 5
+groups:
+
+  - name: snisid.slo.burn_rate
+    rules:
+
+      # CIVIL BIRTH SIMPLE  (target 99.9%)
+      - alert: SLOFastBurn_CivilBirthSimple
+        expr: |
+          (1 - slo:civil_birth_simple:availability:5m) > (14.4 * (1 - 0.999))
+          and
+          (1 - slo:civil_birth_simple:availability:1h) > (14.4 * (1 - 0.999))
+        for: 2m
+        labels: { severity: sev1, team: wgo, page: 'true' }
+        annotations:
+          summary: "🔥 Burn rate FAST sur civil-registry.birth.simple"
+          description: "2% du budget en <1h — intervention urgente"
+
+      - alert: SLOSlowBurn_CivilBirthSimple
+        expr: |
+          (1 - slo:civil_birth_simple:availability:6h) > (6 * (1 - 0.999))
+          and
+          (1 - slo:civil_birth_simple:availability:1d) > (6 * (1 - 0.999))
+        for: 15m
+        labels: { severity: sev2, team: wgo }
+        annotations:
+          summary: "🐢 Burn rate SLOW sur civil-registry.birth.simple"
+          description: "10% du budget en <6h"
+
+      # IDENTITY VERIFICATION (target 99.95%)
+      - alert: SLOFastBurn_IdentityVerification
+        expr: |
+          (1 - slo:identity_verification_online:availability:5m) > (14.4 * (1 - 0.9995))
+          and
+          (1 - slo:identity_verification_online:availability:1h) > (14.4 * (1 - 0.9995))
+        for: 2m
+        labels: { severity: sev1, team: wgo, page: 'true' }
+        annotations:
+          summary: "🔥 Burn FAST identity.verification.online"
+
+      - alert: SLOBudgetExhausted_30d
+        expr: |
+          (
+            slo:civil_birth_simple:error_budget_remaining:30d < 0
+            or
+            slo:identity_verification_online:error_budget_remaining:30d < 0
+            or
+            slo:identity_enrollment:error_budget_remaining:30d < 0
+            or
+            slo:judicial_validation:error_budget_remaining:30d < 0
+          )
+        for: 10m
+        labels: { severity: sev2, team: wgo }
+        annotations:
+          summary: "💸 Error budget 30j ÉPUISÉ : freeze déploiements"
+          description: "Politique : freeze des nouveaux déploiements jusqu'à reconstitution."
+
+      # KAFKA MESH (target 99.95%)
+      - alert: SLOFastBurn_KafkaMesh
+        expr: |
+          (1 - slo:kafka_mesh:availability:30d) > (14.4 * (1 - 0.9995))
+        for: 5m
+        labels: { severity: sev1, team: platform, page: 'true' }
+        annotations:
+          summary: "🔥 Burn rate Kafka Event Mesh"

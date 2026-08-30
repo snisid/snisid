@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: snisid-vault-issuer
+  namespace: cert-manager
+spec:
+  vault:
+    # Point to the HashiCorp Vault Intermediate CA
+    server: https://vault.snisid-security.svc.cluster.local:8200
+    path: pki_int/sign/snisid-dot-local
+    
+    # Authenticate cert-manager to Vault using the Kubernetes Service Account token
+    auth:
+      kubernetes:
+        role: cert-manager
+        mountPath: /v1/auth/kubernetes
+        secretRef:
+          name: cert-manager-vault-token
+          key: token
+    
+    # Must validate the Vault server certificate using the Root CA
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClJlcGxhY2Ugd2l0aCBiYXNlNjQtZW5jb2RlZCBSb290IENBIGNlcnRpZmljYXRlCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K

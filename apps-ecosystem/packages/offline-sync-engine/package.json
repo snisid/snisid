@@ -1,0 +1,9 @@
+{
+  "name": "@snisid/offline-sync-engine",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "private": true,
+  "dependencies": {
+    "expo-sqlite": "*"
+  }
+}

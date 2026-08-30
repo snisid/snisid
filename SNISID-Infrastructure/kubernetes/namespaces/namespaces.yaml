@@ -1,0 +1,281 @@
+# SNISID — Namespaces Kubernetes : Gouvernance & Ségrégation Nationale
+# Classification: RESTREINT DEFENSE
+# Role: Définition namespaces officiels SNISID avec Pod Security Standards, labels obligatoires
+
+# ───────────────────────────────────────────────
+# TIER-0 : IAM / Identity / Vault / PKI / HSM
+# Segregation maximale. Deny-all. mTLS STRICT. HSM access only.
+# ───────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-identity
+  labels:
+    snisid.gov/tier: tier-0
+    snisid.gov/region: core
+    snisid.gov/service: identity
+    snisid.gov/owner: equipe-identity
+    snisid.gov/data-classification: top-secret
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+    # Privileged required pour Vault sidecar HSM access (device mounts virtuels)
+  annotations:
+    snisid.gov.classification: "TOP-SECRET"
+    snisid.gov.approvers: "IGC,Direction-Cyber"
+    snisid.gov.network-policy: "strict-deny-all-explicit-allow-only"
+
+---
+# ───────────────────────────────────────────────
+# TIER-1 : Core API / BPMN / Data / Cyber
+# Workloads critiques métier. Isolation par namespace. mTLS STRICT.
+# ───────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-core
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/region: core
+    snisid.gov/service: core-api
+    snisid.gov/owner: equipe-nationale
+    snisid.gov/data-classification: restricted
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.classification: "RESTREINT DEFENSE"
+    snisid.gov.sla: "99.99%"
+    snisid.gov.pii: "true"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-bpmn
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/region: core
+    snisid.gov/service: bpmn-engine
+    snisid.gov/owner: equipe-processus
+    snisid.gov/data-classification: restricted
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.classification: "RESTREINT DEFENSE"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-data
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/region: core
+    snisid.gov/service: data-platform
+    snisid.gov/owner: equipe-data
+    snisid.gov/data-classification: secret
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.classification: "SECRET"
+    snisid.gov.encryption-at-rest: "required"
+    snisid.gov.backup-frequency: "15min"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-cyber
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/region: core
+    snisid.gov/service: cybersecurity
+    snisid.gov/owner: soc-national
+    snisid.gov/data-classification: restricted
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.classification: "RESTREINT DEFENSE"
+
+---
+# ───────────────────────────────────────────────
+# TIER-2 : Applications métier support / Intégrations
+# ───────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-tier2-support
+  labels:
+    snisid.gov/tier: tier-2
+    snisid.gov/region: core
+    snisid.gov/service: support-apps
+    snisid.gov/owner: equipe-support
+    snisid.gov/data-classification: internal
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# ───────────────────────────────────────────────
+# TIER-3 : Observabilité / Métrologie / Outils
+# Read-only cross-tier. Données sensibles (logs traces).
+# ───────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-obs
+  labels:
+    snisid.gov/tier: tier-3
+    snisid.gov/region: core
+    snisid.gov/service: observability
+    snisid.gov/owner: equipe-observabilite
+    snisid.gov/data-classification: secret
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.classification: "SECRET"
+    snisid.gov.data-retention: "2-ans-hot-7-ans-froid"
+
+---
+# ───────────────────────────────────────────────
+# TIER-4 : Edge / Regional / Mobile / Offline / Emergency
+# ───────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-edge-regional
+  labels:
+    snisid.gov/tier: tier-4
+    snisid.gov/region: regional
+    snisid.gov/service: edge-regional
+    snisid.gov/owner: equipe-terrain
+    snisid.gov/data-classification: restricted
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.offline-capable: "true"
+    snisid.gov.sync-strategy: "kafka-mirror-batch"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-edge-mobile
+  labels:
+    snisid.gov/tier: tier-4
+    snisid.gov/region: mobile
+    snisid.gov/service: edge-mobile
+    snisid.gov/owner: equipe-mobile
+    snisid.gov/data-classification: restricted
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.offline-capable: "true"
+    snisid.gov.max-offline-hours: "24"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-edge-emergency
+  labels:
+    snisid.gov/tier: tier-4
+    snisid.gov/region: emergency
+    snisid.gov/service: edge-emergency
+    snisid.gov/owner: equipe-urgence
+    snisid.gov/data-classification: secret
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.offline-capable: "true"
+    snisid.gov.max-offline-hours: "168"
+    snisid.gov.power-source: "solaire-batterie"
+
+---
+# ───────────────────────────────────────────────
+# INFRASTRUCTURE : kube-system / istio-system / argocd / cert-manager / rook-ceph
+# ───────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    snisid.gov/tier: tier-0
+    snisid.gov/region: core
+    snisid.gov/service: gitops
+    snisid.gov/owner: equipe-infrastructure
+    snisid.gov/data-classification: restricted
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+  annotations:
+    snisid.gov.classification: "RESTREINT DEFENSE"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    snisid.gov/tier: tier-0
+    snisid.gov/region: core
+    snisid.gov/service: cert-manager
+    snisid.gov/owner: equipe-infrastructure
+    snisid.gov/data-classification: secret
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+  annotations:
+    snisid.gov.classification: "SECRET"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rook-ceph
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/region: core
+    snisid.gov/service: storage
+    snisid.gov/owner: equipe-infrastructure
+    snisid.gov/data-classification: restricted
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+
+---
+# Staging / Test (isolation complète)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-staging
+  labels:
+    snisid.gov/tier: tier-2
+    snisid.gov/region: core
+    snisid.gov/service: staging
+    snisid.gov/owner: equipe-qa
+    snisid.gov.data-classification: internal
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    snisid.gov.isolation: "network-segmented-from-prod"

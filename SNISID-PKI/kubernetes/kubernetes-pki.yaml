@@ -1,0 +1,196 @@
+# SNISID — Kubernetes PKI : Native + Vault PKI Hybrid Model
+# Classification: TOP-SECRET
+# Domain: Kubernetes control plane, etcd, kubelet, ingress, service mesh
+# Strategy: kubeadm generates initial CA → Vault PKI Infra CA takes over post-bootstrap
+# All end-entity certs rotated via cert-manager + Vault PKI (NOT kubeadm renewal)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-kubernetes-pki-specification
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: kubernetes-pki
+    snisid.gov.data-classification: top-secret
+data:
+  k8s-pki-spec.yaml: |
+    # ───────────────────────────────────────────────
+    # Kubernetes PKI Architecture
+    # ───────────────────────────────────────────────
+    # Phase 1: Bootstrap — kubeadm generates self-contained CA
+    # Phase 2: Migration — cert-manager + Vault PKI Infra CA replaces all leaf certs
+    # Phase 3: Operation — 100% automated rotation via cert-manager
+    # Phase 4: Emergency — kubeadm CA remains as offline backup trust anchor
+    
+    bootstrap_ca:
+      generated_by: kubeadm init
+      algorithm: ECDSA P-384 (secp384r1)
+      hash: SHA-384
+      validity: 10 years (kubeadm default — NOT used for leaf certs after migration)
+      storage: "/etc/kubernetes/pki/ca.{crt,key}"
+      key_protection: "Host filesystem encrypted + TPM seal (where available)"
+      usage_after_migration: "Offline backup anchor only. Active leaf certs issued by Vault PKI."
+      
+    operational_ca:
+      issuer: "SNISID Infrastructure Intermediate CA (Vault PKI snisid-pki-infra)"
+      root_trust: "SNISID Root CA Nationale"
+      
+    components:
+      api_server:
+        certificate_source: "cert-manager Certificate resource"
+        issuer: "snisid-infra-intermediate-issuer (ClusterIssuer)"
+        dns_names:
+          - "api.{cluster}.snisid.gouv.local"
+          - "kubernetes"
+          - "kubernetes.default"
+          - "kubernetes.default.svc"
+          - "kubernetes.default.svc.cluster.local"
+          - "localhost"
+          - "127.0.0.1"
+          - "{master1-ip}"
+          - "{master2-ip}"
+          - "{master3-ip}"
+        ip_addresses:
+          - "10.96.0.1"  # kubernetes service IP
+          - "127.0.0.1"
+          - "{master1-ip}"
+          - "{master2-ip}"
+          - "{master3-ip}"
+        key_usage: ["digitalSignature", "keyEncipherment"]
+        ext_key_usage: ["serverAuth"]
+        validity: 90 days
+        renewal: auto (cert-manager, 30 days before expiry)
+        storage: "Secret in kube-system, mounted to API server pod"
+        
+      etcd:
+        certificate_source: "cert-manager Certificate resource (etcd CA sub-mount)"
+        issuer: "snisid-infra-intermediate-issuer (ClusterIssuer)"
+        dns_names:
+          - "{master1-hostname}"
+          - "{master2-hostname}"
+          - "{master3-hostname}"
+          - "localhost"
+        ip_addresses:
+          - "127.0.0.1"
+          - "{master1-ip}"
+          - "{master2-ip}"
+          - "{master3-ip}"
+        key_usage: ["digitalSignature", "keyEncipherment"]
+        ext_key_usage: ["serverAuth", "clientAuth"]
+        validity: 90 days
+        renewal: auto
+        storage: "Secrets in kube-system, mounted to etcd pods"
+        note: "etcd peer certificates require SANs for ALL peer hostnames + IPs"
+        
+      kubelet:
+        certificate_source: "cert-manager Certificate resource per node"
+        issuer: "snisid-infra-intermediate-issuer (ClusterIssuer)"
+        dns_names:
+          - "{node-hostname}"
+        ip_addresses:
+          - "{node-ip}"
+        key_usage: ["digitalSignature", "keyEncipherment"]
+        ext_key_usage: ["serverAuth", "clientAuth"]
+        validity: 90 days
+        renewal: auto
+        storage: "Secret per node in kube-system or node-local (Secret mounted)"
+        
+      front_proxy:
+        certificate_source: "cert-manager Certificate resource"
+        issuer: "snisid-infra-intermediate-issuer (ClusterIssuer)"
+        dns_names: ["front-proxy-client"]
+        key_usage: ["digitalSignature", "keyEncipherment"]
+        ext_key_usage: ["clientAuth"]
+        validity: 90 days
+        renewal: auto
+        usage: "API server aggregation layer (metrics-server, custom metrics APIs)"
+        
+      service_account:
+        signing_key: "JWT signing key (NOT X.509) — rotated independently via Vault"
+        algorithm: "Ed25519 (preferred) or ECDSA P-256"
+        rotation: "Every 90 days via Vault-managed key + Kubernetes config update"
+        
+      admin_users:
+        certificate_source: "Manual issuance via Vault PKI (snisid-pki-gov or snisid-pki-infra)"
+        issuer: "snisid-infra-intermediate-issuer for infra admins, snisid-gov-intermediate-issuer for government auditors"
+        subject_format: "CN={admin-id}, O=SNISID Admin, OU={role}, C=HT"
+        validity: 30 days
+        renewal: manual (re-authentication required)
+        storage: "Encrypted USB smartcard or HSM-backed smartcard (YubiKey / national smartcard)"
+        usage: "kubectl client certificate authentication (backup to OIDC)"
+        
+      ingress_gateway:
+        certificate_source: "cert-manager Certificate resource"
+        issuer: "snisid-infra-intermediate-issuer"
+        dns_names:
+          - "*.snisid.gouv.local"
+          - "*.core.snisid.gouv.local"
+          - "*.dr.snisid.gouv.local"
+          - "api.national.snisid.gouv.local"
+          - "hubble.core.snisid.gouv.local"
+          - "grafana.core.snisid.gouv.local"
+        key_usage: ["digitalSignature", "keyEncipherment"]
+        ext_key_usage: ["serverAuth"]
+        validity: 90 days
+        renewal: auto
+        storage: "Secret in istio-system (snisid-ingress-wildcard-tls)"
+        
+      service_mesh_mtls:
+        certificate_source: "Istio SDS + cert-manager Certificate resource per workload identity"
+        issuer: "snisid-infra-intermediate-issuer (mesh-mtls role)"
+        subject_format: "SPIFFE URI only — no legacy X.500 subject"
+        spiffe_id: "spiffe://snisid.gov/ns/{namespace}/sa/{serviceAccount}"
+        dns_names: []
+        ip_addresses: []
+        key_usage: ["digitalSignature"]
+        ext_key_usage: ["serverAuth", "clientAuth"]
+        validity: 30 days
+        renewal: auto (Istio SDS handles transparent rotation)
+        storage: "Istio SDS (Secret Discovery Service) — certs NOT stored in Kubernetes Secrets"
+        
+      core_dns:
+        certificate_source: "cert-manager Certificate resource"
+        issuer: "snisid-infra-intermediate-issuer"
+        dns_names:
+          - "coredns.snisid.gouv.local"
+          - "coredns-{ordinal}.coredns.snisid.gouv.local"
+        key_usage: ["digitalSignature", "keyEncipherment"]
+        ext_key_usage: ["serverAuth", "clientAuth"]
+        validity: 90 days
+        renewal: auto
+        
+      metrics_server:
+        certificate_source: "cert-manager Certificate resource"
+        issuer: "snisid-infra-intermediate-issuer"
+        dns_names: ["metrics-server.kube-system.svc.cluster.local"]
+        key_usage: ["digitalSignature", "keyEncipherment"]
+        ext_key_usage: ["serverAuth", "clientAuth"]
+        validity: 90 days
+        renewal: auto
+        
+    trust_distribution:
+      # Root CA certificate distributed to:
+      - all_kubernetes_nodes: "/etc/kubernetes/pki/snisid-root-ca.crt"
+      - all_container_runtimes: "Embedded in base image (verify at boot)"
+      - all_istio_sidecars: "Embedded in Istio proxy base image"
+      - all_edge_nodes: "Air-gap bundle update (USB/SD)"
+      - all_citizen_wallets: "Embedded in wallet app build"
+      - all_enrollment_stations: "Embedded in OS image"
+      - all_bastions: "Embedded in hardened SSH client config"
+      
+    rotation_emergency:
+      trigger_compromise: "SOC detects anomalous certificate usage / private key exfiltration"
+      trigger_vulnerability: "CVE affecting TLS 1.3 implementation or ECDSA curve"
+      trigger_policy: "IGC mandates algorithm upgrade (e.g., P-384 → P-521 or PQ transition)"
+      
+      procedure: |
+        1. Immediate revocation of affected certificate(s) via Vault PKI
+        2. ArgoCD sync force-renew for cert-manager Certificates
+        3. Istio SDS global push (Envoy hot restart or graceful cert reload)
+        4. Kubernetes API server rolling restart with new server cert
+        5. etcd rolling restart with new peer certs
+        6. kubelet certificate rotation (auto, but verify all nodes within 1h)
+        7. SIEM alert + IGC notification + incident report
+        
+      timeline: "< 2 hours for full mesh rotation, < 30 minutes for targeted service"

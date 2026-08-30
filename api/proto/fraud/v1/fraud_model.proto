@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package snisid.fraud.v1;
+option go_package = "github.com/snisid/snisid/api/proto/fraud/v1";
+
+service FraudModel {
+    rpc Predict(FraudPredictRequest) returns (FraudPredictResponse);
+}
+
+message FraudPredictRequest {
+    string user_id    = 1;
+    double amount     = 2;
+    double velocity   = 3;
+    double graph_risk = 4;
+}
+
+message FraudPredictResponse {
+    double fraud_score   = 1;
+    string model_version = 2;
+    repeated string risk_factors = 3;
+}

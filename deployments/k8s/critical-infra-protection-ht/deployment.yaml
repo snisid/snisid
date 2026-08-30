@@ -1,0 +1,63 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: critical-infra-protection-ht
+  namespace: snisid-national-security
+  labels:
+    app: critical-infra-protection-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: critical-infra-protection-ht
+  template:
+    metadata:
+      labels:
+        app: critical-infra-protection-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8311"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: critical-infra-protection-ht
+        image: snisid/critical-infra-protection-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8311
+        env:
+        - name: PORT
+          value: "8311"
+        - name: ENV
+          value: "prod"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: snisid-secrets
+              key: jwt-secret
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        - name: INFRAPROT_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: snisid_infraprot-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8311
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8311
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

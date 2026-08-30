@@ -1,0 +1,397 @@
+# SNISID — OCSP & CRL National Infrastructure
+# Classification: SECRET
+# Role: Validation temps réel et révocation des certificats nationaux SNISID
+# Architecture: Active-active Core + DR, cache edge, CDN interne Ceph RGW
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snisid-ocsp-responder-core
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: ocsp-responder
+    snisid.gov.region: core
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: snisid-ocsp-responder
+      snisid.gov.region: core
+  template:
+    metadata:
+      labels:
+        app: snisid-ocsp-responder
+        snisid.gov.tier: tier-0
+        snisid.gov.service: ocsp-responder
+        snisid.gov.region: core
+        snisid.gov.data-classification: secret
+    spec:
+      nodeSelector:
+        snisid.gov/tier: tier-0
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: snisid-ocsp-responder
+              topologyKey: topology.kubernetes.io/zone
+      containers:
+        - name: ocsp-responder
+          image: registry.interne.snisid.gouv.local/snisid/ocsp-responder:v5.0.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http-ocsp
+              protocol: TCP
+            - containerPort: 8443
+              name: https-ocsp
+              protocol: TCP
+          env:
+            - name: OCSP_CA_CERT_PATH
+              value: "/etc/ocsp/certs/ca.crt"
+            - name: OCSP_RESPONDER_CERT_PATH
+              value: "/etc/ocsp/certs/responder.crt"
+            - name: OCSP_RESPONDER_KEY_PATH
+              value: "/etc/ocsp/private/responder.key"  # HSM-backed via PKCS#11 proxy
+            - name: OCSP_NONCE_REQUIRED
+              value: "true"
+            - name: OCSP_CACHE_TTL_SECONDS
+              value: "300"  # 5 minutes cache for good responses
+            - name: OCSP_NEXT_UPDATE_MINUTES
+              value: "60"   # 1 hour validity for OCSP responses
+            - name: OCSP_SIGN_ALGORITHM
+              value: "ecdsa-with-SHA384"
+            - name: OCSP_HSM_PARTITION
+              value: "SNISID_OCSP_SIGNER"
+            - name: OCSP_LOG_LEVEL
+              value: "info"
+            - name: OCSP_METRICS_PORT
+              value: "9090"
+            - name: VAULT_ADDR
+              value: "https://vault.snisid-identity.svc.cluster.local:8200"
+          volumeMounts:
+            - name: ocsp-certs
+              mountPath: /etc/ocsp/certs
+              readOnly: true
+            - name: hsm-pkcs11-proxy
+              mountPath: /etc/ocsp/hsm
+              readOnly: true
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs/snisid-ca.crt
+              subPath: ca.crt
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+              cpu: 1000m
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: ocsp-certs
+          secret:
+            secretName: snisid-ocsp-responder-certs
+            items:
+              - key: ca.crt
+                path: ca.crt
+              - key: responder.crt
+                path: responder.crt
+        - name: hsm-pkcs11-proxy
+          secret:
+            secretName: snisid-ocsp-hsm-proxy
+            items:
+              - key: pkcs11-proxy.conf
+                path: pkcs11-proxy.conf
+        - name: ca-bundle
+          secret:
+            secretName: snisid-pki-ca
+            items:
+              - key: tls.crt
+                path: ca.crt
+
+---
+# OCSP Service (Core)
+apiVersion: v1
+kind: Service
+metadata:
+  name: snisid-ocsp-core
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: ocsp-responder
+spec:
+  selector:
+    app: snisid-ocsp-responder
+    snisid.gov.region: core
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http-ocsp
+    - port: 443
+      targetPort: 8443
+      name: https-ocsp
+  type: ClusterIP
+
+---
+# CRL Distribution — Automated Generation & Publication
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-crl-generator
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: crl-distribution
+spec:
+  schedule: "0 */1 * * *"  # Toutes les heures (Gov/Infra/Judicial)
+  concurrencyPolicy: Forbid
+  successfulJobHistoryLimit: 24
+  failedJobHistoryLimit: 48
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            snisid.gov.tier: tier-0
+            snisid.gov.service: crl-generator
+        spec:
+          serviceAccountName: crl-generator
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: crl-generator
+              image: registry.interne.snisid.gouv.local/snisid/crl-generator:v5.0.0
+              imagePullPolicy: Always
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  S3_BUCKET="snisid-crl-distribution"
+                  S3_ENDPOINT="https://s3.interne.snisid.gouv.local"
+                  CA_NAMES=("gov" "citizen" "infra" "judicial" "device")
+                  
+                  echo "=== SNISID CRL Generation — ${TIMESTAMP} ==="
+                  
+                  for CA in "${CA_NAMES[@]}"; do
+                    echo "--- Generating CRL for ${CA} CA ---"
+                    
+                    # Fetch revoked serials from Vault PKI
+                    REVOKED_SERIALS=$(vault list -format=json snisid-pki-${CA}/certs | \
+                      jq -r '.[]' | while read serial; do
+                        CERT_STATUS=$(vault read -format=json snisid-pki-${CA}/cert/${serial} 2>/dev/null | \
+                          jq -r '.data.certificate' | openssl x509 -noout -checkend 0 2>/dev/null && echo "VALID" || echo "EXPIRED")
+                        REVOCATION_INFO=$(vault read -format=json snisid-pki-${CA}/cert/${serial} 2>/dev/null | \
+                          jq -r '.data.revocation_time // empty')
+                        if [ -n "$REVOCATION_INFO" ]; then
+                          echo "${serial}:${REVOCATION_INFO}"
+                        fi
+                      done | sort -t: -k2)
+                    
+                    # Generate CRL (signed by HSM-backed CA key via PKCS#11)
+                    /opt/snisid/bin/generate-crl \
+                      --ca-name "snisid-pki-${CA}" \
+                      --revoked-serials "$REVOKED_SERIALS" \
+                      --crl-number $(date +%s) \
+                      --next-update-hours 1 \
+                      --signature-algorithm ecdsa-with-SHA384 \
+                      --hsm-config /etc/crl/hsm.conf \
+                      --output /tmp/snisid-${CA}-ca.crl
+                    
+                    # Verify CRL signature
+                    openssl crl -in /tmp/snisid-${CA}-ca.crl -CAfile /etc/crl/certs/${CA}-ca.crt -noout
+                    
+                    # Compress (optional for large CRLs)
+                    gzip -c /tmp/snisid-${CA}-ca.crl > /tmp/snisid-${CA}-ca.crl.gz
+                    
+                    # Upload to S3 Ceph RGW (CDN origin)
+                    s3cmd put --acl-public --mime-type="application/pkix-crl" \
+                      /tmp/snisid-${CA}-ca.crl \
+                      s3://${S3_BUCKET}/${CA}/ca.crl
+                    
+                    # Upload versioned
+                    s3cmd put --acl-public --mime-type="application/pkix-crl" \
+                      /tmp/snisid-${CA}-ca.crl \
+                      s3://${S3_BUCKET}/${CA}/archive/ca-${TIMESTAMP}.crl
+                    
+                    # Upload compressed variant
+                    s3cmd put --acl-public --mime-type="application/pkix-crl" \
+                      /tmp/snisid-${CA}-ca.crl.gz \
+                      s3://${S3_BUCKET}/${CA}/ca.crl.gz
+                    
+                    # Update CDN / edge cache invalidation (if CDN internal exists)
+                    curl -s -X POST --cacert /etc/ssl/certs/snisid-ca.crt \
+                      -H "Authorization: Bearer ${CDN_INVALIDATE_TOKEN}" \
+                      -d "{\"urls\":[\"https://crl.snisid.gouv.local/${CA}/ca.crl\",\"https://crl.snisid.gouv.local/${CA}/ca.crl.gz\"]}" \
+                      https://cdn.interne.snisid.gouv.local/api/v1/invalidate || true
+                    
+                    # Verify URL accessible
+                    curl -s --cacert /etc/ssl/certs/snisid-ca.crt \
+                      -o /dev/null -w "%{http_code}" \
+                      https://crl.snisid.gouv.local/${CA}/ca.crl
+                    
+                    # Cleanup temp
+                    shred -u -n 35 -z /tmp/snisid-${CA}-ca.crl
+                    shred -u -n 35 -z /tmp/snisid-${CA}-ca.crl.gz
+                  done
+                  
+                  echo "=== CRL Generation Complete ==="
+              env:
+                - name: VAULT_ADDR
+                  value: "https://vault.snisid-identity.svc.cluster.local:8200"
+                - name: VAULT_CACERT
+                  value: "/etc/ssl/certs/snisid-ca.crt"
+                - name: CDN_INVALIDATE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: cdn-invalidate-credentials
+                      key: token
+              volumeMounts:
+                - name: crl-hsm-config
+                  mountPath: /etc/crl/hsm.conf
+                  subPath: hsm.conf
+                  readOnly: true
+                - name: ca-certs
+                  mountPath: /etc/crl/certs
+                  readOnly: true
+                - name: ca-bundle
+                  mountPath: /etc/ssl/certs/snisid-ca.crt
+                  subPath: ca.crt
+                  readOnly: true
+                - name: s3cfg
+                  mountPath: /root/.s3cfg
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: crl-hsm-config
+              secret:
+                secretName: snisid-crl-hsm-config
+                items:
+                  - key: hsm.conf
+                    path: hsm.conf
+            - name: ca-certs
+              secret:
+                secretName: snisid-intermediate-ca-certs
+            - name: ca-bundle
+              secret:
+                secretName: snisid-pki-ca
+                items:
+                  - key: tls.crt
+                    path: ca.crt
+            - name: s3cfg
+              secret:
+                secretName: s3cmd-crl-config
+            - name: tmp
+              emptyDir:
+                sizeLimit: 500Mi
+          restartPolicy: OnFailure
+
+---
+# CRL Distribution Endpoints (ConfigMap for Ceph RGW / CDN)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-crl-distribution-endpoints
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: crl-distribution
+data:
+  endpoints.yaml: |
+    distribution:
+      # Primary Core DC CDN / RGW
+      core:
+        crl_base_url: "https://crl.snisid.gouv.local"
+        ocsp_base_url: "https://ocsp.snisid.gouv.local"
+        
+        crl_paths:
+          gov: "/gov/ca.crl"
+          citizen: "/citizen/ca.crl"
+          infra: "/infra/ca.crl"
+          judicial: "/judicial/ca.crl"
+          device: "/device/ca.crl"
+          root: "/root/ca.crl"  # Rare — Root CA rarely issues direct certs
+          
+        ocsp_paths:
+          default: "/"
+          
+        availability:
+          sla: "99.99%"
+          rto: "< 1 minute (auto-failover to DR)"
+          
+      # Secondary DR DC
+      dr:
+        crl_base_url: "https://crl.dr.snisid.gouv.local"
+        ocsp_base_url: "https://ocsp.dr.snisid.gouv.local"
+        mirror_sync: "Real-time (CRL publish triggers DR replication)"
+        
+      # Edge CRL cache (offline nodes)
+      edge:
+        crl_update_method: "USB/SD burst sync or satellite download"
+        max_staleness: "72 hours"
+        fallback: "Allow validation if CRL < 72h stale (grace period for edge)"
+        
+    caching:
+      ocsp_response_cache_ttl: 300  # 5 minutes
+      ocsp_nonce_required: true
+      ocsp_response_max_size: 4096   # bytes
+      
+      crl_cache_ttl: 3600  # 1 hour (valid CRL refreshed every 1h by clients)
+      crl_download_timeout: 30  # seconds
+      crl_max_size: 10485760  # 10 MB max (fragment if exceeded)
+      
+      delta_crl:
+        enabled: true
+        generation_interval: 900  # 15 minutes (for high-volume CAs like Citizen/Device)
+        base_crl_refresh: 3600    # 1 hour
+        
+    emergency_revocation:
+      # OCSP response for emergency revoked certificates
+      # Returns explicit "REVOKED" with reason code
+      ocsp_revocation_reasons:
+        - keyCompromise       # 1
+        - cACompromise        # 2
+        - affiliationChanged  # 3
+        - superseded          # 4
+        - cessationOfOperation # 5
+        - certificateHold     # 6
+        - privilegeWithdrawn # 7
+        - aACompromise        # 8
+        
+      # Emergency CRL generation (out-of-cycle)
+      trigger: "Vault PKI revoke API call OR manual IGC/SOC emergency revoke"
+      generation_time: "< 5 minutes from trigger"
+      notification: "Kafka topic pki.revocation.emergency + SMS SOC + ArgoCD sync to edge"

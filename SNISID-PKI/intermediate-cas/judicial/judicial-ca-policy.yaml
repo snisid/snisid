@@ -1,0 +1,167 @@
+# SNISID — Judicial Intermediate CA Policy & Configuration
+# Classification: TOP-SECRET
+# Domain: Courts, Tribunals, Judges, Notaries, Bailiffs, Judicial Officers
+# Issuer: SNISID Root CA (offline ceremony)
+# Path: Vault PKI mount `snisid-pki-judicial`
+# HSM: Thales Luna 7 Core DC — Partition SNISID_JUDICIAL_CA
+# Legal value: Equivalent to handwritten signature under national digital signature law
+# Issuance: Manual BPMN workflow with dual validation (Judicial Authority + IGC)
+
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: snisid-judicial-intermediate-issuer
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: pki-judicial
+    snisid.gov.data-classification: top-secret
+spec:
+  vault:
+    path: snisid-pki-judicial/issue/judicial-certs
+    server: https://vault.snisid-identity.svc.cluster.local:8200
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: cert-manager-judicial-ca
+        secretRef:
+          name: cert-manager-judicial-vault-auth
+          key: token
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      <SNISID-JUDICIAL-INTERMEDIATE-CA-CERT>
+      -----END CERTIFICATE-----
+
+---
+# Vault PKI Mount Configuration: snisid-pki-judicial
+
+vault_mount_config: |
+  path = "snisid-pki-judicial"
+  type = "pki"
+  default_lease_ttl_seconds = 31536000   # 1 year default
+  max_lease_ttl_seconds     = 94608000   # 3 years max (intermediate 5y, end-entity max 3y)
+
+vault_policy_judicial_ca: |
+  path "snisid-pki-judicial/issue/judicial-certs" {
+    capabilities = ["deny"]  # No automated issuance — BPMN workflow only
+  }
+  path "snisid-pki-judicial/sign/judicial-certs" {
+    capabilities = ["deny"]
+  }
+  path "snisid-pki-judicial/issue/judicial-automated-smartcard" {
+    capabilities = ["create", "update"]
+    # Automated issuance ONLY for pre-approved smartcard provisioning
+    # Requires pre-registered judicial officer UUID + HSM card attestation
+  }
+  path "snisid-pki-judicial/revoke" {
+    capabilities = ["create", "update"]
+    # Dual approval: Judicial Council + IGC
+  }
+  path "snisid-pki-judicial/roles/*" {
+    capabilities = ["read"]
+  }
+  path "snisid-pki-judicial/cert/ca" {
+    capabilities = ["read"]
+  }
+  path "snisid-pki-judicial/crl" {
+    capabilities = ["read"]
+  }
+
+vault_pki_role_judicial_certs: |
+  name = "judicial-certs"
+  allowed_domains = ["judicial.snisid.ht"]
+  allow_subdomains = false
+  allow_bare_domains = true
+  allow_ip_sans = false
+  allowed_uri_sans = ["urn:snisid:judicial:*", "urn:snisid:court:*", "urn:snisid:notary:*"]
+  allowed_serial_numbers = ["*"]
+  max_ttl = "26280h"       # 3 years max end-entity
+  default_ttl = "8760h"    # 1 year default
+  ttl = "8760h"
+  key_type = "ec"
+  key_bits = 384
+  signature_algorithm = "ecdsa-with-SHA384"
+  
+  policy_identifiers = [
+    "1.3.6.1.4.1.SNISID.1.4",      # SNISID Judicial Policy
+    "1.3.6.1.4.1.SNISID.0.1",       # SNISID CP Nationale
+    "1.3.6.1.4.1.SNISID.1.4.2"     # SNISID Judicial Qualified Signature
+  ]
+  
+  key_usage = ["DigitalSignature", "NonRepudiation", "KeyEncipherment"]
+  ext_key_usage = ["ClientAuth", "CodeSigning", "EmailProtection", "DocumentSigning"]
+  
+  require_cn = true
+  
+  # Subject contains judicial function (not personal name in public fields)
+  # Name is encoded in CN with matriculation number; full name in directoryName attribute if needed
+  organization = ["SNISID Judicial Authority"]
+  ou = ["{judicial-function}", "{matricule}"]
+  country = ["HT"]
+  # Locality = Court / Tribunal jurisdiction
+  locality = ["{jurisdiction}"]
+  
+  # CRL / OCSP — critical for legal value
+  crl = true
+  crl_expiry = "24h"
+  crl_disable = false
+  crl_distribution_points = ["http://crl.snisid.gouv.local/judicial/ca.crl"]
+  issuing_certificates = ["http://pki.snisid.gouv.local/judicial/ca.crt"]
+  ocsp_servers = ["http://ocsp.snisid.gouv.local"]
+  
+  # No transparency log (national PKI, not public CT)
+  no_store = false
+  generate_lease = true
+
+# Judicial Smartcard Provisioning Role (pre-approved officers)
+vault_pki_role_judicial_smartcard: |
+  name = "judicial-automated-smartcard"
+  # This role is used ONLY for smartcard personalization at judicial IT centers
+  # Officer identity pre-validated by Judicial Council enrollment database
+  allowed_domains = ["judicial.snisid.ht"]
+  allow_subdomains = false
+  max_ttl = "26280h"
+  default_ttl = "8760h"
+  key_type = "ec"
+  key_bits = 384
+  signature_algorithm = "ecdsa-with-SHA384"
+  
+  policy_identifiers = [
+    "1.3.6.1.4.1.SNISID.1.4",
+    "1.3.6.1.4.1.SNISID.1.4.3"  # Smartcard-bound Judicial Certificate
+  ]
+  
+  key_usage = ["DigitalSignature", "NonRepudiation"]
+  ext_key_usage = ["ClientAuth", "SmartcardLogon", "DocumentSigning"]
+  
+  require_cn = true
+  organization = ["SNISID Judicial Authority"]
+  country = ["HT"]
+  
+  # Subject is bound to smartcard chip ID (attestation required)
+  # Format: CN={Matricule}, OU={Function}, O=SNISID Judicial, L={Jurisdiction}, C=HT
+  # Serial number = smartcard chip serial attested by enrollment station
+
+# HSM Key Reference
+hsm_key_reference:
+  partition: SNISID_JUDICIAL_CA
+  key_label: snisid-judicial-intermediate-ca-key
+  algorithm: EC
+  curve: secp384r1
+  extractable: false
+  modifiable: false
+  key_type: PRIVATE_KEY
+  storage: HSM
+  # Judicial partition: separate from Gov/Citizen/Infra for legal segregation
+
+# Legal Value Metadata (embedded in signed documents)
+judicial_signature_profile:
+  profile_name: "SNISID-JUDICIAL-QUALIFIED"
+  format: CAdES-LTA or XAdES-LTA
+  signature_level: QES (Qualified Electronic Signature equivalent)
+  timestamp_authority: snisid-tsa-national (TSA dedicated)
+  long_term_validation: true
+  archival_timestamp: "+20 years minimum"
+  legal_reference: "Cadre juridique national signature électronique — Article XXX"
+  verification_policy: "OCSP + CRL + embedded timestamp + embedded certificate"
+  revocation_check: "MANDATORY at signing time + archival time"

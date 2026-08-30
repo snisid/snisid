@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- escalation.sla.breach v1.0.0 — Escalade dépassement SLA -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_esc_sla" targetNamespace="https://snisid.gouv.ht/bpmn/escalation">
+  <bpmn:process id="escalation.sla.breach" name="Escalation — Dépassement SLA" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="L1" name="Notification Manager L1"><bpmn:extensionElements><zeebe:taskDefinition type="escalation.notify.l1"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="WaitL1" name="Attente 15 min"><bpmn:extensionElements><zeebe:taskDefinition type="timer.wait"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GwOk1" name="Résolu ?"><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>fOk1</bpmn:outgoing><bpmn:outgoing>fKo1</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="L2" name="Notification Manager L2 + PagerDuty"><bpmn:extensionElements><zeebe:taskDefinition type="escalation.notify.l2"/></bpmn:extensionElements><bpmn:incoming>fKo1</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="WaitL2"><bpmn:extensionElements><zeebe:taskDefinition type="timer.wait"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GwOk2"><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>fOk2</bpmn:outgoing><bpmn:outgoing>fKo2</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="L3" name="Notification Direction nationale + WGO"><bpmn:extensionElements><zeebe:taskDefinition type="escalation.notify.l3"/></bpmn:extensionElements><bpmn:incoming>fKo2</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K" name="Kafka sla.breach.escalated"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:incoming>fOk1</bpmn:incoming><bpmn:incoming>fOk2</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f8</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="L1"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="L1" targetRef="WaitL1"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="WaitL1" targetRef="GwOk1"/>
+    <bpmn:sequenceFlow id="fOk1" sourceRef="GwOk1" targetRef="K"><bpmn:conditionExpression>= resolved = true</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fKo1" sourceRef="GwOk1" targetRef="L2"><bpmn:conditionExpression>= resolved = false</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f5" sourceRef="L2" targetRef="WaitL2"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="WaitL2" targetRef="GwOk2"/>
+    <bpmn:sequenceFlow id="fOk2" sourceRef="GwOk2" targetRef="K"><bpmn:conditionExpression>= resolved = true</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fKo2" sourceRef="GwOk2" targetRef="L3"><bpmn:conditionExpression>= resolved = false</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f7" sourceRef="L3" targetRef="K"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="K" targetRef="E"/>
+  </bpmn:process>
+</bpmn:definitions>

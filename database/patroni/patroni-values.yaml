@@ -1,0 +1,48 @@
+# PostgreSQL HA via Patroni (Zalando Postgres Operator / Spilo)
+
+teamId: "snisid"
+volume:
+  size: 500Gi
+  storageClass: "encrypted-sc" # EBS/Disk Level TDE
+
+numberOfInstances: 3 # 1 Primary, 2 Replicas for High Availability
+
+postgresql:
+  version: "16"
+  parameters:
+    # Extensions & Auditing
+    shared_preload_libraries: "pg_stat_statements, pgaudit"
+    # Performance Tuning
+    max_connections: "1000"
+    shared_buffers: "8GB"
+    effective_cache_size: "24GB"
+    work_mem: "64MB"
+    maintenance_work_mem: "1GB"
+    # Security Parameters
+    ssl: "on"
+    ssl_ca_file: "/etc/postgres/certs/ca.crt"
+    ssl_cert_file: "/etc/postgres/certs/server.crt"
+    ssl_key_file: "/etc/postgres/certs/server.key"
+    password_encryption: "scram-sha-256"
+
+patroni:
+  # RTO < 1 minute
+  ttl: 30
+  loop_wait: 10
+  retry_timeout: 10
+  maximum_lag_on_failover: 1048576 # Max 1MB lag to ensure RPO < 5 mins
+  synchronous_mode: true
+  synchronous_mode_strict: true
+
+# Enable Connection Pooling
+enableConnectionPooler: true
+connectionPooler:
+  numberOfInstances: 2
+  mode: transaction
+
+# Inject custom strict pg_hba.conf
+pgHbaConfiguration:
+  # TYPE  DATABASE        USER            ADDRESS                 METHOD
+  - hostssl all           postgres        all                     reject # Superuser remote rejected
+  - hostssl all           all             10.244.0.0/16           scram-sha-256 clientcert=verify-full
+  - host    all           all             all                     reject # Plaintext blocked globally

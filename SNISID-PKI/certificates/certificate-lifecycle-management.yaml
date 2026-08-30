@@ -1,0 +1,316 @@
+# SNISID — Certificate Lifecycle Management (CLM) National
+# Classification: TOP-SECRET
+# Role: Industrialisation complète du cycle de vie des certificats nationaux
+# Outils: cert-manager + Vault PKI + ArgoCD + Prometheus + runbooks
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-clm-expiration-audit
+  namespace: snisid-cyber
+  labels:
+    snisid.gov.tier: tier-1
+    snisid.gov.service: certificate-lifecycle
+spec:
+  schedule: "0 6 * * *"  # Quotidien 06h00
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            snisid.gov.tier: tier-1
+            snisid.gov.service: clm-audit
+        spec:
+          serviceAccountName: clm-auditor
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: clm-audit
+              image: registry.interne.snisid.gouv.local/snisid/clm-auditor:v5.0.0
+              imagePullPolicy: Always
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  TODAY=$(date +%s)
+                  ALERT_7D=$((TODAY + 604800))
+                  ALERT_1D=$((TODAY + 86400))
+                  CRITICAL_EXPIRED=$((TODAY - 1))
+
+                  echo "=== SNISID Certificate Lifecycle Audit — $(date -u) ==="
+
+                  # Scan all namespaces for Certificates managed by cert-manager
+                  kubectl get certificates --all-namespaces -o json | \
+                    jq -r '.items[] | select(.status.conditions[] | select(.type=="Ready" and .status=="True") | not) | \(.metadata.namespace)/\(.metadata.name)'
+
+                  # Check expiration < 7 days
+                  kubectl get certificates --all-namespaces -o json | \
+                    jq -r --arg ALERT_7D "$ALERT_7D" '
+                      .items[] |
+                      select(.status.notAfter) |
+                      select((.status.notAfter | fromdateiso8601 | tonumber) < ($ALERT_7D | tonumber)) |
+                      "WARNING: \(.metadata.namespace)/\(.metadata.name) expires \(.status.notAfter)"
+                    ' || true
+
+                  # Check expiration < 1 day
+                  kubectl get certificates --all-namespaces -o json | \
+                    jq -r --arg ALERT_1D "$ALERT_1D" '
+                      .items[] |
+                      select(.status.notAfter) |
+                      select((.status.notAfter | fromdateiso8601 | tonumber) < ($ALERT_1D | tonumber)) |
+                      "CRITICAL: \(.metadata.namespace)/\(.metadata.name) expires \(.status.notAfter) — FORCE RENEWAL REQUIRED"
+                    ' || true
+
+                  # Check expired
+                  kubectl get certificates --all-namespaces -o json | \
+                    jq -r --arg CRITICAL_EXPIRED "$CRITICAL_EXPIRED" '
+                      .items[] |
+                      select(.status.notAfter) |
+                      select((.status.notAfter | fromdateiso8601 | tonumber) < ($CRITICAL_EXPIRED | tonumber)) |
+                      "EMERGENCY: \(.metadata.namespace)/\(.metadata.name) EXPIRED \(.status.notAfter) — IMMEDIATE ACTION"
+                    ' || true
+
+                  # Vault PKI internal cert TTL check
+                  vault list snisid-pki-infra/certs | while read serial; do
+                    CERT_JSON=$(vault read -format=json snisid-pki-infra/cert/"${serial}" 2>/dev/null || true)
+                    if [ -n "$CERT_JSON" ]; then
+                      EXPIRATION=$(echo "$CERT_JSON" | jq -r '.data.certificate' | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+                      EXP_EPOCH=$(date -d "$EXPIRATION" +%s 2>/dev/null || echo 0)
+                      if [ "$EXP_EPOCH" -lt "$ALERT_7D" ] && [ "$EXP_EPOCH" -gt "$TODAY" ]; then
+                        echo "VAULT-WARN: Infra cert serial=${serial} expires ${EXPIRATION}"
+                      fi
+                      if [ "$EXP_EPOCH" -lt "$TODAY" ]; then
+                        echo "VAULT-CRIT: Infra cert serial=${serial} EXPIRED ${EXPIRATION}"
+                      fi
+                    fi
+                  done
+
+                  # Report to SIEM
+                  echo "=== Audit Complete ==="
+              env:
+                - name: VAULT_ADDR
+                  value: "https://vault.snisid-identity.svc.cluster.local:8200"
+                - name: VAULT_CACERT
+                  value: "/etc/ssl/certs/snisid-ca.crt"
+              volumeMounts:
+                - name: ca-bundle
+                  mountPath: /etc/ssl/certs/snisid-ca.crt
+                  subPath: ca.crt
+                  readOnly: true
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: ca-bundle
+              secret:
+                secretName: snisid-pki-ca
+                items:
+                  - key: tls.crt
+                    path: ca.crt
+          restartPolicy: OnFailure
+
+---
+# Certificate Rotation Policy — Annotated for all CAs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-clm-policies
+  namespace: snisid-cyber
+  labels:
+    snisid.gov.tier: tier-1
+    snisid.gov.service: certificate-lifecycle
+data:
+  policies.yaml: |
+    root_ca:
+      validity_years: 10
+      rotation_trigger: "Ceremony (catastrophe uniquement, pas de rotation programmée)"
+      renewal_window: "N/A — reconstruction seulement"
+      approval: "Présidence + 4-of-6 custodians + IGC"
+      ceremony_duration: "1 journée complète"
+      audit: "Externe souverain + Cour des comptes"
+      
+    intermediate_cas:
+      validity_years: 5
+      rotation_trigger: "Année 4 (anticipation 1 an) + compromission détectée"
+      renewal_window: "12 mois avant expiration"
+      auto_renewal: false
+      approval: "IGC + CA Owner + cérémonie HSM (2-of-4 M-of-N)"
+      ceremony_duration: "4 heures"
+      audit: "IGC + audit externe"
+      
+    infrastructure_end_entity:
+      validity_days: 90
+      rotation_trigger: "30 jours avant expiration (cert-manager auto)"
+      renewal_window: "30 days"
+      auto_renewal: true
+      issuer: cert-manager + Vault PKI (auto)
+      approval: "Automated — CI/CD pipeline"
+      emergency_rotation: "< 2h via ArgoCD force-sync + cert-manager annotation"
+      
+    citizen_end_entity:
+      validity_days: 730  # 2 years
+      rotation_trigger: "90 jours avant expiration (notification citoyen)"
+      renewal_window: "90 days"
+      auto_renewal: false  # Requires citizen re-enrollment or online consent
+      notification_channels: ["SMS", "email", "mobile app push", "agent terrain"]
+      approval: "Citizen consent + re-authentication (biometric or PIN)"
+      emergency_revocation: "< 4h (fraud / theft / death declaration)"
+      
+    government_end_entity:
+      validity_days: 365  # 1 year
+      rotation_trigger: "60 jours avant expiration"
+      renewal_window: "60 days"
+      auto_renewal: false  # Requires HR validation + manager approval
+      workflow: "BPMN — HR validation → Manager approval → IGC check → Auto-issuance"
+      approval: "Institution manager + IGC validation (automated checks)"
+      emergency_revocation: "< 2h (dismissal / compromise / role change)"
+      
+    judicial_end_entity:
+      validity_days: 1095  # 3 years max
+      rotation_trigger: "6 mois avant expiration"
+      renewal_window: "6 months"
+      auto_renewal: false
+      workflow: "BPMN — Judicial Council → IGC → HSM ceremony (2-of-4) → Issuance"
+      approval: "Judicial Council + IGC + HSM M-of-N"
+      emergency_revocation: "< 1h (disciplinary / judicial order / compromise)"
+      
+    device_end_entity:
+      validity_days: 365  # 1 year
+      rotation_trigger: "30 jours avant expiration + decommission detection"
+      renewal_window: "30 days"
+      auto_renewal: true  # If device healthy and online
+      issuer: "Provisioning service + Vault PKI (auto)"
+      approval: "Automated (attestation-based)"
+      emergency_revocation: "< 15 min (compromise detection by Falco/Wazuh/Tetragon)"
+      
+    mesh_mtls:
+      validity_days: 30
+      rotation_trigger: "7 jours avant expiration (Istio SDS auto)"
+      renewal_window: "7 days"
+      auto_renewal: true
+      issuer: "Istio Citadel / cert-manager (fully automated)"
+      approval: "None — system automated"
+      emergency_rotation: "< 5 min (compromised workload isolation + SDS reload)"
+
+---
+# Automated Emergency Rotation Job (triggered by SOC alert or Falco detection)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: snisid-clm-emergency-rotation
+  namespace: snisid-cyber
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: certificate-lifecycle
+spec:
+  template:
+    metadata:
+      labels:
+        snisid.gov.tier: tier-0
+        snisid.gov.service: clm-emergency
+    spec:
+      serviceAccountName: clm-emergency-operator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: emergency-rotation
+          image: registry.interne.snisid.gouv.local/snisid/clm-emergency:v5.0.0
+          imagePullPolicy: Always
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -euo pipefail
+              TARGET_NS="${TARGET_NAMESPACE:-snisid-core}"
+              TARGET_CERT="${TARGET_CERT_NAME:-all}"
+              CA_ISSUER="${CA_ISSUER:-snisid-infra-intermediate-issuer}"
+              REASON="${EMERGENCY_REASON:-compromise-detected}"
+
+              echo "=== EMERGENCY CERTIFICATE ROTATION ==="
+              echo "Reason: ${REASON}"
+              echo "Target: ${TARGET_NS}/${TARGET_CERT}"
+              echo "Time: $(date -u)"
+
+              # 1. Revoke existing certificates in Vault PKI (cascade to CRL + OCSP)
+              if [ "${TARGET_CERT}" = "all" ]; then
+                echo "Revoking ALL certificates in namespace ${TARGET_NS}..."
+                kubectl get certificates -n "${TARGET_NS}" -o json | \
+                  jq -r '.items[].metadata.name' | while read cert; do
+                    SERIAL=$(kubectl get certificate "${cert}" -n "${TARGET_NS}" -o jsonpath='{.status.revision}')
+                    if [ -n "$SERIAL" ]; then
+                      vault write snisid-pki-infra/revoke serial_number="${SERIAL}" 2>/dev/null || true
+                      echo "Revoked: ${cert} (serial: ${SERIAL})"
+                    fi
+                  done
+              else
+                SERIAL=$(kubectl get certificate "${TARGET_CERT}" -n "${TARGET_NS}" -o jsonpath='{.status.revision}')
+                vault write snisid-pki-infra/revoke serial_number="${SERIAL}"
+                echo "Revoked: ${TARGET_CERT} (serial: ${SERIAL})"
+              fi
+
+              # 2. Trigger cert-manager immediate renewal
+              if [ "${TARGET_CERT}" = "all" ]; then
+                kubectl get certificates -n "${TARGET_NS}" -o name | \
+                  xargs -I {} kubectl annotate {} cert-manager.io/force-renew="true" -n "${TARGET_NS}"
+              else
+                kubectl annotate certificate "${TARGET_CERT}" cert-manager.io/force-renew="true" -n "${TARGET_NS}"
+              fi
+
+              # 3. Restart workloads to force SDS reload (Istio) or TLS re-handshake
+              kubectl rollout restart deployment -n "${TARGET_NS}"
+
+              # 4. Verify new certificates issued
+              sleep 30
+              kubectl get certificates -n "${TARGET_NS}" -o json | \
+                jq -r '.items[] | select(.status.conditions[] | select(.type=="Ready" and .status=="True")) | \(.metadata.name): READY'
+
+              # 5. SIEM alert
+              curl -s -X POST --cacert /etc/ssl/certs/snisid-ca.crt \
+                -H "Authorization: Bearer ${SIEM_WEBHOOK_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "{\"alert\":\"clm-emergency-rotation\",\"reason\":\"${REASON}\",\"target\":\"${TARGET_NS}/${TARGET_CERT}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+                https://siem.interne.snisid.gouv.local/api/v1/alerts || true
+
+              echo "=== Emergency Rotation Complete ==="
+          env:
+            - name: VAULT_ADDR
+              value: "https://vault.snisid-identity.svc.cluster.local:8200"
+            - name: VAULT_CACERT
+              value: "/etc/ssl/certs/snisid-ca.crt"
+            - name: SIEM_WEBHOOK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: siem-webhook-credentials
+                  key: token
+          volumeMounts:
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs/snisid-ca.crt
+              subPath: ca.crt
+              readOnly: true
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: ca-bundle
+          secret:
+            secretName: snisid-pki-ca
+            items:
+              - key: tls.crt
+                path: ca.crt
+      restartPolicy: OnFailure
+  backoffLimit: 3

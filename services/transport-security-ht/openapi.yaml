@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: Transport Security Service
+  version: 1.0.0
+  description: SNISID Transportation Security & Watchlist Management
+paths:
+  /api/v1/transport/screenings:
+    post:
+      summary: Log passenger screening
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PassengerScreening'
+      responses:
+        '201':
+          description: Screening created
+  /api/v1/transport/screenings/recent:
+    get:
+      summary: Get recent screenings
+      responses:
+        '200':
+          description: List of screenings
+  /api/v1/transport/no-fly:
+    post:
+      summary: Add to no-fly list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoFlyPassenger'
+      responses:
+        '201':
+          description: Entry added
+  /api/v1/transport/no-fly/check:
+    get:
+      summary: Check identity against no-fly list
+      parameters:
+        - name: identity
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Match status
+  /api/v1/transport/zones/{airport}:
+    get:
+      summary: Get security zones by airport
+      parameters:
+        - name: airport
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of zones
+  /api/v1/transport/zones/{id}/breach:
+    post:
+      summary: Report zone breach
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Breach reported
+components:
+  schemas:
+    PassengerScreening:
+      type: object
+      properties:
+        screening_id:
+          type: string
+          format: uuid
+        traveler_identity_ref:
+          type: string
+        document_type:
+          type: string
+          enum: [PASSPORT, NATIONAL_ID, VISA]
+        document_number:
+          type: string
+        nationality:
+          type: string
+        travel_mode:
+          type: string
+          enum: [AIR, MARINE, LAND]
+        screening_point_type:
+          type: string
+          enum: [AIRPORT, SEAPORT, BORDER_CROSSING]
+        screening_point_name:
+          type: string
+        flight_number:
+          type: string
+        vessel_name:
+          type: string
+        departure_at:
+          type: string
+          format: date-time
+        arrival_at:
+          type: string
+          format: date-time
+        watchlist_match:
+          type: boolean
+        screening_result:
+          type: string
+          enum: [CLEAR, REFERRAL, DENIED, ARREST]
+        screening_officer:
+          type: string
+    NoFlyPassenger:
+      type: object
+      properties:
+        identity_ref:
+          type: string
+        list_type:
+          type: string
+          enum: [NO_FLY, ADDITIONAL_SCREENING]
+        reason:
+          type: string
+        court_order_ref:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        interpol_ref:
+          type: string
+    AirportSecurityZone:
+      type: object
+      properties:
+        zone_id:
+          type: string
+          format: uuid
+        airport_code:
+          type: string
+        zone_name:
+          type: string
+        zone_type:
+          type: string
+          enum: [STERILE, SECURE, PUBLIC, OPERATIONAL]
+        access_level:
+          type: string
+          enum: [PUBLIC, STAFF, CREW, AUTHORIZED_ONLY]
+        camera_count:
+          type: integer
+        last_inspected_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [SECURE, BREACHED, MAINTENANCE]

@@ -1,0 +1,55 @@
+global:
+  domain: snisid.gov.ht
+  jwtSecret: "" # Must be set via --set global.jwtSecret=$JWT_SECRET or External Secrets Operator
+  vault:
+    address: http://vault-internal:8200
+    kubernetesAuthRole: snisid-service
+
+postgresql:
+  enabled: true
+  auth:
+    username: snisid
+    password: "" # Must be set via --set or External Secrets
+    database: snisid
+    existingSecret: snisid-postgres-secret
+
+kafka:
+  enabled: true
+  listeners:
+    client:
+      protocol: SASL_SSL
+
+neo4j:
+  enabled: true
+  neo4j:
+    existingSecret: snisid-neo4j-secret
+
+services:
+  identityApi:
+    replicaCount: 3
+    hpa:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 20
+    image:
+      repository: snisid/identity-api
+      tag: latest
+    service:
+      port: 8081
+
+monitoring:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+  loki:
+    enabled: true
+
+  fraudEngine:
+    replicaCount: 2
+    image:
+      repository: snisid/fraud-engine
+      tag: latest
+
+  alertFeed:
+    enabled: true

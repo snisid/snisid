@@ -1,0 +1,175 @@
+# SNISID — Vault Helm Values : HA Raft + HSM Integration
+# Classification: TOP-SECRET
+# Cluster: snisid-identity (Tier-0)
+# HSM: Thales Luna 7 — PKCS#11 — jamais unseal manuel en production
+
+global:
+  enabled: true
+  tlsDisable: false
+  
+  # TLS interne via cert-manager + CA nationale
+  tls:
+    enabled: true
+    caCert:
+      secretName: snisid-pki-ca
+      secretKey: tls.crt
+
+server:
+  image:
+    repository: "registry.interne.snisid.gouv.local/hashicorp/vault"
+    tag: "1.15.4"
+  
+  # Affinité : répartition跨 racks du Core DC
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: vault
+              app.kubernetes.io/instance: snisid-identity
+          topologyKey: topology.kubernetes.io/zone
+  
+  tolerations:
+    - key: "snisid.gov/tier"
+      operator: "Equal"
+      value: "tier-0"
+      effect: "NoSchedule"
+  
+  nodeSelector:
+    snisid.gov/tier: "tier-0"
+  
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "2000m"
+    limits:
+      memory: "8Gi"
+      cpu: "4000m"
+  
+  # Service HA Raft
+  ha:
+    enabled: true
+    replicas: 5
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = true
+        listener "tcp" {
+          tls_disable = false
+          tls_cert_file = "/vault/tls/server.crt"
+          tls_key_file  = "/vault/tls/server.key"
+          tls_min_version = "tls13"
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+          telemetry {
+            prometheus_retention_time = "30s"
+            disable_hostname = true
+          }
+        }
+        
+        storage "raft" {
+          path = "/vault/data"
+          node_id = "NODE_ID"
+          retry_leader_election = true
+          autopilot {
+            cleanup_dead_servers = true
+            last_contact_threshold = "10s"
+            max_trailing_logs = 250
+            min_quorum = 3
+            server_stabilization_time = "10s"
+          }
+        }
+        
+        seal "pkcs11" {
+          lib            = "/usr/lib/libCryptoki2_64.so"  # Thales Luna 7
+          slot           = "0"
+          key_label      = "snisid-vault-auto-unseal"
+          hmac_key_label = "snisid-vault-hmac"
+          generate_key   = "true"
+        }
+        
+        service_registration "kubernetes" {}
+        
+        telemetry {
+          prometheus_retention_time = "30s"
+          disable_hostname = true
+        }
+        
+        # Audit log — forwarding temps réel vers SIEM
+        audit_device "file" {
+          path = "/vault/audit/vault_audit.log"
+          log_raw = false
+          hmac_accessor = true
+          mode = "0644"
+          format = "json"
+        }
+  
+  # Security hardening
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 1000
+    fsGroup: 1000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Pas de données éphémères — tout sur Ceph RBD
+  dataStorage:
+    enabled: true
+    size: 100Gi
+    storageClass: "ceph-rbd-tier0"
+  
+  auditStorage:
+    enabled: true
+    size: 50Gi
+    storageClass: "ceph-rbd-tier0"
+
+  # Injecteur pour pods nationaux
+  injector:
+    enabled: true
+    replicas: 3
+    image:
+      repository: "registry.interne.snisid.gouv.local/hashicorp/vault-k8s"
+      tag: "1.3.1"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    
+    # Agent Vault dans chaque pod — pas de secret en env var
+    agentDefaults:
+      template: "map"
+      templateConfig:
+        exitOnRetryFailure: true
+        staticSecretRenderInterval: "5m"
+      
+    # Security des injected agents
+    securityContext:
+      runAsUser: 65534  # nobody
+      runAsGroup: 65534
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+
+# CSI driver pour secrets volumés (optionnel mais recommandé)
+csi:
+  enabled: true
+  image:
+    repository: "registry.interne.snisid.gouv.local/hashicorp/vault-csi-provider"
+    tag: "1.4.0"
+  daemonSet:
+    securityContext:
+      privileged: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true

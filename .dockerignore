@@ -1,0 +1,65 @@
+# --- SNISID system - .dockerignore ---
+
+# Heavy monorepo folders — never needed in Docker
+/apps-ecosystem/
+/SNISID-Phase3/
+/SNISID-*/
+/National-*/
+/snisid mcp/
+/snisid/
+
+# Root-level source dirs not part of this service
+/src/
+/phase*/
+
+# OS / IDE
+*.exe
+*.dll
+.tmp.driveupload/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.cursor/
+.claude/
+
+# Git
+.git/
+
+# Node — exclude host node_modules and build outputs
+# (these are rebuilt inside Docker, not copied from host)
+**/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/.nuxt/
+frontend/.output/
+frontend/.turbo/
+frontend/.cache/
+frontend/.expo/
+
+# Env / secrets
+.env
+.env.*
+*.local
+*.log
+logs/
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Docs / CI
+*.md
+docs/
+.github/
+
+# -------------------------------------------------------
+# IMPORTANT: vendor/ must NOT be listed here
+# Run on host before building:
+#   $env:GOWORK = "off"
+#   go mod tidy
+#   go mod vendor
+# -------------------------------------------------------

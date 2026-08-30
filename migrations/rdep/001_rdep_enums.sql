@@ -1,0 +1,27 @@
+BEGIN;
+
+CREATE TYPE rdep_deportation_country AS ENUM (
+    'USA','CAN','DOM','BHS','CUB','JAM','TTO','MEX','BRA','FRA','OTHER'
+);
+
+CREATE TYPE rdep_criminal_risk AS ENUM (
+    'NONE','LOW','MEDIUM','HIGH','VERY_HIGH'
+);
+
+CREATE TYPE rdep_monitoring_status AS ENUM (
+    'ACTIVE','SUSPENDED','COMPLETED','FLED','DECEASED'
+);
+
+CREATE TYPE rdep_extradition_status AS ENUM (
+    'REQUESTED','APPROVED','IN_TRANSIT','EXECUTED','DENIED','CANCELLED'
+);
+
+CREATE TYPE rdep_flight_type AS ENUM (
+    'CHARTER_ICE','COMMERCIAL','MILITARY','GOVERNMENT','OTHER'
+);
+
+CREATE TYPE rdep_event_type AS ENUM (
+    'CHECK_IN','VIOLATION','ADDRESS_CHANGE','TRAVEL_AUTHORIZATION','ALERT'
+);
+
+COMMIT;

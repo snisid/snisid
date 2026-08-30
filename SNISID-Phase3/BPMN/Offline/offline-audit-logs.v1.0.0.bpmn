@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- offline.audit.logs v1.0.0 — Journal d'audit local immuable + sync différée vers WORM central -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_off_audit" targetNamespace="https://snisid.gouv.ht/bpmn/offline">
+  <bpmn:process id="offline.audit.logs" name="Journal audit hors-ligne (chain Merkle local)"
+                isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S" name="Évènement audit local"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="Hash" name="Hash SHA-384 + chaînage Merkle local">
+      <bpmn:extensionElements><zeebe:taskDefinition type="merkle.chain.local"/></bpmn:extensionElements>
+      <bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="SignKit" name="Signature kit terrain">
+      <bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.hardware-kit"/></bpmn:extensionElements>
+      <bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="TSAcache" name="Horodatage TSA cache (pre-signed tokens)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="tsa.cache.local"/></bpmn:extensionElements>
+      <bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="WriteLocal" name="Écriture journal local append-only (immutable)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="audit.local.append"/></bpmn:extensionElements>
+      <bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:intermediateCatchEvent id="WaitNet" name="Réseau OK">
+      <bpmn:signalEventDefinition signalRef="Sig_Online"/>
+      <bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:serviceTask id="Push" name="Push vers WORM central + Kafka audit.*">
+      <bpmn:extensionElements><zeebe:taskDefinition type="audit.sync.upload"/></bpmn:extensionElements>
+      <bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="VerifyChain" name="Vérification continuité chaîne Merkle (central)">
+      <bpmn:extensionElements><zeebe:taskDefinition type="merkle.chain.verify"/></bpmn:extensionElements>
+      <bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f8</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="Hash"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="Hash" targetRef="SignKit"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="SignKit" targetRef="TSAcache"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="TSAcache" targetRef="WriteLocal"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="WriteLocal" targetRef="WaitNet"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="WaitNet" targetRef="Push"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Push" targetRef="VerifyChain"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="VerifyChain" targetRef="E"/>
+  </bpmn:process>
+  <bpmn:signal id="Sig_Online" name="network.online"/>
+</bpmn:definitions>

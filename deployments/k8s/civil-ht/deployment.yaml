@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: civil-ht
+  namespace: snisid-core
+  labels:
+    app: civil-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: civil-ht
+  template:
+    metadata:
+      labels:
+        app: civil-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8202"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: civil-ht
+        image: snisid/civil-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8202
+        env:
+        - name: CIVIL_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: CIVIL_DB_PORT
+          value: "26257"
+        - name: CIVIL_DB_NAME
+          value: "snisid_civil"
+        - name: CIVIL_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: CIVIL_DB_SSLMODE
+          value: "disable"
+        - name: CIVIL_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: CIVIL_SERVICE_PORT
+          value: "8202"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8202
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8202
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

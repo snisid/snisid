@@ -1,0 +1,36 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: phase13-db-credentials
+  namespace: snisid-signing
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: phase13-db-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: DB_DSN
+      remoteRef:
+        key: secret/snisid/phase13/database
+        property: dsn
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: phase15-grafana
+  namespace: snisid-monitoring
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: grafana-admin-secret
+  data:
+    - secretKey: GF_SECURITY_ADMIN_PASSWORD
+      remoteRef:
+        key: secret/snisid/phase15/grafana
+        property: admin_password

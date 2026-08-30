@@ -1,0 +1,63 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bio-surveillance-ht
+  namespace: snisid-national-security
+  labels:
+    app: bio-surveillance-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bio-surveillance-ht
+  template:
+    metadata:
+      labels:
+        app: bio-surveillance-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8305"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: bio-surveillance-ht
+        image: snisid/bio-surveillance-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8305
+        env:
+        - name: PORT
+          value: "8305"
+        - name: ENV
+          value: "prod"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: snisid-secrets
+              key: jwt-secret
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        - name: BIOSURV_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: snisid_biosurv-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8305
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8305
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

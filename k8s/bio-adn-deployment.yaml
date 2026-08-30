@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snisid-bio-adn
+  namespace: snisid-forensic
+  labels:
+    app: snisid-bio-adn
+    snisid.gov.ht/security-tier: forensic
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: snisid-bio-adn
+  template:
+    metadata:
+      labels:
+        app: snisid-bio-adn
+        snisid.gov.ht/security-tier: forensic
+    spec:
+      containers:
+      - name: bio-adn-api
+        image: harbor.snisid.gov.ht/snisid/bio-adn-service:1.0.0
+        ports:
+        - containerPort: 8443
+          name: api
+        - containerPort: 9092
+          name: kafka
+        env:
+        - name: DB_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-bio-secrets
+              key: db-url
+        - name: HSM_PIN
+          valueFrom:
+            secretKeyRef:
+              name: snisid-hsm-secrets
+              key: hsm-pin
+        - name: KAFKA_BROKERS
+          value: "kafka.snisid-infra.svc.cluster.local:9092"
+        - name: REDIS_ADDR
+          value: "redis.snisid-infra.svc.cluster.local:6379"
+        - name: AUDIT_ECDSA_KEY_PATH
+          value: "/etc/tls/audit-ecdsa.pem"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/tls
+          readOnly: true
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: snisid-bio-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: snisid-bio-adn
+  namespace: snisid-forensic
+  labels:
+    app: snisid-bio-adn
+spec:
+  selector:
+    app: snisid-bio-adn
+  ports:
+  - name: api
+    port: 8443
+    targetPort: 8443
+  - name: kafka
+    port: 9092
+    targetPort: 9092
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-bio-adn-config
+  namespace: snisid-forensic
+data:
+  MATCH_THRESHOLD: "0.85"
+  CACHE_TTL_SECONDS: "300"
+  NDIS_SYNC_SCHEDULE: "0 3 * * 0"
+  LDIS_UPLOAD_SCHEDULE: "0 2 * * *"
+  LOG_LEVEL: "info"
+  AUDIT_LEDGER_TOPIC: "snisid.bio.audit"
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: snisid-bio-adn-pdb
+  namespace: snisid-forensic
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: snisid-bio-adn

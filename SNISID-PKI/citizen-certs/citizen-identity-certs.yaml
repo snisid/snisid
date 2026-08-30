@@ -1,0 +1,210 @@
+# SNISID — Citizen Digital Identity Certificates
+# Classification: SECRET
+# Domain: Citizen authentication, digital signature, consent management
+# Issuer: SNISID Citizen Intermediate CA (Vault PKI snisid-pki-citizen)
+# Privacy: No PII in certificate subject — UUID-based, biometric template hash only
+# Legal framework: Equivalent to national identity card + digital signature act
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-citizen-cert-specification
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: citizen-pki
+    snisid.gov.data-classification: secret
+data:
+  citizen-cert-spec.yaml: |
+    # ───────────────────────────────────────────────
+    # Citizen Certificate (X.509 v3) Specification
+    # ───────────────────────────────────────────────
+    certificate_profile:
+      version: 3
+      validity: 730 days  # 2 years
+      key_algorithm: ECDSA
+      curve: secp384r1
+      hash_algorithm: SHA-384
+      
+      subject:
+        country: HT
+        organization: "SNISID Citizen Identity"
+        organizational_unit: "{citizen-uuid-36chars}"  # Anonymous UUID — NO name, NO NIF in subject
+        common_name: "{citizen-uuid} — SNISID Citizen"
+        # NO locality, NO province, NO street address (privacy)
+        # NO serial number containing NIF
+        # NO email in subject (optional email in SAN with citizen consent)
+        
+      subject_alternative_names:
+        # NO DNS names
+        # IP: none
+        # Email: only if citizen explicitly consents (opt-in)
+        uri:
+          - "urn:snisid:citizen:{citizen-uuid}"
+          - "urn:snisid:enrollment:{enrollment-transaction-id}"
+        # OID for national citizen identifier (anonymized)
+        other_name:
+          - type_id: "1.3.6.1.4.1.SNISID.4.1"
+            value: "{citizen-uuid}"
+          - type_id: "1.3.6.1.4.1.SNISID.4.2"
+            value: "{enrollment-station-id}"
+          - type_id: "1.3.6.1.4.1.SNISID.4.3"
+            value: "{biometric-template-hash-sha256}"  # Hash, NOT image
+            
+      extensions:
+        key_usage:
+          - digitalSignature
+          - nonRepudiation
+          - keyEncipherment
+        extended_key_usage:
+          - clientAuth
+          - emailProtection (if email SAN opted-in)
+          - smartcardLogon
+          - 1.3.6.1.4.1.SNISID.5.1  # SNISID Citizen Authentication OID (custom)
+          - 1.3.6.1.4.1.SNISID.5.2  # SNISID Citizen Signature OID (custom)
+          
+        certificate_policies:
+          - policy_identifier: "1.3.6.1.4.1.SNISID.1.2"    # SNISID Citizen Policy
+            cps_uri: "https://pki.snisid.gouv.local/cps/citizen-v5.0.0.pdf"
+          - policy_identifier: "2.23.140.1.2.2"           # Organization Validation (CAB Forum)
+            
+        authority_information_access:
+          ca_issuers: "http://pki.snisid.gouv.local/citizen/ca.crt"
+          ocsp: "http://ocsp.snisid.gouv.local"
+          
+        crl_distribution_points:
+          - "http://crl.snisid.gouv.local/citizen/ca.crl"
+          
+        # NO Subject Directory Attributes containing personal data
+        # Privacy: only UUIDs and hashes
+        
+        subject_key_identifier: auto-generated
+        authority_key_identifier: auto-generated
+        
+    # ───────────────────────────────────────────────
+    # Citizen Wallet Format (PKCS#12 / Secure Enclave)
+    # ───────────────────────────────────────────────
+    wallet_specification:
+      container: PKCS#12 (PFX)
+      encryption_algorithm: AES-256-CBC
+      mac_algorithm: SHA-384
+      key_derivation: PBKDF2
+      pbkdf2_iterations: 200000
+      
+      # Dual protection: knowledge + possession
+      protection_factors:
+        - factor: knowledge
+          type: "Citizen PIN (6-8 digits) + optional passphrase"
+          recovery: "Enrollment station + ID document + biometric re-verification (NO PIN recovery online)"
+        - factor: possession
+          type: "Mobile device Secure Enclave / TPM / Smartcard"
+          backup: "Encrypted cloud backup (national sovereign cloud ONLY) + paper recovery codes"
+        - factor: inherence
+          type: "Biometric-derived key (template hash, NOT raw biometric)"
+          algorithm: "PBKDF2(password=PIN, salt=SHA-256(biometric_template_hash))"
+          note: "Biometric data NEVER leaves device. Only template hash used for key derivation."
+          
+      # Key storage
+      private_key_storage:
+        preferred: "Secure Enclave (iOS) / StrongBox (Android) / TPM 2.0 (desktop)"
+        fallback: "Encrypted keystore with hardware-backed key if available"
+        forbidden: "Plain software keys without hardware binding"
+        
+      # Certificate chain
+      chain_in_wallet:
+        - citizen_end_entity_certificate
+        - snisid-citizen-intermediate-ca
+        - snisid-root-ca  # Trust anchor
+        
+      # Metadata (non-standard attributes)
+      metadata:
+        enrollment_date: ISO8601
+        enrollment_station: "{station-id}"
+        operator_id: "{agent-id}"
+        expiration_warning_sent: boolean
+        renewal_eligible: boolean
+        revocation_status: active / suspended / revoked
+        consent_log:
+          - purpose: "{purpose-oid}"
+            timestamp: ISO8601
+            operator: "{service-id}"
+            data_shared: "{data-fields-list}"
+            retention: "{retention-policy}"
+            citizen_ack: "{signature-of-consent-record}"
+            
+    # ───────────────────────────────────────────────
+    # Offline Verification (QR Code / Barcode)
+    # ───────────────────────────────────────────────
+    offline_verification:
+      qr_format: "SNISID-CITIZEN-OFFLINE-v1"
+      qr_content_structure: |
+        {
+          "v": "snisid-citizen-v1",
+          "cid": "{citizen-uuid}",
+          "cert_hash": "sha384:{certificate_thumbprint}",
+          "pk_hash": "sha384:{public_key_thumbprint}",
+          "sig": "base64:{signature_of_qr_content_by_cert}",
+          "ts": "{ISO8601-timestamp-of-qr-generation}",
+          "exp": "{certificate-expiration-ISO8601}",
+          "rev": "{crl-checkpoint-sequence-number}",
+          "auth": "{2fa-code-or-hotp-counter}"
+        }
+      
+      qr_signature:
+        algorithm: ECDSA_SHA384
+        key: "Citizen certificate private key (device secure enclave)"
+        
+      qr_size: "Version 10 QR (57x57 modules) — ~400 bytes compressed"
+      
+      offline_validation_app:
+        platform: "Android / iOS / Desktop (national sovereign app store)"
+        root_ca_embedded: "SNISID Root CA certificate (embedded at build time)"
+        crl_update: "USB / SD card / Bluetooth burst (when online available)"
+        crl_cache_validity: "72 hours maximum (offline grace period)"
+        
+        validation_steps:
+          1: "Parse QR JSON"
+          2: "Verify JSON signature against embedded Root CA trust chain"
+          3: "Check certificate_hash matches known issuance log (local cache)"
+          4: "Check expiration"
+          5: "Check CRL sequence number against local cache (if available)"
+          6: "Display citizen photo (from enrollment cache, not QR — anti-fraud)"
+          7: "Manual operator verification (face-to-face)"
+          
+      security_note: |
+        The QR code does NOT contain the full certificate (privacy, size).
+        It contains a signed attestation that the citizen is valid.
+        Offline apps must verify against embedded Root CA + local CRL cache.
+        72h grace period for CRL staleness — after that, online required or
+        USB/SD CRL update must be performed.
+        
+    # ───────────────────────────────────────────────
+    # Consent & Data Protection (National RGPD Equivalent)
+    # ───────────────────────────────────────────────
+    consent_management:
+      framework: "SNISID Privacy Framework v5.0.0"
+      legal_basis: "Article national identité numérique — Consentement explicite"
+      
+      consent_required_for:
+        - certificate_issuance
+        - certificate_renewal
+        - certificate_revocation_by_citizen
+        - data_sharing_with_third_party
+        - biometric_enrollment
+        - digital_signature_activation
+        - cloud_wallet_backup
+        
+      consent_record:
+        storage: "National consent registry (blockchain or append-only Ceph RGW)"
+        retention: "Duration of certificate validity + 7 years"
+        format: "Signed JSON — citizen private key signs consent record"
+        
+      right_to_erasure:
+        applicable: "Partial (citizen can request revocation + deletion of wallet, but enrollment logs retained 7 years for national security/fraud investigation)"
+        procedure: "Citizen requests erasure at enrollment station or via secure portal. 30-day validation period. IGC final approval for log retention waiver."
+        
+      data_minimization:
+        certificate_subject: "UUID ONLY — no name, no NIF, no address"
+        certificate_sans: "URN only — no email without opt-in, no phone"
+        audit_logs: "Citizen UUID + action + timestamp — no biometric data, no content"
+        biometric_storage: "Template hash ONLY — raw images destroyed after enrollment quality check"

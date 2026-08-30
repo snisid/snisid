@@ -1,0 +1,20 @@
+# SNISID National Kubernetes Platform - Base Configuration
+# Distribution: RKE2 (Sovereign)
+# Version: 1.29+
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: snisid-system
+
+resources:
+  - namespaces.yaml
+  - network-policies.yaml
+  - resource-quotas.yaml
+  - limit-ranges.yaml
+  - priority-classes.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: SNISID-Platform
+  app.kubernetes.io/part-of: national-infrastructure
+  snisid.gov.ht/sovereign: "true"

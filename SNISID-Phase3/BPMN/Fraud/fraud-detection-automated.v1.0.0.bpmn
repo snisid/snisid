@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- fraud.detection.automated v1.0.0 — Détection auto, appelé par tous les workflows critiques -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_fraud_det" targetNamespace="https://snisid.gouv.ht/bpmn/fraud">
+  <bpmn:process id="fraud.detection.automated" name="Détection fraude automatisée" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Rules" name="Moteur règles (DMN)"><bpmn:extensionElements><zeebe:taskDefinition type="fraud.rules.run"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="ML" name="Score ML (XGBoost + GraphML)"><bpmn:extensionElements><zeebe:taskDefinition type="fraud.ml.score"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Graph" name="Analyse graphe relations (entités liées)"><bpmn:extensionElements><zeebe:taskDefinition type="fraud.graph.analyze"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Aggregate" name="Agrégation score 0..1"><bpmn:extensionElements><zeebe:taskDefinition type="fraud.score.aggregate"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f7</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="Rules"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Rules" targetRef="ML"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="ML" targetRef="Graph"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Graph" targetRef="Aggregate"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Aggregate" targetRef="K"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="K" targetRef="E"/>
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* SNISID Official Palette (v2.0) */
+  --snisid-bg: #0D1B2A;
+  --snisid-primary: #1565C0;
+  --snisid-secondary: #00BCD4;
+  --snisid-ok: #2E7D32;
+  --snisid-warning: #E65100;
+  --snisid-critical: #C62828;
+  --snisid-text: #ECEFF1;
+  --snisid-surface: #1E3A5F;
+}
+
+/* High Contrast Accessibility Override */
+.high-contrast {
+  --snisid-bg: #000000;
+  --snisid-primary: #FFFFFF;
+  --snisid-secondary: #FFFF00;
+  --snisid-ok: #00FF00;
+  --snisid-warning: #FF8000;
+  --snisid-critical: #FF0000;
+  --snisid-text: #FFFFFF;
+  --snisid-surface: #121212;
+}
+
+/* Confidential Export Watermark */
+.report-watermark {
+  position: relative;
+}
+.report-watermark::after {
+  content: "CONFIDENTIEL — SNISID";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: rgba(198, 40, 40, 0.12); /* 12% Opacity Security Red */
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  letter-spacing: 0.2rem;
+}
+
+
+@layer base {
+  body {
+    @apply bg-[#0a0c10] text-gray-100;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

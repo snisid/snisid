@@ -1,0 +1,50 @@
+{
+    "HT-TICKET-1001": {
+        "ticket_id": "HT-TICKET-1001",
+        "department": "Ouest",
+        "category": "Network",
+        "severity": "S1",
+        "description": "Fibre link cut between main DC and Delmas BLC site. Solaired-powered Starlink fails to initialize.",
+        "created_at": "2026-05-25T07:34:52.914591",
+        "status": "Resolved",
+        "assigned_tier": "Tier 3 - Core Engineering",
+        "sla_deadline": "2026-05-25T08:04:52.914591",
+        "resolution_notes": "Fibre link remained down, but Starlink terminal was manually reset and secondary satellite antenna was aligned. Connection stable."
+    },
+    "HT-TICKET-1002": {
+        "ticket_id": "HT-TICKET-1002",
+        "department": "Nord",
+        "category": "Identity_Conflict",
+        "severity": "S2",
+        "description": "Dual-entry validation fails on 4 files. System blocks enrollment for matching CIN.",
+        "created_at": "2026-05-25T07:34:52.914606",
+        "status": "Open",
+        "assigned_tier": "Tier 2 - Regional Experts",
+        "sla_deadline": "2026-05-25T09:34:52.914606",
+        "resolution_notes": ""
+    },
+    "HT-TICKET-1003": {
+        "ticket_id": "HT-TICKET-1003",
+        "department": "Sud",
+        "category": "Hardware",
+        "severity": "S3",
+        "description": "Biometric USB camera lens got scratched during transport. Image quality score below OACI threshold.",
+        "created_at": "2026-05-25T07:34:52.914613",
+        "status": "Resolved",
+        "assigned_tier": "Tier 1 - Helpdesk",
+        "sla_deadline": "2026-05-25T13:34:52.914613",
+        "resolution_notes": "Field Strike team replaced the physical camera with a backup unit from the department hub. Standard OACI validation tests passed."
+    },
+    "HT-TICKET-1004": {
+        "ticket_id": "HT-TICKET-1004",
+        "department": "Grand'Anse",
+        "category": "Software",
+        "severity": "S2",
+        "description": "Local Edge Node database integrity error during delayed sync. Corrupted WAL file.",
+        "created_at": "2026-05-25T07:34:52.914618",
+        "status": "Open",
+        "assigned_tier": "Tier 3 - Core Engineering",
+        "sla_deadline": "2026-05-25T09:34:52.914618",
+        "resolution_notes": ""
+    }
+}

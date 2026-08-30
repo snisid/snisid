@@ -1,0 +1,93 @@
+name: SNISID CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  fraud-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: Fraud Engine Build & Test
+        run: |
+          cd services/fraud-engine
+          go mod tidy
+          go build -o fraud-engine ./cmd/
+          go test ./... -v -count=1
+
+  backend-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: snisidpass
+        ports: [5432:5432]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - name: Run Go Tests
+        run: go test ./internal/... -v -cover
+
+  ai-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install Dependencies
+        run: |
+          pip install torch torchvision numpy pytest
+      - name: Run PyTest
+        run: pytest services/planes/ai/ai-face/
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install & Build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+  build-and-push:
+    needs: [backend-test, ai-test, frontend-test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Identity API
+        continue-on-error: true
+        uses: docker/build-push-action@v5
+        with:
+          context: services/identity-api
+          file: services/identity-api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/identity-api:latest

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: field-ht
+  namespace: snisid-core
+  labels:
+    app: field-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: field-ht
+  template:
+    metadata:
+      labels:
+        app: field-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8212"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: field-ht
+        image: snisid/field-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8212
+        env:
+        - name: FIELD_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: FIELD_DB_PORT
+          value: "26257"
+        - name: FIELD_DB_NAME
+          value: "snisid_field"
+        - name: FIELD_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: FIELD_DB_SSLMODE
+          value: "disable"
+        - name: FIELD_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: FIELD_SERVICE_PORT
+          value: "8212"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8212
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8212
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

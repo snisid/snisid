@@ -1,0 +1,68 @@
+{
+  "document": "SNISID National RACI Matrix",
+  "version": "1.0.0",
+  "legend": {
+    "Responsible": "Exécutant",
+    "Accountable": "Responsable final",
+    "Consulted": "Consulté",
+    "Informed": "Informé"
+  },
+  "domains": [
+    {
+      "domain": "Identity",
+      "criticality": "CRITIQUE",
+      "Responsible": ["Identity Operations", "ONI"],
+      "Accountable": "Direction Générale SNISID",
+      "Consulted": ["ANH", "Conseil Juridique", "Conseil Audit & Risque"],
+      "Informed": ["Conseil National SNISID", "Agences intégrées"]
+    },
+    {
+      "domain": "Biometrics",
+      "criticality": "CRITIQUE",
+      "Responsible": ["Identity Operations", "Cybersecurity"],
+      "Accountable": "Direction Générale SNISID",
+      "Consulted": ["Conseil Juridique", "Conseil Cyber National", "Conseil Audit & Risque"],
+      "Informed": ["Conseil National SNISID"]
+    },
+    {
+      "domain": "PKI",
+      "criticality": "CRITIQUE",
+      "Responsible": ["PKI Operations", "Security HSM Custodians"],
+      "Accountable": "Conseil PKI National",
+      "Consulted": ["Conseil Cyber National", "Conseil Juridique", "Audit Office"],
+      "Informed": ["Conseil National SNISID", "Direction Générale SNISID"]
+    },
+    {
+      "domain": "Cybersecurity",
+      "criticality": "CRITIQUE",
+      "Responsible": ["National SOC", "CERT National", "DFIR Unit"],
+      "Accountable": "Conseil Cyber National",
+      "Consulted": ["Conseil Audit & Risque", "Conseil Juridique", "Platform Ops"],
+      "Informed": ["Conseil National SNISID", "Agences impactées"]
+    },
+    {
+      "domain": "Workflow",
+      "criticality": "ÉLEVÉ",
+      "Responsible": ["National Workflow Governance Office", "Workflow Operations"],
+      "Accountable": "Direction Générale SNISID",
+      "Consulted": ["Conseil Juridique", "Conseil Interopérabilité", "Audit Office", "Agences propriétaires"],
+      "Informed": ["Conseil National SNISID", "Utilisateurs institutionnels"]
+    },
+    {
+      "domain": "Elections",
+      "criticality": "ÉLEVÉ",
+      "Responsible": ["CEP", "Identity Operations"],
+      "Accountable": "CEP selon loi électorale + Conseil National SNISID pour plateforme",
+      "Consulted": ["Conseil Juridique", "Conseil Cyber National", "Audit Office"],
+      "Informed": ["Conseil National SNISID", "Agences électorales autorisées"]
+    },
+    {
+      "domain": "Judicial",
+      "criticality": "ÉLEVÉ",
+      "Responsible": ["Justice", "Legal & Compliance"],
+      "Accountable": "Conseil Juridique",
+      "Consulted": ["DCPJ", "Audit Office", "Citizen Rights Office"],
+      "Informed": ["Direction Générale SNISID", "Conseil National SNISID si crise"]
+    }
+  ]
+}

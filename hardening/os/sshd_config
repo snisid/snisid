@@ -1,0 +1,32 @@
+# SNISID Sovereign SSH Configuration
+# Strictly enforced via Ansible /etc/ssh/sshd_config
+
+# 1. Custom Port to avoid mass automated scans (CIS 5.2.x)
+Port 2222
+
+# 2. Key-based authentication ONLY. Passwords entirely disabled.
+PasswordAuthentication no
+PermitEmptyPasswords no
+PubkeyAuthentication yes
+
+# 3. Restrict cryptographic algorithms exclusively to ED25519
+HostKey /etc/ssh/ssh_host_ed25519_key
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+
+# 4. Strict Access Control
+PermitRootLogin no
+AllowUsers sysadmin ansible_provisioner
+MaxAuthTries 3
+
+# 5. Network Hardening & Timeouts
+ClientAliveInterval 300
+ClientAliveCountMax 0
+X11Forwarding no
+AllowTcpForwarding no
+AllowAgentForwarding no
+PermitUserEnvironment no
+
+# 6. Logging
+LogLevel VERBOSE

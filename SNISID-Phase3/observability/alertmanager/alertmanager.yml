@@ -1,0 +1,144 @@
+# SNISID — Alertmanager routing
+# Sev0/Sev1 → PagerDuty + SMS direction + Slack #snisid-crisis|#snisid-incidents
+# Sev2 → Slack + Email astreinte
+# Sev3 → Email digest
+global:
+  resolve_timeout: 5m
+  smtp_from: 'alertmanager@snisid.ht'
+  smtp_smarthost: 'smtp.snisid.ht:587'
+  smtp_auth_username: 'alertmanager'
+  smtp_auth_password_file: '/etc/alertmanager/smtp-password'
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+route:
+  receiver: 'default-slack'
+  group_by: ['alertname', 'workflow_id', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+
+    - matchers: [ severity="sev0" ]
+      receiver: 'crisis'
+      group_wait: 10s
+      repeat_interval: 30m
+      continue: true
+    - matchers: [ severity="sev0" ]
+      receiver: 'direction-sms'
+
+    - matchers: [ severity="sev1" ]
+      receiver: 'pagerduty-critical'
+      group_wait: 30s
+      repeat_interval: 1h
+      continue: true
+    - matchers: [ severity="sev1" ]
+      receiver: 'slack-incidents'
+
+    - matchers: [ severity="sev2" ]
+      receiver: 'slack-incidents'
+      group_wait: 1m
+      repeat_interval: 4h
+      continue: true
+    - matchers: [ severity="sev2" ]
+      receiver: 'email-astreinte'
+
+    - matchers: [ severity="sev3" ]
+      receiver: 'email-digest'
+      group_wait: 5m
+      repeat_interval: 24h
+
+    # Routes par équipe (fallback)
+    - matchers: [ team="cyber" ]
+      receiver: 'cyber-channel'
+    - matchers: [ team="wgo" ]
+      receiver: 'wgo-channel'
+    - matchers: [ team="platform" ]
+      receiver: 'platform-channel'
+    - matchers: [ team="fraud" ]
+      receiver: 'fraud-channel'
+
+inhibit_rules:
+  - source_matchers: [ severity="sev0" ]
+    target_matchers: [ severity=~"sev1|sev2|sev3" ]
+    equal: [ 'cluster' ]
+  - source_matchers: [ severity="sev1" ]
+    target_matchers: [ severity=~"sev2|sev3" ]
+    equal: [ 'workflow_id' ]
+
+receivers:
+
+  - name: default-slack
+    slack_configs:
+      - api_url_file: /etc/alertmanager/slack-default-url
+        channel: '#snisid-alerts'
+        send_resolved: true
+
+  - name: crisis
+    slack_configs:
+      - api_url_file: /etc/alertmanager/slack-crisis-url
+        channel: '#snisid-crisis'
+        title: '🚨🚨🚨 CRISIS Sev0 — {{ .CommonAnnotations.summary }}'
+        send_resolved: true
+    pagerduty_configs:
+      - service_key_file: /etc/alertmanager/pd-crisis-key
+        severity: critical
+    webhook_configs:
+      - url: https://opsgenie.snisid.ht/webhook/crisis
+
+  - name: direction-sms
+    webhook_configs:
+      - url: https://notifications.snisid.ht/sms/direction
+        send_resolved: false
+
+  - name: pagerduty-critical
+    pagerduty_configs:
+      - service_key_file: /etc/alertmanager/pd-critical-key
+        severity: critical
+        details:
+          runbook: '{{ .CommonLabels.runbook }}'
+          workflow_id: '{{ .CommonLabels.workflow_id }}'
+
+  - name: slack-incidents
+    slack_configs:
+      - api_url_file: /etc/alertmanager/slack-incidents-url
+        channel: '#snisid-incidents'
+        title: '{{ .Status | toUpper }} [{{ .CommonLabels.severity | toUpper }}] {{ .CommonAnnotations.summary }}'
+        text: |
+          *Workflow:* {{ .CommonLabels.workflow_id }}
+          *Region:* {{ .CommonLabels.region }}
+          *Runbook:* {{ .CommonLabels.runbook }}
+          {{ range .Alerts }}- {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  - name: email-astreinte
+    email_configs:
+      - to: 'astreinte@snisid.ht'
+        send_resolved: true
+
+  - name: email-digest
+    email_configs:
+      - to: 'digest@snisid.ht'
+        send_resolved: false
+
+  - name: cyber-channel
+    slack_configs:
+      - api_url_file: /etc/alertmanager/slack-cyber-url
+        channel: '#snisid-cyber'
+
+  - name: wgo-channel
+    slack_configs:
+      - api_url_file: /etc/alertmanager/slack-wgo-url
+        channel: '#snisid-wgo'
+
+  - name: platform-channel
+    slack_configs:
+      - api_url_file: /etc/alertmanager/slack-platform-url
+        channel: '#snisid-platform'
+
+  - name: fraud-channel
+    slack_configs:
+      - api_url_file: /etc/alertmanager/slack-fraud-url
+        channel: '#snisid-fraud'

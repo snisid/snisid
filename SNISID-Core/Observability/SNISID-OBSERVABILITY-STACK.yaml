@@ -1,0 +1,590 @@
+---
+# ============================================================
+# SNISID-Core — Observability Stack
+# Prometheus + Thanos + Grafana + Loki + Tempo + Alertmanager
+# Document ID: SNISID-OBS-001
+# Version: 1.0.0
+# ============================================================
+
+# ── kube-prometheus-stack values ─────────────────────────
+# File: Observability/prometheus/values.yaml
+
+global:
+  scrapeInterval: 15s
+  evaluationInterval: 15s
+  externalLabels:
+    cluster: snisid-prod
+    region: haiti-pap
+    environment: production
+
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: true
+    general: true
+    k8s: true
+    kubeApiserver: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesAbsent: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    prometheus: true
+    prometheusOperator: true
+
+alertmanager:
+  enabled: true
+  config:
+    global:
+      smtp_smarthost: 'smtp.snisid.gov.ht:587'
+      smtp_from: 'alertmanager@snisid.gov.ht'
+      smtp_auth_username: 'alertmanager'
+      smtp_require_tls: true
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'default-receiver'
+      routes:
+      # P1 — Critique: PagerDuty + Slack immédiat
+      - match:
+          severity: critical
+        receiver: p1-critical
+        continue: true
+        group_wait: 10s
+        repeat_interval: 1h
+      # P2 — Warning: Slack
+      - match:
+          severity: warning
+        receiver: p2-warning
+        repeat_interval: 4h
+      # SOC: fraude et sécurité
+      - match:
+          team: soc
+        receiver: soc-team
+        repeat_interval: 30m
+    receivers:
+    - name: 'default-receiver'
+      slack_configs:
+      - api_url: 'vault:secret/data/alertmanager#slack_webhook'
+        channel: '#snisid-ops-alerts'
+        send_resolved: true
+        title: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: >-
+          {{ range .Alerts }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+    - name: 'p1-critical'
+      pagerduty_configs:
+      - routing_key: 'vault:secret/data/alertmanager#pagerduty_key'
+        severity: critical
+        description: '{{ .CommonAnnotations.summary }}'
+        client: 'SNISID AlertManager'
+        client_url: 'https://grafana.snisid.gov.ht'
+      slack_configs:
+      - api_url: 'vault:secret/data/alertmanager#slack_webhook'
+        channel: '#snisid-p1-incidents'
+        send_resolved: true
+        title: '🚨 P1 CRITICAL: {{ .CommonAnnotations.summary }}'
+
+    - name: 'p2-warning'
+      slack_configs:
+      - api_url: 'vault:secret/data/alertmanager#slack_webhook'
+        channel: '#snisid-ops-warnings'
+        send_resolved: true
+
+    - name: 'soc-team'
+      slack_configs:
+      - api_url: 'vault:secret/data/alertmanager#soc_slack_webhook'
+        channel: '#snisid-soc'
+        send_resolved: true
+        title: '🛡️ SOC ALERT: {{ .CommonAnnotations.summary }}'
+      email_configs:
+      - to: 'soc@snisid.gov.ht'
+        send_resolved: true
+
+  alertmanagerSpec:
+    replicas: 2
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ceph-rbd-xfs
+          resources:
+            requests:
+              storage: 10Gi
+
+prometheus:
+  prometheusSpec:
+    replicas: 2
+    retention: 15d
+    retentionSize: "50GB"
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ceph-rbd-xfs
+          resources:
+            requests:
+              storage: 100Gi
+    resources:
+      requests:
+        memory: 4Gi
+        cpu: "1"
+      limits:
+        memory: 8Gi
+        cpu: "2"
+    additionalScrapeConfigs:
+    - job_name: 'snisid-identity-service'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [snisid-identity]
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+    - job_name: 'snisid-biometrics'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [snisid-biometrics]
+    - job_name: 'kong-gateway'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [snisid-api-gateway]
+    - job_name: 'kafka-strimzi'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [snisid-event-bus]
+    - job_name: 'vault'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names: [snisid-security]
+      metrics_path: /v1/sys/metrics
+      params:
+        format: [prometheus]
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    externalLabels:
+      cluster: snisid-prod
+    walCompression: true
+    enableRemoteWriteReceiver: true
+
+grafana:
+  enabled: true
+  replicas: 2
+  image:
+    repository: harbor.snisid.gov.ht/grafana/grafana
+    tag: "10.4.1"
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: kong
+    hosts:
+    - grafana.snisid.gov.ht
+    tls:
+    - secretName: grafana-tls
+      hosts:
+      - grafana.snisid.gov.ht
+  adminPassword: vault:secret/data/grafana#admin_password
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://kube-prometheus-stack-prometheus.snisid-observability:9090
+        isDefault: true
+        jsonData:
+          exemplarTraceIdDestinations:
+          - name: traceID
+            datasourceUid: tempo
+      - name: Loki
+        type: loki
+        url: http://loki.snisid-observability:3100
+        jsonData:
+          derivedFields:
+          - datasourceUid: tempo
+            matcherRegex: 'traceId=(\w+)'
+            name: TraceID
+            url: '$${__value.raw}'
+      - name: Tempo
+        type: tempo
+        url: http://tempo.snisid-observability:3100
+        uid: tempo
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'snisid-dashboards'
+        orgId: 1
+        folder: 'SNISID'
+        type: file
+        disableDeletion: true
+        editable: false
+        options:
+          path: /var/lib/grafana/dashboards/snisid
+  persistence:
+    enabled: true
+    storageClassName: ceph-rbd-xfs
+    size: 20Gi
+
+---
+# ── Loki Log Aggregation ──────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  namespace: snisid-observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+      - name: loki
+        image: harbor.snisid.gov.ht/grafana/loki:3.0.0
+        args:
+        - -config.file=/etc/loki/config.yaml
+        ports:
+        - name: http
+          containerPort: 3100
+        - name: grpc
+          containerPort: 9096
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 250m
+          limits:
+            memory: 4Gi
+            cpu: "1"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+        - name: config
+          mountPath: /etc/loki
+        - name: data
+          mountPath: /loki/data
+      volumes:
+      - name: config
+        configMap:
+          name: loki-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: loki-data
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: snisid-observability
+data:
+  config.yaml: |
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9096
+      log_level: info
+    schema_config:
+      configs:
+      - from: 2024-01-01
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+    storage_config:
+      tsdb_shipper:
+        active_index_directory: /loki/data/tsdb-index
+        cache_location: /loki/data/tsdb-cache
+      aws:
+        endpoint: minio.snisid-databases.svc.cluster.local:9000
+        s3: s3://snisid-loki-logs
+        s3forcepathstyle: true
+        access_key_id: ${MINIO_ACCESS_KEY}
+        secret_access_key: ${MINIO_SECRET_KEY}
+    limits_config:
+      ingestion_rate_mb: 20
+      ingestion_burst_size_mb: 30
+      max_query_series: 50000
+      retention_period: 2160h    # 90 jours (rotation + archivage MinIO WORM)
+    compactor:
+      working_directory: /loki/data/compactor
+      retention_enabled: true
+      delete_request_store: s3
+    ruler:
+      storage:
+        type: local
+        local:
+          directory: /loki/rules
+      ring:
+        kvstore:
+          store: inmemory
+
+---
+# ── Tempo Distributed Tracing ─────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  namespace: snisid-observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+      - name: tempo
+        image: harbor.snisid.gov.ht/grafana/tempo:2.4.1
+        args:
+        - -config.file=/etc/tempo/config.yaml
+        ports:
+        - name: http
+          containerPort: 3100
+        - name: otlp-grpc
+          containerPort: 4317
+        - name: otlp-http
+          containerPort: 4318
+        - name: zipkin
+          containerPort: 9411
+        - name: jaeger-grpc
+          containerPort: 14250
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 250m
+          limits:
+            memory: 4Gi
+            cpu: "1"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+        - name: config
+          mountPath: /etc/tempo
+        - name: data
+          mountPath: /var/tempo
+      volumes:
+      - name: config
+        configMap:
+          name: tempo-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: tempo-data
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+  namespace: snisid-observability
+data:
+  config.yaml: |
+    server:
+      http_listen_port: 3100
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+        zipkin:
+          endpoint: 0.0.0.0:9411
+        jaeger:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:14250
+    storage:
+      trace:
+        backend: s3
+        s3:
+          endpoint: minio.snisid-databases.svc.cluster.local:9000
+          bucket: snisid-tempo-traces
+          access_key: ${MINIO_ACCESS_KEY}
+          secret_key: ${MINIO_SECRET_KEY}
+          insecure: false
+          forcepathstyle: true
+        wal:
+          path: /var/tempo/wal
+        local:
+          path: /var/tempo/blocks
+    retention_period: 72h   # Traces gardées 72h (indexées par trace_id)
+    query_frontend:
+      search:
+        duration_slo: 5s
+        throughput_bytes_slo: 1.073741824e+09
+    metrics_generator:
+      registry:
+        external_labels:
+          source: tempo
+          cluster: snisid-prod
+      storage:
+        path: /var/tempo/generator
+        remote_write:
+        - url: http://kube-prometheus-stack-prometheus.snisid-observability:9090/api/v1/write
+          send_exemplars: true
+
+---
+# ── SNISID PrometheusRules (Alertes métier) ───────────────
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: snisid-business-alerts
+  namespace: snisid-observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+
+  - name: snisid.identity.slos
+    interval: 30s
+    rules:
+    - alert: IdentityServiceDown
+      expr: up{job="snisid-identity-service"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+      annotations:
+        summary: "🚨 Identity Service DOWN"
+        description: "Le service d'identité SNISID est inaccessible depuis {{ $labels.instance }}"
+        runbook: "https://runbooks.snisid.gov.ht/identity-service-down"
+
+    - alert: IdentityAPIHighLatency
+      expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="snisid-identity-service"}[5m])) > 2
+      for: 5m
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "⚠️ Identity API latency P99 > 2s"
+        description: "La latence P99 est de {{ $value | humanizeDuration }}"
+
+    - alert: IdentityErrorRateHigh
+      expr: rate(http_requests_total{job="snisid-identity-service",status=~"5.."}[5m]) / rate(http_requests_total{job="snisid-identity-service"}[5m]) > 0.01
+      for: 5m
+      labels:
+        severity: critical
+        team: platform
+      annotations:
+        summary: "🚨 Identity Service error rate > 1%"
+
+  - name: snisid.enrollment.kpis
+    interval: 60s
+    rules:
+    - alert: EnrollmentRateLow
+      expr: rate(snisid_enrollments_completed_total[1h]) * 3600 < 5000
+      for: 30m
+      labels:
+        severity: warning
+        team: operations
+      annotations:
+        summary: "⚠️ Cadence d'enrôlement < 5000/heure"
+        description: "Cadence actuelle: {{ $value | humanize }}/heure. Objectif: 10,000/heure"
+
+    - alert: OfflineSyncQueueLarge
+      expr: snisid_offline_sync_queue_depth > 1000
+      for: 15m
+      labels:
+        severity: warning
+        team: operations
+      annotations:
+        summary: "⚠️ File de synchronisation offline > 1000 enrôlements"
+
+  - name: snisid.fraud.alerts
+    interval: 30s
+    rules:
+    - alert: FraudAlertRateHigh
+      expr: rate(snisid_fraud_alerts_total[1h]) * 3600 > 50
+      for: 5m
+      labels:
+        severity: critical
+        team: soc
+      annotations:
+        summary: "🛡️ SOC: Taux d'alertes fraude anormalement élevé"
+        description: "Plus de {{ $value }} alertes fraude par heure. Investigation SOC requise."
+        runbook: "https://runbooks.snisid.gov.ht/fraud-alert-high"
+
+    - alert: AgentFrozen
+      expr: increase(snisid_agents_frozen_total[1h]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        team: soc
+      annotations:
+        summary: "🚨 Agent ONI gelé (suspicion fraude)"
+
+    - alert: BiometricDuplicateDetected
+      expr: increase(snisid_biometric_duplicates_total[5m]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        team: soc
+      annotations:
+        summary: "🚨 Doublon biométrique détecté — DCPJ notifié"
+
+  - name: snisid.civil.cascade
+    interval: 30s
+    rules:
+    - alert: DeathCascadeDelay
+      expr: snisid_death_cascade_duration_seconds > 300
+      for: 1m
+      labels:
+        severity: critical
+        team: platform
+      annotations:
+        summary: "🚨 Cascade notifications décès > 5 minutes"
+        description: "SLA: < 5 min. Actuel: {{ $value | humanizeDuration }}"
+
+  - name: snisid.pki.certs
+    interval: 300s
+    rules:
+    - alert: CertificateExpiringSoon
+      expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
+      for: 1h
+      labels:
+        severity: warning
+        team: platform
+      annotations:
+        summary: "⚠️ Certificat PKI expire dans {{ $value | humanize }} jours"

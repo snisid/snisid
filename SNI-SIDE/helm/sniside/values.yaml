@@ -1,0 +1,486 @@
+# ============================================================
+# SNI-SIDE Helm Values
+# ============================================================
+
+global:
+  environment: production
+  dnsDomain: sniside.svc.cluster.local
+  imageRegistry: docker.io/sniside
+  imageTag: "2.1.0"
+  imagePullPolicy: IfNotPresent
+  kafkaBootstrapServers: "kafka:9092"
+  neo4jUri: "bolt://neo4j:7687"
+  redisHost: "redis-master"
+  milvusHost: "milvus-proxy"
+  minioEndpoint: "minio:9000"
+  clickhouseHost: "clickhouse"
+  vaultAddress: "http://vault:8200"
+  otelEndpoint: "otel-collector:4317"
+
+# ============================================================
+# Infrastructure — External chart flags
+# ============================================================
+postgresql:
+  enabled: true
+  architecture: replication
+  auth:
+    database: sniside
+    username: sniside
+    password: sniside-pg-secret
+    replicationPassword: sniside-pg-repl
+    existingSecret: ""
+  primary:
+    persistence:
+      size: 500Gi
+    resources:
+      requests: {cpu: "4", memory: "16Gi"}
+      limits: {cpu: "8", memory: "32Gi"}
+  readReplicas:
+    count: 2
+    persistence:
+      size: 500Gi
+    resources:
+      requests: {cpu: "4", memory: "16Gi"}
+      limits: {cpu: "8", memory: "32Gi"}
+
+cockroachdb:
+  enabled: true
+  statefulsetReplicas: 5
+  conf:
+    max-sql-memory: "25%"
+    cache: "25%"
+  resources:
+    requests: {cpu: "8", memory: "32Gi"}
+    limits: {cpu: "16", memory: "64Gi"}
+  storage:
+    persistentVolumeSize: 2Ti
+  tls:
+    enabled: true
+
+kafka:
+  enabled: true
+  listeners:
+    client:
+      protocol: PLAINTEXT
+      containerPort: 9092
+  controller:
+    replicaCount: 3
+    resources:
+      requests: {cpu: "2", memory: "4Gi"}
+      limits: {cpu: "4", memory: "8Gi"}
+  broker:
+    replicaCount: 6
+    resources:
+      requests: {cpu: "4", memory: "8Gi"}
+      limits: {cpu: "8", memory: "16Gi"}
+    persistence:
+      size: 1Ti
+  logRetentionHours: 8760
+  autoCreateTopicsEnable: false
+
+redis:
+  enabled: true
+  architecture: replication
+  master:
+    count: 1
+    persistence:
+      size: 50Gi
+    resources:
+      requests: {cpu: "2", memory: "4Gi"}
+  replica:
+    replicaCount: 3
+    persistence:
+      size: 50Gi
+    resources:
+      requests: {cpu: "1", memory: "2Gi"}
+
+minio:
+  enabled: true
+  mode: distributed
+  replicas: 4
+  drivesPerNode: 2
+  persistence:
+    size: 5Ti
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+    limits: {cpu: "4", memory: "8Gi"}
+  accessKey: sniside
+  secretKey: sniside-minio-secret
+  buckets:
+    - name: sniside-media
+      policy: none
+      purge: false
+    - name: sniside-evidence
+      policy: none
+      purge: false
+    - name: sniside-backups
+      policy: none
+      purge: false
+    - name: sniside-ml-models
+      policy: none
+      purge: false
+
+monitoring:
+  enabled: true
+  prometheus:
+    prometheusSpec:
+      replicas: 2
+      retention: 30d
+      retentionSize: 50GB
+      resources:
+        requests: {cpu: "2", memory: "8Gi"}
+  grafana:
+    replicas: 2
+    persistence:
+      enabled: true
+      size: 10Gi
+    datasources:
+      prometheus:
+        url: "http://prometheus-operated:9090"
+      loki:
+        url: "http://loki:3100"
+      tempo:
+        url: "http://tempo:3200"
+
+# ============================================================
+# SNI-SIDE Microservices
+# ============================================================
+
+ncidApi:
+  enabled: true
+  replicas: 3
+  minReplicas: 3
+  maxReplicas: 15
+  cpuTarget: 70
+  image: sniside-ncid-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+    limits: {cpu: "4", memory: "8Gi"}
+  config:
+    logLevel: INFO
+    dbPoolSize: 8
+  service:
+    port: 8080
+
+biometricsApi:
+  enabled: true
+  replicas: 5
+  minReplicas: 5
+  maxReplicas: 30
+  gpu: true
+  image: sniside-biometrics-api
+  resources:
+    requests: {cpu: "4", memory: "8Gi"}
+    limits: {cpu: "8", memory: "16Gi"}
+
+codisApi:
+  enabled: true
+  replicas: 3
+  minReplicas: 3
+  maxReplicas: 10
+  image: sniside-codis-api
+  resources:
+    requests: {cpu: "4", memory: "8Gi"}
+    limits: {cpu: "8", memory: "16Gi"}
+
+missingApi:
+  enabled: true
+  replicas: 3
+  image: sniside-missing-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+vehicleApi:
+  enabled: true
+  replicas: 3
+  image: sniside-vehicle-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+alprIngest:
+  enabled: true
+  replicas: 10
+  minReplicas: 5
+  maxReplicas: 50
+  image: sniside-alpr-ingest
+  resources:
+    requests: {cpu: "4", memory: "8Gi"}
+    limits: {cpu: "8", memory: "16Gi"}
+
+firearmApi:
+  enabled: true
+  replicas: 2
+  image: sniside-firearm-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+borderApi:
+  enabled: true
+  replicas: 3
+  image: sniside-border-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+narcoticsApi:
+  enabled: true
+  replicas: 2
+  image: sniside-narcotics-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+financialApi:
+  enabled: true
+  replicas: 3
+  image: sniside-financial-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+cyberApi:
+  enabled: true
+  replicas: 3
+  image: sniside-cyber-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+watchlistApi:
+  enabled: true
+  replicas: 3
+  image: sniside-watchlist-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+documentApi:
+  enabled: true
+  replicas: 2
+  image: sniside-document-api
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+
+geointApi:
+  enabled: true
+  replicas: 2
+  image: sniside-geoint-api
+  resources:
+    requests: {cpu: "4", memory: "8Gi"}
+
+evidenceApi:
+  enabled: true
+  replicas: 3
+  image: sniside-evidence-api
+  resources:
+    requests: {cpu: "4", memory: "8Gi"}
+
+searchEngine:
+  enabled: true
+  replicas: 5
+  minReplicas: 3
+  maxReplicas: 20
+  image: sniside-search-engine
+  resources:
+    requests: {cpu: "4", memory: "8Gi"}
+    limits: {cpu: "8", memory: "16Gi"}
+
+aiFusion:
+  enabled: true
+  replicas: 3
+  minReplicas: 3
+  maxReplicas: 10
+  gpu: true
+  gpuCount: 2
+  image: sniside-ai-fusion
+  resources:
+    requests: {cpu: "8", memory: "16Gi"}
+    limits: {cpu: "16", memory: "32Gi"}
+
+eventProcessor:
+  enabled: true
+  replicas: 3
+  image: sniside-event-processor
+  resources:
+    requests: {cpu: "4", memory: "8Gi"}
+    limits: {cpu: "8", memory: "16Gi"}
+  config:
+    kafkaGroupId: sniside-event-processor
+    metricsPort: 9102
+    correlationWindowMs: 300000
+    minAlertsForCorrelation: 3
+
+graphragEngine:
+  enabled: true
+  replicas: 3
+  gpu: true
+  image: sniside-graphrag-engine
+  resources:
+    requests: {cpu: "4", memory: "8Gi"}
+    limits: {cpu: "8", memory: "16Gi"}
+  config:
+    llmEndpoint: http://ollama:11434
+    llmModel: mistral:7b-instruct-v0.3-q4_K_M
+    metricsPort: 9103
+    kafkaGroupId: sniside-graphrag
+
+kongGateway:
+  enabled: true
+  replicas: 3
+  image: kong:3.7
+  resources:
+    requests: {cpu: "2", memory: "2Gi"}
+    limits: {cpu: "4", memory: "4Gi"}
+  admin:
+    enabled: false
+  proxy:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+# ============================================================
+# Neo4j — Managed externally in production
+# ============================================================
+neo4j:
+  enabled: true
+  image: neo4j:5-enterprise
+  coreNodes: 3
+  readReplicas: 2
+  resources:
+    requests: {cpu: "8", memory: "32Gi"}
+    limits: {cpu: "16", memory: "64Gi"}
+  persistence:
+    size: 2Ti
+  config:
+    dbms.memory.heap.initial_size: "16G"
+    dbms.memory.heap.max_size: "32G"
+    dbms.memory.pagecache.size: "16G"
+    dbms.tx_state.max_off_heap_memory: "8G"
+  plugins:
+    - apoc
+    - graph-data-science
+
+# ============================================================
+# Milvus
+# ============================================================
+milvus:
+  enabled: true
+  mode: cluster
+  proxy:
+    replicas: 3
+  indexNode:
+    replicas: 3
+  queryNode:
+    replicas: 5
+  dataNode:
+    replicas: 3
+  resources:
+    requests: {cpu: "4", memory: "16Gi"}
+    limits: {cpu: "8", memory: "32Gi"}
+  persistence:
+    size: 500Gi
+
+# ============================================================
+# ClickHouse
+# ============================================================
+clickhouse:
+  enabled: true
+  replicas: 3
+  resources:
+    requests: {cpu: "4", memory: "16Gi"}
+    limits: {cpu: "8", memory: "32Gi"}
+  persistence:
+    size: 1Ti
+
+# ============================================================
+# Security
+# ============================================================
+vault:
+  enabled: true
+  replicas: 3
+  persistence:
+    size: 10Gi
+  ha:
+    enabled: true
+    replicas: 3
+
+spire:
+  enabled: true
+  server:
+    replicas: 3
+  agent:
+    replicas: 5
+
+opa:
+  enabled: true
+  replicas: 3
+
+istio:
+  enabled: true
+  mtls: true
+  ingressGateway:
+    replicas: 3
+
+cilium:
+  enabled: true
+
+# ============================================================
+# Advanced Systems
+# ============================================================
+advancedSystems:
+  fusionCenter:
+    enabled: true
+    replicas: 3
+  rtcc:
+    enabled: true
+    replicas: 3
+  ntip:
+    enabled: true
+    replicas: 2
+  childProtection:
+    enabled: true
+    replicas: 2
+  dvi:
+    enabled: true
+    replicas: 2
+  crisisManagement:
+    enabled: true
+    replicas: 2
+  counterTerrorism:
+    enabled: true
+    replicas: 3
+  maritimeSurveillance:
+    enabled: true
+    replicas: 2
+
+# ============================================================
+# Observability
+# ============================================================
+observability:
+  loki:
+    enabled: true
+    replicas: 3
+    persistence:
+      size: 100Gi
+  tempo:
+    enabled: true
+    replicas: 3
+    persistence:
+      size: 50Gi
+  otelCollector:
+    enabled: true
+    replicas: 3
+  alertmanager:
+    enabled: true
+    replicas: 2
+
+# ============================================================
+# ETL Jobs
+# ============================================================
+etl:
+  image: sniside-etl
+  resources:
+    requests: {cpu: "2", memory: "4Gi"}
+    limits: {cpu: "4", memory: "8Gi"}
+  jobs:
+    ncidMigration:
+      enabled: false
+    alprBulkImport:
+      enabled: false
+    fullMigration:
+      enabled: false

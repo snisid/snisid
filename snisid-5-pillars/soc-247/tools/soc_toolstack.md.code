@@ -1,0 +1,308 @@
+# STACK TECHNOLOGIQUE SOC SNISID
+
+## SIEM (Security Information and Event Management)
+
+### Solution Principale: Wazuh + Elasticsearch Stack
+
+```yaml
+siem_architecture:
+  wazuh_manager:
+    instances: 3  # Cluster haute disponibilité
+    eps_capacity: "50,000 événements/seconde"
+    
+  elasticsearch_cluster:
+    master_nodes: 3
+    data_nodes: 12
+    ingest_nodes: 3
+    total_storage: "2 PB (hot+warm+cold architecture)"
+    retention:
+      hot_storage: "7 jours (NVMe SSD)"
+      warm_storage: "30 jours (SSD)"
+      cold_storage: "365 jours (HDD)"
+      
+  kibana_dashboards:
+    custom_dashboards: 25
+    real_time_views: 15
+    compliance_reports: 10
+    
+  log_sources_integrated:
+    operating_systems:
+      - "Linux (auditd, syslog)"
+      - "Windows (Event Log, Sysmon)"
+    network_devices:
+      - "Firewalls (Palo Alto, Fortinet)"
+      - "Switches (Cisco, Arista)"
+      - "Load balancers"
+    applications:
+      - "Web servers (Apache, Nginx)"
+      - "Databases (PostgreSQL, MongoDB)"
+      - "SNISID microservices"
+    security_tools:
+      - "IDS/IPS (Suricata)"
+      - "EDR (Wazuh agents)"
+      - "HSM audit logs"
+      - "Physical access systems"
+```
+
+### Règles de Détection Customisées
+
+```yaml
+custom_rules_snisid:
+  # Détection accès anormal aux données biométriques
+  - rule_id: "SNISID-001"
+    description: "Accès massif templates biométriques"
+    severity: "Critical"
+    query: >
+      event.dataset:biometric AND 
+      event.action:query AND 
+      biometric.records_accessed:>1000
+      
+  # Détection tentative contournement authentification MFA
+  - rule_id: "SNISID-002"
+    description: "Échecs MFA multiples même utilisateur"
+    severity: "High"
+    query: >
+      event.category:authentication AND 
+      event.outcome:failure AND 
+      mfa.challenge_failed:>5
+      
+  # Détection export non autorisé données citoyens
+  - rule_id: "SNISID-003"
+    description: "Export données hors périmètre autorisé"
+    severity: "Critical"
+    query: >
+      event.action:data_export AND 
+      NOT destination.ip:(10.0.0.0/8 OR 172.16.0.0/12)
+      
+  # Détection activité HSM anormale
+  - rule_id: "SNISID-004"
+    description: "Opération cryptographique hors horaires"
+    severity: "High"
+    query: >
+      event.dataset:hsm_audit AND 
+      NOT @timestamp:[06:00 TO 22:00]
+```
+
+## SOAR (Security Orchestration, Automation and Response)
+
+### Solution: Shuffle + Playbooks Custom
+
+```yaml
+soar_configuration:
+  platform: "Shuffle Open Source"
+  integrations:
+    - "Wazuh (SIEM)"
+    - "TheHive (Case Management)"
+    - "MISP (Threat Intelligence)"
+    - "Slack/Teams (Communication)"
+    - "Email (Notifications)"
+    - "Firewall APIs (Containment)"
+    
+  automated_playbooks:
+    playbook_phishing_response:
+      trigger: "Alerte phishing confirmé"
+      steps:
+        - "Isoler URL malveillante dans sandbox"
+        - "Extraire IOCs (URLs, hashes, IPs)"
+        - "Bloquer URLs dans proxy/firewall"
+        - "Identifier utilisateurs ayant cliqué"
+        - "Envoyer notification aux utilisateurs"
+        - "Créer ticket TheHive automatiquement"
+        - "Notifier équipe SOC"
+      execution_time: "< 2 minutes"
+      
+    playbook_brute_force:
+      trigger: "Détection brute force SSH/RDP"
+      steps:
+        - "Identifier IP source attaque"
+        - "Compter échecs authentication"
+        - "Si seuil >100: bloquer IP firewall"
+        - "Vérifier si compte compromis"
+        - "Forcer reset mot de passe si besoin"
+        - "Documenter incident"
+      execution_time: "< 5 minutes"
+      
+    playbook_malware_detection:
+      trigger: "EDR détecte malware"
+      steps:
+        - "Isoler host réseau automatiquement"
+        - "Capturer mémoire et processus"
+        - "Soumettre échantillon sandbox"
+        - "Rechercher IOC sur autres hosts"
+        - "Créer ticket forensique"
+        - "Notifier Tier 2/3"
+      execution_time: "< 3 minutes"
+```
+
+## Threat Intelligence Platform
+
+### Solution: MISP + OpenCTI
+
+```yaml
+threat_intelligence_stack:
+  misp_instance:
+    purpose: "Partage IOCs et analyses"
+    feeds_subscribed:
+      - "AlienVault OTX"
+      - "Abuse.ch"
+      - "CISA Known Exploited Vulnerabilities"
+      - "MITRE ATT&CK"
+      - "Feeds gouvernements alliés (partenariats)"
+      
+  opencti_instance:
+    purpose: "Plateforme connaissance menaces"
+    features:
+      - "Graph visualization APT campaigns"
+      - "Correlation automatisée IOCs"
+      - "Production rapports TI"
+      - "Integration SIEM/SOAR"
+      
+  internal_intelligence:
+    sources:
+      - "Incidents SNISID historiques"
+      - "Analyses malware internes"
+      - "Honeypots dédiés"
+      - "Darkweb monitoring (sous-traitance)"
+      
+  dissemination:
+    daily_bulletin: "Résumé menaces 24h"
+    weekly_report: "Analyse tendances semaine"
+    monthly_assessment: "Évaluation menace mensuelle"
+    flash_alerts: "Urgent (SEV1 uniquement)"
+```
+
+## Network Security Monitoring
+
+### Solution: Suricata + Zeek + Arkime
+
+```yaml
+nsm_stack:
+  suricata_ids_ips:
+    deployment: "TAP ports sur switches coeur"
+    throughput: "100 Gbps agrégés"
+    rulesets:
+      - "Emerging Threats Pro"
+      - "Snort VRT"
+      - "Règles custom SNISID"
+    actions:
+      - "Alert logging"
+      - "IPS blocking (mode learning puis actif)"
+      - "File extraction pour analyse"
+      
+  zeek_network_analysis:
+    purpose: "Analyse comportementale réseau"
+    logs_generated:
+      - "conn.log (connections TCP/UDP)"
+      - "http.log (transactions HTTP)"
+      - "dns.log (requêtes DNS)"
+      - "ssl.log (handshakes TLS)"
+      - "files.log (fichiers transférés)"
+      
+  arkime_packet_capture:
+    purpose: "Capture et recherche PCAP"
+    retention: "30 jours full PCAP"
+    storage_required: "~500 TB"
+    features:
+      - "Recherche full-text dans packets"
+      - "Extraction fichiers automatique"
+      - "Session reconstruction"
+      - "Integration Wazuh/Kibana"
+```
+
+## Endpoint Detection and Response (EDR)
+
+### Solution: Wazuh Agents + Osquery
+
+```yaml
+edr_deployment:
+  wazuh_agents:
+    coverage: "100% des endpoints SNISID"
+    estimated_agents: 2000
+    capabilities:
+      - "File integrity monitoring"
+      - "Rootkit detection"
+      - "Vulnerability detection"
+      - "Active response (block processes)"
+      - "Command execution remote"
+      
+  osquery_fleet:
+    purpose: "Query SQL sur endpoints"
+    scheduled_queries:
+      - "Processus démarrages récents"
+      - "Connections réseau établies"
+      - "Fichiers modifiés System32"
+      - "Tâches planifiées suspectes"
+      - "Extensions navigateur installées"
+      
+  agent_hardening:
+    tamper_protection: "Activé"
+    uninstall_password: "Obligatoire"
+    communication_encryption: "TLS 1.3 mutual"
+    heartbeat_interval: "60 secondes"
+```
+
+## Case Management
+
+### Solution: TheHive + Cortex
+
+```yaml
+case_management:
+  thehive_instance:
+    purpose: "Gestion incidents et investigations"
+    features:
+      - "Création tickets structurés"
+      - "Assignment analystes"
+      - "Timeline investigation collaborative"
+      - "Attachement preuves"
+      - "Génération rapports"
+      
+  cortex_analyzers:
+    automated_analyzers: 50
+    examples:
+      - "VirusTotal file/IP/hash lookup"
+      - "Whois domain registration"
+      - "Geolocation IP addresses"
+      - "Malware sandbox submission"
+      - "Password breach checking"
+      
+  workflows:
+    incident_lifecycle:
+      - "New → In Progress → Pending → Resolved → Closed"
+    sla_tracking:
+      - "Alerte temps réponse par sévérité"
+      - "Escalation automatique si dépassement"
+```
+
+## Infrastructure SOC
+
+```yaml
+soc_workstations:
+  analyst_tier1_tier2:
+    model: "Dell Precision 5820 Tower"
+    specs:
+      cpu: "Intel Xeon W-2255 (10 cores)"
+      ram: "64 GB DDR4 ECC"
+      gpu: "NVIDIA RTX A4000"
+      storage: "1 TB NVMe SSD + 4 TB HDD"
+      monitors: "3x 27 pouces 4K"
+      os: "SNISID-OS hardened"
+      
+  analyst_tier3_forensics:
+    model: "Dell Precision 7920 Tower"
+    specs:
+      cpu: "Dual Intel Xeon Gold 6248R (48 cores)"
+      ram: "256 GB DDR4 ECC"
+      gpu: "NVIDIA RTX A6000"
+      storage: "2 TB NVMe SSD + 8 TB HDD + 16 TB DAS"
+      monitors: "4x 32 pouces 4K"
+      os: "SNISID-OS + outils forensiques"
+      
+  network_requirements:
+    bandwidth_per_workstation: "1 Gbps garanti"
+    latency_to_siem: "< 10 ms"
+    vpn_backup: "Connexion satellite Starlink backup"
+```
+
+---
+*Documentation technique SOC - Niveau Confidentiel*
+*SNISID - République d'Haïti*

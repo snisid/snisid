@@ -1,0 +1,428 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-sigint-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/sigint-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-humint-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/humint-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-air-defense-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/air-defense-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-mil-c2-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/mil-c2-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-bio-surveillance-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/bio-surveillance-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-executive-protection-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/executive-protection-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-transport-security-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/transport-security-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-radiation-safety-svc
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/radiation-safety-svc
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-all-source-fusion-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/all-source-fusion-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-counterintel-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/counterintel-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-critical-infra-protection-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/critical-infra-protection-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-fisa-court-svc
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/fisa-court-svc
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-classification-mgmt-ht
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: national-security
+spec:
+  project: snisid-national-security
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: deployments/k8s/classification-mgmt-ht
+    targetRevision: main
+  destination:
+    namespace: snisid-national-security
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

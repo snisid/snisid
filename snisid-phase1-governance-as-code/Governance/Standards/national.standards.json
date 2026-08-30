@@ -1,0 +1,23 @@
+{
+  "document": "SNISID National Standards Registry",
+  "version": "1.0.0",
+  "objective": "Éviter fragmentation.",
+  "standards": [
+    {"standard": "API Standards", "domain": "REST/gRPC", "mandatory": true, "owner": "Conseil Interopérabilité"},
+    {"standard": "Kafka Standards", "domain": "Events", "mandatory": true, "owner": "Conseil Interopérabilité"},
+    {"standard": "IAM Standards", "domain": "Auth", "mandatory": true, "owner": "Identity Operations + Cybersecurity"},
+    {"standard": "BPMN Standards", "domain": "Workflows", "mandatory": true, "owner": "National Workflow Governance Office"},
+    {"standard": "Security Standards", "domain": "Zero Trust", "mandatory": true, "owner": "Conseil Cyber National"},
+    {"standard": "Kubernetes Standards", "domain": "Infra", "mandatory": true, "owner": "Platform Ops"},
+    {"standard": "Observability Standards", "domain": "Monitoring", "mandatory": true, "owner": "NOC/SOC/SRE"}
+  ],
+  "minimum_rules": {
+    "apis": ["OpenAPI obligatoire", "mTLS pour échanges inter-agences", "OAuth2/OIDC", "rate limiting", "audit headers", "versioning sémantique"],
+    "events": ["schema registry", "event ownership", "PII minimization", "retention policy", "dead-letter queue"],
+    "iam": ["MFA", "RBAC/ABAC", "PAM", "least privilege", "quarterly access review"],
+    "bpmn": ["BPMN 2.0", "owner métier", "SLA", "audit events", "rollback plan"],
+    "security": ["Zero Trust", "segmentation", "encryption in transit/at rest", "secrets management", "vulnerability management"],
+    "kubernetes": ["network policies", "pod security", "admission control", "image signing", "runtime monitoring"],
+    "observability": ["metrics", "logs", "traces", "SLO/SLA", "alerting", "immutable audit logs"]
+  }
+}

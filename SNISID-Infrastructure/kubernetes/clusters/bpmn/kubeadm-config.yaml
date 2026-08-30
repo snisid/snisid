@@ -1,0 +1,122 @@
+# SNISID — kubeadm configuration : BPMN Cluster (Tier-1)
+# Classification: RESTREINT DEFENSE
+# Role: Bootstrap HA control plane BPMN / Workflow Engine (Camunda/Zeebe)
+# Isolation: VLAN 30, processus nationaux métier, ségrégation workflows sensibles
+
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "10.1.30.21"
+  bindPort: 6443
+nodeRegistration:
+  name: "core-prod-t1-bpmn-master-01"
+  criSocket: "unix:///run/containerd/containerd.sock"
+  kubeletExtraArgs:
+    node-ip: "10.1.30.21"
+    eviction-hard: "memory.available<500Mi,nodefs.available<10%"
+    eviction-soft: "memory.available<1Gi,nodefs.available<15%"
+    eviction-soft-grace-period: "memory.available=2m,nodefs.available=2m"
+    protect-kernel-defaults: "true"
+    read-only-port: "0"
+    tls-cipher-suites: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+  taints:
+    - key: node-role.kubernetes.io/control-plane
+      value: "true"
+      effect: NoSchedule
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: "v1.28.6"
+controlPlaneEndpoint: "api.bpmn.snisid.gouv.local:6443"
+clusterName: "snisid-bpmn-prod"
+networking:
+  serviceSubnet: "10.99.0.0/12"
+  podSubnet: "10.247.0.0/16"
+  dnsDomain: "bpmn.cluster.local"
+apiServer:
+  timeoutForControlPlane: 4m0s
+  extraArgs:
+    authorization-mode: "Node,RBAC"
+    enable-admission-plugins: "NodeRestriction,PodSecurityPolicy,ResourceQuota,LimitRanger"
+    audit-log-path: "/var/log/kubernetes/audit.log"
+    audit-log-maxage: "30"
+    audit-log-maxbackup: "10"
+    audit-log-maxsize: "100"
+    audit-policy-file: "/etc/kubernetes/audit-policy-bpmn.yaml"
+    tls-cipher-suites: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+    request-timeout: "300s"
+    service-account-lookup: "true"
+  extraVolumes:
+    - name: audit-log
+      hostPath: "/var/log/kubernetes"
+      mountPath: "/var/log/kubernetes"
+      pathType: DirectoryOrCreate
+    - name: audit-policy
+      hostPath: "/etc/kubernetes/audit-policy-bpmn.yaml"
+      mountPath: "/etc/kubernetes/audit-policy-bpmn.yaml"
+      readOnly: true
+      pathType: File
+  certSANs:
+    - "api.bpmn.snisid.gouv.local"
+    - "10.1.30.21"
+    - "10.1.30.22"
+    - "10.1.30.23"
+    - "127.0.0.1"
+scheduler:
+  extraArgs:
+    bind-address: "127.0.0.1"
+controllerManager:
+  extraArgs:
+    bind-address: "127.0.0.1"
+    terminated-pod-gc-threshold: "50"
+    profiling: "false"
+    use-service-account-credentials: "true"
+etcd:
+  local:
+    dataDir: "/var/lib/etcd"
+    extraArgs:
+      cipher-suites: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+      client-cert-auth: "true"
+      peer-client-cert-auth: "true"
+      auto-tls: "false"
+      peer-auto-tls: "false"
+    peerCertSANs:
+      - "core-prod-t1-bpmn-master-01"
+      - "10.1.30.21"
+      - "core-prod-t1-bpmn-master-02"
+      - "10.1.30.22"
+      - "core-prod-t1-bpmn-master-03"
+      - "10.1.30.23"
+    serverCertSANs:
+      - "core-prod-t1-bpmn-master-01"
+      - "10.1.30.21"
+      - "core-prod-t1-bpmn-master-02"
+      - "10.1.30.22"
+      - "core-prod-t1-bpmn-master-03"
+      - "10.1.30.23"
+      - "127.0.0.1"
+certificatesDir: "/etc/kubernetes/pki"
+imageRepository: "registry.interne.snisid.gouv.local/k8s.gcr.io"
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+protectKernelDefaults: true
+readOnlyPort: 0
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "/etc/kubernetes/pki/ca.crt"
+authorization:
+  mode: Webhook
+streamingConnectionIdleTimeout: "5m"
+makeIPTablesUtilChains: true
+eventRecordQPS: 0
+tlsCipherSuites:
+  - "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+  - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+  - "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+  - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"

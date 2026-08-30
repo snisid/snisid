@@ -1,0 +1,12 @@
+﻿node_modules
+dist
+.git
+tmp
+mcp/logs
+.env
+.env.*
+coverage
+.cache
+npm-debug.log
+Dockerfile
+docker-compose.override.yml

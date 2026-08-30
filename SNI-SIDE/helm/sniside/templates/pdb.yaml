@@ -1,0 +1,24 @@
+{{- $root := . -}}
+{{- range $svc := list "ncid-api" "biometrics-api" "codis-api" "search-engine" "ai-fusion" "event-processor" "graphrag-engine" "alpr-ingest" }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-{{ $svc }}
+  namespace: sniside
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $svc }}
+{{- end }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-neo4j
+  namespace: sniside
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: neo4j

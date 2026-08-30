@@ -1,0 +1,1501 @@
+openapi: 3.0.3
+info:
+  title: SNI-SIDE National Intelligence API
+  description: SNISID National Intelligence, Security, Investigation and Sovereign Data Ecosystem
+  version: 1.0.0
+  contact:
+    name: SNISID Architecture Team
+
+servers:
+  - url: https://api.snisid.ht/intelligence/v1
+    description: Production
+  - url: https://api.snisid.sandbox.ht/intelligence/v1
+    description: Sandbox
+
+security:
+  - BearerAuth: []
+  - mTLS: []
+
+paths:
+  # ============ NCID — Criminal Intelligence ============
+  /ncid/wanted-persons:
+    get:
+      summary: Search wanted persons
+      operationId: searchWantedPersons
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: alias
+          in: query
+          schema: { type: string }
+        - name: niu
+          in: query
+          schema: { type: string }
+        - name: nationality
+          in: query
+          schema: { type: string }
+        - name: risk_level
+          in: query
+          schema: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] }
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, CAPTURED, DECEASED, INACTIVE] }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: Wanted persons list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/WantedPerson' } }
+                  total: { type: integer }
+                  page: { type: integer }
+    post:
+      summary: Create wanted person
+      operationId: createWantedPerson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WantedPersonCreate' }
+      responses:
+        '201':
+          description: Created
+
+  /ncid/wanted-persons/{niu}:
+    get:
+      summary: Get wanted person by NIU
+      operationId: getWantedPerson
+      parameters:
+        - name: niu
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Wanted person details
+
+  /ncid/wanted-persons/{niu}/warrants:
+    get:
+      summary: Get warrants for person
+      operationId: getPersonWarrants
+      parameters:
+        - name: niu
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Arrest warrants list
+
+  /ncid/wanted-persons/{niu}/aliases:
+    get:
+      summary: Get aliases for person
+      operationId: getPersonAliases
+      parameters:
+        - name: niu
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Aliases list
+
+  /ncid/cases:
+    get:
+      summary: Search criminal cases
+      operationId: searchCriminalCases
+      parameters:
+        - name: case_number
+          in: query
+          schema: { type: string }
+        - name: case_type
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [OPEN, UNDER_INVESTIGATION, CLOSED, COLD] }
+        - name: agency
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Criminal cases list
+
+  /ncid/cases/{caseId}:
+    get:
+      summary: Get case details
+      operationId: getCriminalCase
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Case details
+
+  /ncid/gangs:
+    get:
+      summary: Search gangs
+      operationId: searchGangs
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: territory
+          in: query
+          schema: { type: string }
+        - name: risk_level
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Gangs list
+
+  /ncid/organizations:
+    get:
+      summary: Search criminal organizations
+      operationId: searchCriminalOrganizations
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: country
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Organizations list
+
+  /ncid/interpol-notices:
+    get:
+      summary: Search Interpol notices
+      operationId: searchInterpolNotices
+      parameters:
+        - name: notice_type
+          in: query
+          schema: { type: string, enum: [RED, BLUE, GREEN, YELLOW, BLACK, ORANGE, PURPLE] }
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: nationality
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, WITHDRAWN, EXECUTED] }
+      responses:
+        '200':
+          description: Interpol notices list
+
+  # ============ HN-NGI — Biometrics ============
+  /biometrics/verify:
+    post:
+      summary: 1:1 Biometric verification
+      operationId: verifyBiometric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                niu: { type: string }
+                biometric_type: { type: string, enum: [FACE, FINGERPRINT, IRIS, VOICE, PALM] }
+                template_data: { type: string }
+      responses:
+        '200':
+          description: Verification result
+
+  /biometrics/identify:
+    post:
+      summary: 1:N Biometric identification
+      operationId: identifyBiometric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                biometric_type: { type: string, enum: [FACE, FINGERPRINT, IRIS, VOICE, PALM] }
+                template_data: { type: string }
+                gallery_id: { type: string }
+                max_candidates: { type: integer, default: 10 }
+                threshold: { type: number, default: 0.6 }
+      responses:
+        '200':
+          description: Identification candidates
+
+  /biometrics/search/face:
+    post:
+      summary: Face search
+      operationId: searchFace
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                image: { type: string, format: byte }
+                min_confidence: { type: number, default: 0.7 }
+                max_results: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Face search results
+
+  /biometrics/search/fingerprint:
+    post:
+      summary: Fingerprint search
+      operationId: searchFingerprint
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image: { type: string, format: binary }
+                finger_position: { type: string }
+      responses:
+        '200':
+          description: Fingerprint search results
+
+  /biometrics/duplicate-detection:
+    post:
+      summary: Run duplicate detection
+      operationId: detectDuplicates
+      parameters:
+        - name: biometric_type
+          in: query
+          schema: { type: string }
+        - name: threshold
+          in: query
+          schema: { type: number, default: 0.85 }
+      responses:
+        '200':
+          description: Duplicate detection results
+
+  # ============ HN-CODIS — DNA ============
+  /codis/profiles:
+    get:
+      summary: Search DNA profiles
+      operationId: searchDNAProfiles
+      parameters:
+        - name: profile_type
+          in: query
+          schema: { type: string, enum: [CRIMINAL, CRIME_SCENE, MISSING_PERSON, HUMAN_REMAINS, FAMILIAL] }
+        - name: sample_id
+          in: query
+          schema: { type: string }
+        - name: niu
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: DNA profiles list
+
+  /codis/search/exact:
+    post:
+      summary: Exact DNA search
+      operationId: searchDNAExact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                alleles: { type: array, items: { type: string } }
+                locus_set: { type: object }
+                min_confidence: { type: number, default: 0.999 }
+      responses:
+        '200':
+          description: DNA match results
+
+  /codis/search/familial:
+    post:
+      summary: Familial DNA search
+      operationId: searchDNAFamilial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile_id: { type: string, format: uuid }
+                relationship: { type: string, enum: [PARENT, CHILD, SIBLING, COUSIN, GRANDPARENT] }
+                min_threshold: { type: number, default: 0.5 }
+      responses:
+        '200':
+          description: Familial DNA search results
+
+  /codis/search/missing-person:
+    post:
+      summary: Missing person DNA search
+      operationId: searchMissingPersonDNA
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Missing person DNA results
+
+  # ============ MISSING PERSONS ============
+  /missing-persons:
+    get:
+      summary: Search missing persons
+      operationId: searchMissingPersons
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: case_type
+          in: query
+          schema: { type: string, enum: [CHILD, ADULT, KIDNAPPING, TRAFFICKING] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: risk_level
+          in: query
+          schema: { type: string }
+        - name: last_seen_location
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Missing persons list
+
+  /missing-persons/{missingId}:
+    get:
+      summary: Get missing person details
+      operationId: getMissingPerson
+      parameters:
+        - name: missingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Missing person details
+
+  /missing-persons/{missingId}/sightings:
+    get:
+      summary: Get sightings for missing person
+      operationId: getSightings
+      parameters:
+        - name: missingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Sightings list
+
+  /missing-persons/{missingId}/alert:
+    post:
+      summary: Trigger AMBER/SILVER alert
+      operationId: triggerMissingAlert
+      parameters:
+        - name: missingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                alert_type: { type: string, enum: [AMBER, SILVER, CLEAR, NATIONAL] }
+                channels: { type: array, items: { type: string } }
+      responses:
+        '200':
+          description: Alert triggered
+
+  # ============ VEHICLE INTELLIGENCE ============
+  /vehicles:
+    get:
+      summary: Search vehicles
+      operationId: searchVehicles
+      parameters:
+        - name: vin
+          in: query
+          schema: { type: string }
+        - name: plate
+          in: query
+          schema: { type: string }
+        - name: owner_niu
+          in: query
+          schema: { type: string }
+        - name: make
+          in: query
+          schema: { type: string }
+        - name: model
+          in: query
+          schema: { type: string }
+        - name: year
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [REGISTERED, STOLEN, WANTED, SUSPENDED] }
+      responses:
+        '200':
+          description: Vehicles list
+
+  /vehicles/{vin}:
+    get:
+      summary: Get vehicle by VIN
+      operationId: getVehicle
+      parameters:
+        - name: vin
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Vehicle details
+
+  /vehicles/{vin}/ownership-history:
+    get:
+      summary: Get ownership history
+      operationId: getOwnershipHistory
+      parameters:
+        - name: vin
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Ownership history
+
+  /vehicles/{vin}/network:
+    get:
+      summary: Vehicle network analysis
+      operationId: getVehicleNetwork
+      parameters:
+        - name: vin
+          in: path
+          required: true
+          schema: { type: string }
+        - name: depth
+          in: query
+          schema: { type: integer, default: 2 }
+      responses:
+        '200':
+          description: Vehicle network graph
+
+  # ============ ALPR ============
+  /alpr/reads:
+    get:
+      summary: Search ALPR reads
+      operationId: searchALPRReads
+      parameters:
+        - name: plate
+          in: query
+          schema: { type: string }
+        - name: camera_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: country
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: ALPR reads list
+
+  /alpr/reads/{readId}:
+    get:
+      summary: Get ALPR read details
+      operationId: getALPRRead
+      parameters:
+        - name: readId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: ALPR read details
+
+  /alpr/route-analysis:
+    post:
+      summary: Analyze vehicle route
+      operationId: analyzeRoute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                plate: { type: string }
+                date_from: { type: string, format: date-time }
+                date_to: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Route analysis
+
+  /alpr/heatmap:
+    get:
+      summary: Get ALPR heatmap data
+      operationId: getALPRHeatmap
+      parameters:
+        - name: department
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+        - name: granularity
+          in: query
+          schema: { type: string, enum: [HOUR, DAY, WEEK], default: DAY }
+      responses:
+        '200':
+          description: Heatmap data
+
+  /alpr/cross-border:
+    get:
+      summary: Get cross-border tracking
+      operationId: getCrossBorderTracking
+      parameters:
+        - name: plate
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Cross-border tracking
+
+  # ============ FIREARMS ============
+  /firearms:
+    get:
+      summary: Search firearms
+      operationId: searchFirearms
+      parameters:
+        - name: serial
+          in: query
+          schema: { type: string }
+        - name: make
+          in: query
+          schema: { type: string }
+        - name: caliber
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Firearms list
+
+  /firearms/{serial}:
+    get:
+      summary: Get firearm details
+      operationId: getFirearm
+      parameters:
+        - name: serial
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Firearm details
+
+  /firearms/ballistic/search:
+    post:
+      summary: Ballistic evidence search
+      operationId: searchBallistic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                caliber: { type: string }
+                lands_grooves: { type: integer }
+                twist_direction: { type: string }
+                firing_pin_impression: { type: string }
+      responses:
+        '200':
+          description: Ballistic match results
+
+  # ============ BORDER INTELLIGENCE ============
+  /border/crossings:
+    get:
+      summary: Search border crossings
+      operationId: searchBorderCrossings
+      parameters:
+        - name: passport
+          in: query
+          schema: { type: string }
+        - name: niu
+          in: query
+          schema: { type: string }
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: direction
+          in: query
+          schema: { type: string, enum: [ENTRY, EXIT] }
+        - name: border_point
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+        - name: risk_score_min
+          in: query
+          schema: { type: number, default: 0 }
+      responses:
+        '200':
+          description: Border crossings list
+
+  /border/traveler/{passport}:
+    get:
+      summary: Get traveler history
+      operationId: getTravelerHistory
+      parameters:
+        - name: passport
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Traveler history
+
+  /border/biometric-search:
+    post:
+      summary: Biometric border search
+      operationId: biometricBorderSearch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                image: { type: string, format: byte }
+                biometric_type: { type: string, enum: [FACE, FINGERPRINT] }
+      responses:
+        '200':
+          description: Border biometric match results
+
+  # ============ COUNTER NARCOTICS ============
+  /narcotics/routes:
+    get:
+      summary: Search narcotics routes
+      operationId: searchNarcoticsRoutes
+      parameters:
+        - name: origin
+          in: query
+          schema: { type: string }
+        - name: destination
+          in: query
+          schema: { type: string }
+        - name: drug_type
+          in: query
+          schema: { type: string }
+        - name: risk_level
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Routes list
+
+  /narcotics/seizures:
+    get:
+      summary: Search seizures
+      operationId: searchSeizures
+      parameters:
+        - name: drug_type
+          in: query
+          schema: { type: string }
+        - name: agency
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Seizures list
+
+  /narcotics/vessels:
+    get:
+      summary: Search vessels
+      operationId: searchNarcoticsVessels
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: imo
+          in: query
+          schema: { type: string }
+        - name: flag
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Vessels list
+
+  /narcotics/cartels:
+    get:
+      summary: Search cartels
+      operationId: searchCartels
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: country
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Cartels list
+
+  # ============ FINANCIAL CRIME ============
+  /financial/transactions:
+    get:
+      summary: Search suspicious transactions
+      operationId: searchTransactions
+      parameters:
+        - name: sender
+          in: query
+          schema: { type: string }
+        - name: beneficiary
+          in: query
+          schema: { type: string }
+        - name: min_amount
+          in: query
+          schema: { type: number }
+        - name: max_amount
+          in: query
+          schema: { type: number }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+        - name: risk_score_min
+          in: query
+          schema: { type: number, default: 0.5 }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Transactions list
+
+  /financial/aml/search:
+    post:
+      summary: AML search
+      operationId: amlSearch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entity_name: { type: string }
+                entity_niu: { type: string }
+                entity_type: { type: string, enum: [PERSON, COMPANY] }
+      responses:
+        '200':
+          description: AML search results
+
+  /financial/beneficial-owners:
+    get:
+      summary: Search beneficial owners
+      operationId: searchBeneficialOwners
+      parameters:
+        - name: niu
+          in: query
+          schema: { type: string }
+        - name: entity_name
+          in: query
+          schema: { type: string }
+        - name: country
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Beneficial owners list
+
+  /financial/pep:
+    get:
+      summary: Search PEPs
+      operationId: searchPEPs
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: country
+          in: query
+          schema: { type: string }
+        - name: position
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: PEPs list
+
+  # ============ CYBERCRIME ============
+  /cyber/iocs:
+    get:
+      summary: Search IOCs
+      operationId: searchIOCs
+      parameters:
+        - name: value
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string, enum: [IPV4, IPV6, DOMAIN, URL, MD5, SHA1, SHA256, EMAIL] }
+        - name: severity
+          in: query
+          schema: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] }
+        - name: malware_family
+          in: query
+          schema: { type: string }
+        - name: threat_actor
+          in: query
+          schema: { type: string }
+        - name: tlp
+          in: query
+          schema: { type: string, enum: [RED, AMBER, GREEN, WHITE] }
+      responses:
+        '200':
+          description: IOCs list
+
+  /cyber/iocs/bulk:
+    post:
+      summary: Bulk IOC submission
+      operationId: bulkSubmitIOCs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                iocs: { type: array, items: { $ref: '#/components/schemas/IOC' } }
+      responses:
+        '201':
+          description: IOCs submitted
+
+  /cyber/threat-actors:
+    get:
+      summary: Search threat actors
+      operationId: searchThreatActors
+      parameters:
+        - name: name
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: country
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Threat actors list
+
+  /cyber/wallets:
+    get:
+      summary: Search crypto wallets
+      operationId: searchCryptoWallets
+      parameters:
+        - name: address
+          in: query
+          schema: { type: string }
+        - name: blockchain
+          in: query
+          schema: { type: string }
+        - name: wallet_type
+          in: query
+          schema: { type: string, enum: [EXCHANGE, MIXER, DARKNET_MARKET, SCAM, RANSOMWARE] }
+        - name: risk_score_min
+          in: query
+          schema: { type: number, default: 0.5 }
+      responses:
+        '200':
+          description: Wallets list
+
+  /cyber/incidents:
+    get:
+      summary: Search cyber incidents
+      operationId: searchCyberIncidents
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: severity
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Incidents list
+
+  # ============ WATCHLIST ============
+  /watchlist:
+    get:
+      summary: Universal watchlist search
+      operationId: searchWatchlist
+      parameters:
+        - name: value
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string, enum: [PERSON, VEHICLE, ORGANIZATION, DOCUMENT, PHONE, EMAIL] }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: risk_level
+          in: query
+          schema: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] }
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, EXPIRED] }
+      responses:
+        '200':
+          description: Watchlist entries
+
+  /watchlist/{entryId}:
+    get:
+      summary: Get watchlist entry
+      operationId: getWatchlistEntry
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Watchlist entry
+
+  /watchlist/matches:
+    get:
+      summary: Get watchlist matches
+      operationId: getWatchlistMatches
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Watchlist matches
+
+  # ============ DOCUMENT FRAUD ============
+  /documents:
+    get:
+      summary: Search documents
+      operationId: searchDocuments
+      parameters:
+        - name: document_number
+          in: query
+          schema: { type: string }
+        - name: document_type
+          in: query
+          schema: { type: string, enum: [PASSPORT, CIN, DRIVER_LICENSE, BIRTH_CERTIFICATE] }
+        - name: holder_niu
+          in: query
+          schema: { type: string }
+        - name: holder_name
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Documents list
+
+  /documents/verify:
+    post:
+      summary: Verify document authenticity
+      operationId: verifyDocument
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                document_number: { type: string }
+                document_type: { type: string }
+                mrz_data: { type: string }
+                chip_data: { type: string }
+      responses:
+        '200':
+          description: Document verification result
+
+  /documents/fraud-reports:
+    get:
+      summary: Get fraud reports
+      operationId: getFraudReports
+      parameters:
+        - name: fraud_type
+          in: query
+          schema: { type: string }
+        - name: detection_method
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Fraud reports list
+
+  # ============ GEOINT ============
+  /geoint/hotspots:
+    get:
+      summary: Get intelligence hotspots
+      operationId: getHotspots
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: risk_level
+          in: query
+          schema: { type: string }
+        - name: lat
+          in: query
+          schema: { type: number }
+        - name: lng
+          in: query
+          schema: { type: number }
+        - name: radius_km
+          in: query
+          schema: { type: number, default: 10 }
+      responses:
+        '200':
+          description: Hotspots list
+
+  /geoint/risk-zones:
+    get:
+      summary: Get risk zones
+      operationId: getRiskZones
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: department
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Risk zones
+
+  /geoint/search:
+    post:
+      summary: Geospatial intelligence search
+      operationId: geospatialSearch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                location: { type: object, properties: { lat: { type: number }, lng: { type: number } } }
+                radius_km: { type: number, default: 5 }
+                layers: { type: array, items: { type: string } }
+                date_from: { type: string, format: date }
+                date_to: { type: string, format: date }
+      responses:
+        '200':
+          description: Geospatial intelligence results
+
+  # ============ DIGITAL EVIDENCE ============
+  /evidence:
+    get:
+      summary: Search evidence
+      operationId: searchEvidence
+      parameters:
+        - name: case_number
+          in: query
+          schema: { type: string }
+        - name: evidence_type
+          in: query
+          schema: { type: string, enum: [PHOTO, VIDEO, AUDIO, CCTV, DRONE_FOOTAGE, PHONE_EXTRACT] }
+        - name: captured_by_agency
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Evidence list
+
+  /evidence/{evidenceId}:
+    get:
+      summary: Get evidence details
+      operationId: getEvidence
+      parameters:
+        - name: evidenceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Evidence details
+
+  /evidence/{evidenceId}/download:
+    get:
+      summary: Download evidence file
+      operationId: downloadEvidence
+      parameters:
+        - name: evidenceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Evidence file stream
+
+  /evidence/search/face:
+    post:
+      summary: Face search in evidence
+      operationId: searchEvidenceFaces
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                image: { type: string, format: byte }
+                min_confidence: { type: number, default: 0.7 }
+      responses:
+        '200':
+          description: Face search results
+
+  /evidence/search/object:
+    post:
+      summary: Object search in evidence
+      operationId: searchEvidenceObjects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                object_class: { type: string }
+                min_confidence: { type: number, default: 0.5 }
+      responses:
+        '200':
+          description: Object search results
+
+  /evidence/search/ocr:
+    post:
+      summary: OCR text search in evidence
+      operationId: searchEvidenceOCR
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text_query: { type: string }
+                min_confidence: { type: number, default: 0.5 }
+      responses:
+        '200':
+          description: OCR search results
+
+  /evidence/search/multimodal:
+    post:
+      summary: Multimodal search
+      operationId: multimodalSearch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query: { type: string }
+                modalities: { type: array, items: { type: string, enum: [FACE, VOICE, OBJECT, TEXT, SCENE] } }
+                limit: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Multimodal search results
+
+  # ============ NATIONAL SOVEREIGN SEARCH ENGINE ============
+  /search/unified:
+    get:
+      summary: Unified sovereign search
+      operationId: unifiedSearch
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [ALL, NAME, NIU, PHOTO, FINGERPRINT, DNA, PHONE, EMAIL, ADDRESS, PLATE, VIN, PASSPORT, CASE]
+        - name: databases
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [NCID, BIOMETRICS, CODIS, MISSING, VEHICLE, ALPR, FIREARMS, BORDER, NARCOTICS, FINANCIAL, CYBER, WATCHLIST, DOCUMENTS, GEOINT, EVIDENCE]
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: fuzzy
+          in: query
+          schema: { type: boolean, default: true }
+      responses:
+        '200':
+          description: Unified search results
+
+  /search/graph:
+    get:
+      summary: Graph intelligence search
+      operationId: graphSearch
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: niu
+          in: query
+          schema: { type: string }
+        - name: phone
+          in: query
+          schema: { type: string }
+        - name: plate
+          in: query
+          schema: { type: string }
+        - name: depth
+          in: query
+          schema: { type: integer, default: 2 }
+        - name: relationship_types
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [OWNS, USES, VISITED, ASSOCIATED_WITH, CONNECTED_TO, FINANCED_BY, WORKS_FOR, TRAVELLED_WITH, LINKED_TO]
+      responses:
+        '200':
+          description: Graph search results
+
+  # ============ ALERTS ============
+  /alerts:
+    get:
+      summary: Get alerts
+      operationId: getAlerts
+      parameters:
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [NCID, BIOMETRICS, CODIS, MISSING, VEHICLE, ALPR, FIREARMS, BORDER, NARCOTICS, FINANCIAL, CYBER, WATCHLIST, DOCUMENTS, GEOINT, EVIDENCE]
+        - name: severity
+          in: query
+          schema: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] }
+        - name: status
+          in: query
+          schema: { type: string, enum: [NEW, ACKNOWLEDGED, INVESTIGATING, RESOLVED] }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: Alerts list
+
+  /alerts/{alertId}/acknowledge:
+    post:
+      summary: Acknowledge alert
+      operationId: acknowledgeAlert
+      parameters:
+        - name: alertId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Alert acknowledged
+
+  /alerts/{alertId}/resolve:
+    post:
+      summary: Resolve alert
+      operationId: resolveAlert
+      parameters:
+        - name: alertId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resolution: { type: string }
+                action_taken: { type: string }
+      responses:
+        '200':
+          description: Alert resolved
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    mTLS:
+      type: mutualTLS
+      description: SPIFFE/SPIRE mutual TLS
+
+  schemas:
+    WantedPerson:
+      type: object
+      properties:
+        niu: { type: string }
+        full_name: { type: string }
+        alias: { type: string }
+        date_of_birth: { type: string, format: date }
+        nationality: { type: string }
+        risk_level: { type: string }
+        status: { type: string }
+        photos: { type: array, items: { type: string } }
+
+    WantedPersonCreate:
+      type: object
+      required: [full_name, niu]
+      properties:
+        niu: { type: string }
+        full_name: { type: string }
+        alias: { type: string }
+        date_of_birth: { type: string, format: date }
+        nationality: { type: string }
+        risk_level: { type: string }
+
+    IOC:
+      type: object
+      required: [ioc_value, ioc_type]
+      properties:
+        ioc_value: { type: string }
+        ioc_type:
+          type: string
+          enum: [IPV4, IPV6, DOMAIN, URL, MD5, SHA1, SHA256, EMAIL]
+        severity:
+          type: string
+          enum: [CRITICAL, HIGH, MEDIUM, LOW]
+        malware_family: { type: string }
+        threat_actor: { type: string }
+        tlp_level:
+          type: string
+          enum: [RED, AMBER, GREEN, WHITE]
+
+    UnifiedSearchResult:
+      type: object
+      properties:
+        query: { type: string }
+        total_results: { type: integer }
+        page: { type: integer }
+        results:
+          type: object
+          properties:
+            ncid: { type: array, items: { $ref: '#/components/schemas/WantedPerson' } }
+            missing_persons: { type: array, items: { } }
+            vehicles: { type: array, items: { } }
+            border_crossings: { type: array, items: { } }
+            watchlist: { type: array, items: { } }
+            evidence: { type: array, items: { } }
+        graph:
+          type: object
+          properties:
+            nodes: { type: array, items: { } }
+            edges: { type: array, items: { } }
+
+    Alert:
+      type: object
+      properties:
+        alert_id: { type: string, format: uuid }
+        source: { type: string }
+        alert_type: { type: string }
+        severity: { type: string }
+        title: { type: string }
+        description: { type: string }
+        created_at: { type: string, format: date-time }
+        status: { type: string }

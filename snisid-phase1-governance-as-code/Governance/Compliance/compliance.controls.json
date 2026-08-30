@@ -1,0 +1,14 @@
+{
+  "document": "SNISID Continuous Compliance Controls",
+  "version": "1.0.0",
+  "controls": [
+    {"id": "GOV-001", "name": "Charte nationale approuvée", "domain": "Governance", "severity": "CRITICAL", "evidence": "National SNISID Governance Charter signed"},
+    {"id": "GOV-002", "name": "RACI défini pour domaines critiques", "domain": "RACI", "severity": "CRITICAL", "evidence": "national.raci.json"},
+    {"id": "PKI-001", "name": "Root CA offline", "domain": "PKI", "severity": "SOVEREIGN", "evidence": "Root CA offline policy + ceremony records"},
+    {"id": "CYB-001", "name": "SOC 24/7 actif", "domain": "Cybersecurity", "severity": "CRITICAL", "evidence": "SOC rota + SIEM monitoring"},
+    {"id": "AUD-001", "name": "Audit permanent", "domain": "Audit", "severity": "CRITICAL", "evidence": "immutable logs + monthly audit report"},
+    {"id": "WF-001", "name": "Workflow validé avant production", "domain": "Workflow", "severity": "HIGH", "evidence": "workflow production gate approvals"},
+    {"id": "CIT-001", "name": "Droits citoyens opérationnels", "domain": "Citizen", "severity": "HIGH", "evidence": "Transparency portal + appeals process"},
+    {"id": "STD-001", "name": "Standards nationaux centralisés", "domain": "Standards", "severity": "HIGH", "evidence": "national.standards.json"}
+  ]
+}

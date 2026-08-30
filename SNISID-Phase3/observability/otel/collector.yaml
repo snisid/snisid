@@ -1,0 +1,128 @@
+# SNISID — OpenTelemetry Collector (Gateway pattern)
+# Reçoit OTLP de toutes les apps, filtre PII, échantillonne, route vers Prometheus / Loki / Tempo.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        tls:
+          ca_file: /etc/snisid/tls/ca.crt
+          cert_file: /etc/snisid/tls/otel.crt
+          key_file: /etc/snisid/tls/otel.key
+      http:
+        endpoint: 0.0.0.0:4318
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: otel-self
+          static_configs:
+            - targets: ['localhost:8888']
+
+  kafka:
+    # Pour rapatrier les events audit.* directement (option avancée)
+    brokers: [kafka-1:9093, kafka-2:9093, kafka-3:9093]
+    topic: audit.workflow.transition.v1
+    encoding: otlp_json
+    auth:
+      tls:
+        ca_file: /etc/snisid/tls/ca.crt
+        cert_file: /etc/snisid/tls/otel.crt
+        key_file: /etc/snisid/tls/otel.key
+
+processors:
+  batch:
+    send_batch_size: 8192
+    timeout: 5s
+
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 1024
+    spike_limit_mib: 256
+
+  # Anti-PII : on enlève NIN, téléphone, email, biométries des spans/logs
+  attributes/redact-pii:
+    actions:
+      - key: subject.nin
+        action: hash
+      - key: subject.phone
+        action: hash
+      - key: subject.email
+        action: hash
+      - key: payload.firstName
+        action: delete
+      - key: payload.lastName
+        action: delete
+      - key: payload.biometric
+        action: delete
+
+  resource:
+    attributes:
+      - key: cluster
+        value: snisid-prod
+        action: insert
+      - key: region
+        from_attribute: deployment.environment
+        action: insert
+
+  # Tail sampling : 100% des erreurs + workflows critiques, 1% des succès rapides
+  tail_sampling:
+    decision_wait: 30s
+    num_traces: 200000
+    policies:
+      - name: errors
+        type: status_code
+        status_code: { status_codes: [ERROR] }
+      - name: slow
+        type: latency
+        latency: { threshold_ms: 1000 }
+      - name: critical-workflows
+        type: string_attribute
+        string_attribute:
+          key: workflow.id
+          values: ["civil-registry.birth.simple","identity.enrollment.standard","identity.verification.online","judicial.suspension.identity"]
+      - name: random-sample
+        type: probabilistic
+        probabilistic: { sampling_percentage: 1 }
+
+exporters:
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    tls: { insecure: false, ca_file: /etc/snisid/tls/ca.crt }
+    resource_to_telemetry_conversion: { enabled: true }
+
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    default_labels_enabled: { exporter: true, job: true }
+
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls: { insecure: false, ca_file: /etc/snisid/tls/ca.crt }
+
+  logging:
+    loglevel: warn
+
+extensions:
+  health_check: { endpoint: 0.0.0.0:13133 }
+  pprof: {}
+  zpages: {}
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, batch, resource]
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/redact-pii, batch, resource]
+      exporters: [loki]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/redact-pii, tail_sampling, batch, resource]
+      exporters: [otlp/tempo]
+  telemetry:
+    metrics:
+      address: 0.0.0.0:8888

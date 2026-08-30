@@ -1,0 +1,202 @@
+# SNISID — Istio : National Service Mesh Ingress & Egress Gateways
+# Classification: SECRET
+# mTLS STRICT obligatoire mesh-wide. Pas de trafic HTTP en clair.
+
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: snisid-national-ingress
+  namespace: istio-system
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.service: "ingress-gateway"
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: snisid-ingress-wildcard-tls  # cert-manager
+        minProtocolVersion: TLSV1_3
+        cipherSuites:
+          - TLS_AES_256_GCM_SHA384
+          - TLS_CHACHA20_POLY1305_SHA256
+      hosts:
+        - "*.snisid.gouv.local"
+        - "api.national.snisid.gouv.local"
+    - port:
+        number: 443
+        name: https-mtls
+        protocol: HTTPS
+      tls:
+        mode: MUTUAL
+        credentialName: snisid-mesh-ca-tls
+      hosts:
+        - "*.interne.snisid.gouv.local"
+---
+# Egress Gateway — contrôle strict du trafic sortant national
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: snisid-national-egress
+  namespace: istio-system
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.service: "egress-gateway"
+spec:
+  selector:
+    istio: egressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: TLS
+      tls:
+        mode: ISTIO_MUTUAL
+      hosts:
+        - "*.snisid.gouv.local"
+        - "*.interne.snisid.gouv.local"
+        # Aucun host externe — tout egress externe bloqué par défaut
+---
+# ServiceEntry : whitelist destinations tier-2+ uniquement
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: snisid-allowed-external
+  namespace: istio-system
+  labels:
+    snisid.gov.tier: "tier-2"
+spec:
+  hosts:
+    - "ntp.souverain.gouv.local"       # Time sync national
+    - "pki.souverain.gouv.local"       # PKI externe partenaires (si nécessaire)
+  ports:
+    - number: 123
+      name: ntp
+      protocol: UDP
+    - number: 443
+      name: https
+      protocol: TLS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+# PeerAuthentication — mTLS STRICT mesh-wide (règle absolue)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: snisid-mesh-wide-strict
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+---
+# AuthorizationPolicy — Deny all par défaut
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: snisid-default-deny-all
+  namespace: istio-system
+spec:
+  {}
+---
+# AuthorizationPolicy — Core API accessible depuis ingress uniquement
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: snisid-core-api-allow
+  namespace: snisid-core
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: snisid-core-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["istio-system"]
+            principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE"]
+            paths: ["/api/v1/*", "/health/*"]
+      when:
+        - key: request.auth.audiences
+          values: ["snisid-core-api"]
+---
+# AuthorizationPolicy — Vault accessible uniquement depuis Tier-0 autorisés
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: snisid-vault-allow
+  namespace: snisid-identity
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+      snisid.gov.tier: tier-0
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["snisid-core", "snisid-bpmn", "snisid-data", "snisid-obs", "argocd", "cert-manager"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE", "LIST"]
+            paths: ["/v1/*"]
+      when:
+        - key: source.namespace
+          values: ["snisid-core", "snisid-bpmn", "snisid-data", "snisid-obs", "argocd", "cert-manager"]
+    - from:
+        - source:
+            namespaces: ["snisid-identity"]
+            principals: ["cluster.local/ns/snisid-identity/sa/vault"]
+      to:
+        - operation:
+            methods: ["POST", "PUT"]
+            paths: ["/v1/sys/*"]
+---
+# DestinationRule — Circuit breakers & retries services nationaux
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: snisid-national-circuit-breakers
+  namespace: istio-system
+spec:
+  host: "*.snisid.gouv.local"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30ms
+        tcpKeepalive:
+          time: 300s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+    loadBalancer:
+      simple: LEAST_CONN
+      localityLbSetting:
+        enabled: true
+        failover:
+          - from: core
+            to: dr
+    portLevelSettings:
+      - port:
+          number: 443
+        tls:
+          mode: ISTIO_MUTUAL
+          sni: "api.national.snisid.gouv.local"
+          subjectAltNames:
+            - "*.snisid.gouv.local"

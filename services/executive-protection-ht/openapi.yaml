@@ -1,0 +1,185 @@
+openapi: "3.0.3"
+info:
+  title: "EXECUTIVE-PROTECTION-HT API"
+  description: "HT National ID Platform - Dignitary Protection"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8306/api/v1/execprot"
+paths:
+  /protectees:
+    post:
+      summary: "Register a protectee"
+      operationId: createProtectee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProtecteeRequest"
+      responses:
+        '201':
+          description: "Protectee created"
+        '400':
+          description: "Invalid request"
+  /protectees/active:
+    get:
+      summary: "Get active protectees"
+      operationId: getActiveProtectees
+      responses:
+        '200':
+          description: "Active protectees list"
+  /movements:
+    post:
+      summary: "Create a movement plan"
+      operationId: createMovementPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMovementPlanRequest"
+      responses:
+        '201':
+          description: "Movement plan created"
+        '400':
+          description: "Invalid request"
+  /movements/upcoming:
+    get:
+      summary: "Get upcoming movements"
+      operationId: getUpcomingMovements
+      responses:
+        '200':
+          description: "Upcoming movements list"
+  /threats:
+    post:
+      summary: "Log a threat assessment"
+      operationId: createThreatAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateThreatAssessmentRequest"
+      responses:
+        '201':
+          description: "Threat logged"
+        '400':
+          description: "Invalid request"
+  /threats/active/{protectee_id}:
+    get:
+      summary: "Get active threats for a protectee"
+      operationId: getActiveThreatsByProtectee
+      parameters:
+        - name: protectee_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Active threats list"
+  /dashboard:
+    get:
+      summary: "Get protection dashboard"
+      operationId: getDashboard
+      responses:
+        '200':
+          description: "Dashboard data"
+components:
+  schemas:
+    CreateProtecteeRequest:
+      type: object
+      required:
+        - full_name
+        - official_title
+        - protection_level
+        - risk_assessment
+        - primary_agent_id
+        - secure_vehicle_plate
+      properties:
+        full_name:
+          type: string
+        official_title:
+          type: string
+        protection_level:
+          type: string
+          enum: [PRESIDENT, PRIME_MINISTER, CABINET_MINISTER, JUDGE, DIPLOMAT, WITNESS]
+        risk_assessment:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        primary_agent_id:
+          type: string
+          format: uuid
+        secondary_agents:
+          type: array
+          items:
+            type: string
+            format: uuid
+        secure_vehicle_plate:
+          type: string
+        residence_location:
+          type: string
+        workplace_location:
+          type: string
+        daily_schedule_refs:
+          type: array
+          items:
+            type: string
+    CreateMovementPlanRequest:
+      type: object
+      required:
+        - protectee_id
+        - event_name
+        - date
+        - departure_location
+        - arrival_location
+        - transport_mode
+      properties:
+        protectee_id:
+          type: string
+          format: uuid
+        event_name:
+          type: string
+        date:
+          type: string
+          format: date-time
+        departure_location:
+          type: string
+        arrival_location:
+          type: string
+        transport_mode:
+          type: string
+          enum: [MOTORCADE, HELICOPTER, COMMERCIAL_FLIGHT]
+        route_plan:
+          type: string
+        advance_done:
+          type: boolean
+    CreateThreatAssessmentRequest:
+      type: object
+      required:
+        - protectee_id
+        - threat_type
+        - threat_level
+        - assessed_by
+      properties:
+        protectee_id:
+          type: string
+          format: uuid
+        threat_type:
+          type: string
+          enum: [DIRECT_THREAT, SOCIAL_MEDIA, KNOWN_GROUP, STALKER]
+        threat_level:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        threat_detail:
+          type: string
+        source_info:
+          type: string
+        assessed_by:
+          type: string
+          format: uuid
+        mitigation:
+          type: string

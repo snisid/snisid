@@ -1,0 +1,33 @@
+- rule: Terminal shell in container
+  desc: A shell was used as the entrypoint/exec point into a container with an attached terminal.
+  condition: >
+    spawned_process and container
+    and shell_procs and proc.tty != 0
+    and container.image.repository != "snisid/authorized-debug-tools"
+  output: >
+    A shell was spawned in a container with an attached terminal (user=%user.name user_loginuid=%user.loginuid %container.info
+    shell=%proc.name parent=%proc.pname cmdline=%proc.cmdline terminal=%proc.tty container_id=%container.id image=%container.image.repository)
+  priority: WARNING
+  tags: [container, shell, mitre_execution]
+
+- rule: Write below binary dir
+  desc: an attempt to write to any file below a set of binary directories
+  condition: >
+    bin_dir and evt.dir = < and open_write
+    and not package_mgmt_procs
+    and not exe_running_docker_save
+  output: >
+    File below a known binary directory opened for writing (user=%user.name user_loginuid=%user.loginuid
+    command=%proc.cmdline file=%fd.name parent=%proc.pname pcmdline=%proc.pcmdline gparent=%proc.aname[2] container_id=%container.id image=%container.image.repository)
+  priority: ERROR
+  tags: [filesystem, mitre_persistence]
+
+- rule: Read sensitive file untrusted
+  desc: an attempt to read any sensitive file (e.g. shadow, ssh keys)
+  condition: >
+    open_read and sensitive_files and not user_known_read_sensitive_files_activities
+  output: >
+    Sensitive file opened for reading by non-trusted program (user=%user.name user_loginuid=%user.loginuid
+    command=%proc.cmdline file=%fd.name parent=%proc.pname pcmdline=%proc.pcmdline gparent=%proc.aname[2] container_id=%container.id image=%container.image.repository)
+  priority: WARNING
+  tags: [filesystem, mitre_credential_access]

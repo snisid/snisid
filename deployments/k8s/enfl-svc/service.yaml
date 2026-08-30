@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: enfl-svc
+  namespace: snisid-core
+  labels:
+    app: enfl-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8119
+    targetPort: 8119
+    protocol: TCP
+    name: http
+  selector:
+    app: enfl-svc

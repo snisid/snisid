@@ -1,0 +1,200 @@
+# SNISID — CoreDNS : National Sovereign DNS Infrastructure
+# Classification: SECRET
+# Role: Résolution interne souveraine — pas de dépendance DNS public critique
+# Redondance: 3 replicas CoreDNS + 2 BIND9 externes (DMZ) pour fallback root
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  snisid.corefile: |
+    # Zone nationale souveraine
+    snisid.gouv.local {
+      errors
+      health {
+        lameduck 5s
+      }
+      ready
+      # État stocké dans etcd K8s (pas de fichier local)
+      kubernetes snisid.gouv.local in-addr.arpa ip6.arpa {
+        pods insecure
+        fallthrough in-addr.arpa ip6.arpa
+        ttl 30
+      }
+      # Load balancing aware localité (Istio + Cilium)
+      loadbalance round_robin
+      # Prometheus metrics
+      prometheus :9153
+      # Cache interne 30s (services nationaux changent peu)
+      cache 30 {
+        success 9984 30
+        denial 9984 10
+      }
+      loop
+      reload
+      # Forward externes filtré (si nécessaire) via proxy national
+      forward . /etc/resolv.conf {
+        except snisid.gouv.local interne.snisid.gouv.local
+      }
+    }
+    
+    # Zone interne infrastructure (registries, Vault, etc.)
+    interne.snisid.gouv.local {
+      errors
+      cache 300
+      # Records statiques infrastructure critique (pas de forward externe)
+      template IN A {
+        match "^registry\\.interne\\.snisid\\.gouv\\.local$"
+        answer "{{ .Name }} 300 IN A 10.1.1.10"
+        fallthrough
+      }
+      template IN A {
+        match "^vault\\.interne\\.snisid\\.gouv\\.local$"
+        answer "{{ .Name }} 300 IN A 10.1.20.51"
+        fallthrough
+      }
+      template IN A {
+        match "^hsm-thales-01\\.interne\\.snisid\\.gouv\\.local$"
+        answer "{{ .Name }} 300 IN A 10.1.0.10"
+        fallthrough
+      }
+      template IN A {
+        match "^api\\.core\\.snisid\\.gouv\\.local$"
+        answer "{{ .Name }} 30 IN A 10.1.10.11"
+        answer "{{ .Name }} 30 IN A 10.1.10.12"
+        answer "{{ .Name }} 30 IN A 10.1.10.13"
+        fallthrough
+      }
+      template IN A {
+        match "^api\\.dr\\.snisid\\.gouv\\.local$"
+        answer "{{ .Name }} 30 IN A 10.2.10.11"
+        answer "{{ .Name }} 30 IN A 10.2.10.12"
+        answer "{{ .Name }} 30 IN A 10.2.10.13"
+        fallthrough
+      }
+      # Tout le reste dans cette zone est forward vers BIND9 DMZ
+      forward . 10.0.0.5 10.0.0.6 {
+        tls /etc/coredns/certs/client.crt /etc/coredns/certs/client.key /etc/coredns/certs/ca.crt
+        tls_servername bind9-dmz.snisid.gouv.local
+      }
+    }
+    
+    # Zone edge régionale (délégation)
+    edge.snisid.gouv.local {
+      errors
+      # Délégation vers CoreDNS edge local (résolution terrain)
+      forward . 10.2.1.11 10.2.2.11 10.2.3.11 {
+        tls /etc/coredns/certs/client.crt /etc/coredns/certs/client.key /etc/coredns/certs/ca.crt
+        tls_servername edge-dns.snisid.gouv.local
+        health_check 5s
+      }
+    }
+    
+    # Zone fallback — root hints nationaux (pas de 8.8.8.8)
+    . {
+      errors
+      cache 30
+      # Forward vers serveurs DNS nationaux de l'opérateur souverain
+      forward . 203.x.x.1 203.x.x.2 {
+        policy sequential
+        health_check 5s
+      }
+      # Si internet national rompu : SERVFAIL local (pas de fuite DNS)
+    }
+---
+# Déploiement CoreDNS custom (remplace le CoreDNS par défaut)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns-national
+  namespace: kube-system
+  labels:
+    k8s-app: coredns-national
+    snisid.gov.tier: tier-0
+    snisid.gov.service: dns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      k8s-app: coredns-national
+  template:
+    metadata:
+      labels:
+        k8s-app: coredns-national
+        snisid.gov.tier: tier-0
+        snisid.gov.service: dns
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  k8s-app: coredns-national
+              topologyKey: topology.kubernetes.io/zone
+      containers:
+        - name: coredns
+          image: registry.interne.snisid.gouv.local/coredns/coredns:1.11.1
+          args: ["-conf", "/etc/coredns/Corefile"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/coredns
+              readOnly: true
+            - name: certs
+              mountPath: /etc/coredns/certs
+              readOnly: true
+          ports:
+            - containerPort: 53
+              name: dns
+              protocol: UDP
+            - containerPort: 53
+              name: dns-tcp
+              protocol: TCP
+            - containerPort: 9153
+              name: metrics
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8181
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE  # Pour port 53 <1024
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 1000m
+      volumes:
+        - name: config
+          configMap:
+            name: coredns-custom
+        - name: certs
+          secret:
+            secretName: coredns-tls
+      dnsPolicy: Default
+      serviceAccountName: coredns
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule

@@ -1,0 +1,73 @@
+openapi: "3.0.3"
+info:
+  title: "OFFLINE-HT API"
+  description: "HT National ID Platform - Offline Sync"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8211/api/v1/offline"
+paths:
+  /queue/push:
+    post:
+      summary: "Push item to sync queue"
+      operationId: pushToQueue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushQueueRequest"
+      responses:
+        '201':
+          description: "Item queued"
+        '400':
+          description: "Invalid request"
+  /sync/{terminal_id}:
+    post:
+      summary: "Sync terminal data"
+      operationId: syncTerminal
+      parameters:
+        - name: terminal_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Synced items"
+  /terminals/status:
+    get:
+      summary: "Get terminal statuses"
+      operationId: getTerminalStatuses
+      responses:
+        '200':
+          description: "Terminal statuses"
+  /conflicts:
+    get:
+      summary: "Get sync conflicts"
+      operationId: getConflicts
+      responses:
+        '200':
+          description: "Conflict list"
+components:
+  schemas:
+    PushQueueRequest:
+      type: object
+      required:
+        - terminal_id
+        - entity_type
+        - entity_id
+        - action
+        - payload
+      properties:
+        terminal_id:
+          type: string
+        entity_type:
+          type: string
+        entity_id:
+          type: string
+        action:
+          type: string
+        payload:
+          type: string

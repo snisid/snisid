@@ -1,0 +1,63 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: all-source-fusion-ht
+  namespace: snisid-national-security
+  labels:
+    app: all-source-fusion-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: all-source-fusion-ht
+  template:
+    metadata:
+      labels:
+        app: all-source-fusion-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8309"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: all-source-fusion-ht
+        image: snisid/all-source-fusion-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8309
+        env:
+        - name: PORT
+          value: "8309"
+        - name: ENV
+          value: "prod"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: snisid-secrets
+              key: jwt-secret
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        - name: FUSION_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: snisid_fusion-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8309
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8309
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

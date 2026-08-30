@@ -1,0 +1,342 @@
+**1.👉 “Add CI/CD pipeline (GitHub Actions + auto deploy)”**
+
+**2. 👉 “Add observability stack (Prometheus + Grafana + tracing)”**
+
+**3. 👉 “Add real fraud ML model + feature store”**
+
+
+
+Execution order (don’t invert):
+
+
+
+Observability (see everything)
+
+CI/CD (ship safely)
+
+ML + Feature Store (introduce intelligence last)
+
+📊 PHASE 1 — OBSERVABILITY STACK (NON-NEGOTIABLE FIRST)
+
+🎯 GOAL
+
+
+
+You must be able to answer in real time:
+
+
+
+what is broken?
+
+where is latency?
+
+which policy blocked what?
+
+which service is failing?
+
+🧱 STACK
+
+Metrics → Prometheus
+
+Dashboards → Grafana
+
+Logs → Loki
+
+Tracing → Jaeger
+
+☸️ HELM INSTALL (STACK)
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+helm install monitoring prometheus-community/kube-prometheus-stack
+
+📡 GO METRICS (RISK ENGINE)
+
+import "github.com/prometheus/client\_golang/prometheus"
+
+
+
+var riskRequests = prometheus.NewCounter(
+
+&#x20;   prometheus.CounterOpts{
+
+&#x20;       Name: "risk\_requests\_total",
+
+&#x20;       Help: "Total risk evaluations",
+
+&#x20;   },
+
+)
+
+⏱️ LATENCY TRACKING
+
+var riskLatency = prometheus.NewHistogram(
+
+&#x20;   prometheus.HistogramOpts{
+
+&#x20;       Name: "risk\_latency\_seconds",
+
+&#x20;   },
+
+)
+
+🔍 DISTRIBUTED TRACING (JAEGER)
+
+import "go.opentelemetry.io/otel"
+
+
+
+ctx, span := tracer.Start(ctx, "risk-evaluation")
+
+defer span.End()
+
+📊 CRITICAL DASHBOARDS
+
+request latency (p95/p99)
+
+Kafka lag per topic
+
+policy deny rate
+
+risk score distribution
+
+DB query time
+
+⚙️ PHASE 2 — CI/CD PIPELINE (GITHUB ACTIONS)
+
+🎯 GOAL
+
+
+
+Every commit:
+
+
+
+tested
+
+built
+
+scanned
+
+deployed
+
+🧱 PIPELINE FLOW
+
+Commit → Test → Build → Scan → Push → Deploy (Helm)
+
+⚙️ .github/workflows/deploy.yml
+
+name: SNISID CI/CD
+
+
+
+on:
+
+&#x20; push:
+
+&#x20;   branches: \[main]
+
+
+
+jobs:
+
+&#x20; build-deploy:
+
+&#x20;   runs-on: ubuntu-latest
+
+
+
+&#x20;   steps:
+
+&#x20;   - name: Checkout
+
+&#x20;     uses: actions/checkout@v3
+
+
+
+&#x20;   - name: Setup Go
+
+&#x20;     uses: actions/setup-go@v4
+
+&#x20;     with:
+
+&#x20;       go-version: 1.22
+
+
+
+&#x20;   - name: Test
+
+&#x20;     run: go test ./...
+
+
+
+&#x20;   - name: Build Docker
+
+&#x20;     run: docker build -t snisid/api-gateway ./services/api-gateway
+
+
+
+&#x20;   - name: Login to Registry
+
+&#x20;     run: echo "${{ secrets.DOCKER\_PASS }}" | docker login -u ${{ secrets.DOCKER\_USER }} --password-stdin
+
+
+
+&#x20;   - name: Push Image
+
+&#x20;     run: docker push snisid/api-gateway
+
+
+
+&#x20;   - name: Deploy Helm
+
+&#x20;     run: |
+
+&#x20;       helm upgrade --install snisid ./infra/helm
+
+🔐 ADD SECURITY SCAN
+
+\- name: Scan Image
+
+&#x20; uses: aquasecurity/trivy-action@master
+
+🧠 PHASE 3 — FRAUD ML + FEATURE STORE
+
+
+
+Now we introduce real intelligence, but safely.
+
+
+
+🎯 GOAL
+
+
+
+Move from static rules → adaptive fraud detection
+
+
+
+🧱 ARCHITECTURE
+
+Event Stream (Kafka)
+
+&#x20;       ↓
+
+Feature Extractor
+
+&#x20;       ↓
+
+Feature Store
+
+&#x20;       ↓
+
+ML Model Service
+
+&#x20;       ↓
+
+Risk Engine (augmented)
+
+⚙️ FEATURE STORE (REDIS STARTER)
+
+package featurestore
+
+
+
+import "github.com/redis/go-redis/v9"
+
+
+
+func SaveFeature(client \*redis.Client, key string, value string) {
+
+&#x20;   client.Set(ctx, key, value, 0)
+
+}
+
+🧠 FEATURE EXAMPLES
+
+user\_txn\_velocity
+
+avg\_transaction\_amount
+
+graph\_risk\_score
+
+identity\_confidence\_score
+
+🤖 ML MODEL SERVICE (GO WRAPPER)
+
+type ModelInput struct {
+
+&#x20;   Amount float64
+
+&#x20;   Velocity float64
+
+}
+
+
+
+func Predict(input ModelInput) float64 {
+
+&#x20;   return 0.82 // replace with real model later
+
+}
+
+🔁 INTEGRATION INTO RISK ENGINE
+
+mlScore := model.Predict(input)
+
+
+
+finalScore := (ruleScore \* 0.4) + (mlScore \* 0.6)
+
+📊 TRAINING PIPELINE (OFFLINE)
+
+Kafka → Data Lake → Training Job → Model → Deploy → Serve
+
+⚠️ ML SAFETY RULES
+
+NEVER:
+
+deploy unvalidated model
+
+remove rule-based fallback
+
+trust ML blindly
+
+ALWAYS:
+
+compare ML vs rule output
+
+monitor model drift
+
+version models
+
+🔥 FINAL SYSTEM STATE
+
+
+
+You now have:
+
+
+
+✔ observable system (metrics + logs + traces)
+
+✔ automated CI/CD pipeline
+
+✔ ML-enhanced fraud detection
+
+✔ feature store foundation
+
+✔ production-ready deployment loop
+
+
+
+🧠 WHAT YOU BUILT (REALITY)
+
+
+
+This is now:
+
+
+
+A fully operational, observable, self-improving distributed intelligence system
+

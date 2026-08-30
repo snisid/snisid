@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bio-ht
+  namespace: snisid-core
+  labels:
+    app: bio-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bio-ht
+  template:
+    metadata:
+      labels:
+        app: bio-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8203"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: bio-ht
+        image: snisid/bio-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8203
+        env:
+        - name: BIO_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: BIO_DB_PORT
+          value: "26257"
+        - name: BIO_DB_NAME
+          value: "snisid_bio"
+        - name: BIO_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: BIO_DB_SSLMODE
+          value: "disable"
+        - name: BIO_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: BIO_SERVICE_PORT
+          value: "8203"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8203
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8203
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

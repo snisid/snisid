@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trafar-svc
+  namespace: snisid-core
+  labels:
+    app: trafar-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trafar-svc
+  template:
+    metadata:
+      labels:
+        app: trafar-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8105"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: trafar-svc
+        image: snisid/trafar-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8105
+        env:
+        - name: PORT
+          value: "8105"
+        - name: ENV
+          value: "prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: postgres-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8105
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8105
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

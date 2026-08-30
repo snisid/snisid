@@ -1,0 +1,343 @@
+# CONFIGURATION WAR ROOM SOC SNISID
+
+## Spécifications Physiques
+
+### Local Principal
+
+```yaml
+war_room_main:
+  location: "Centre de Commandement SNISID, Niveau -1"
+  surface: "200 m²"
+  hauteur_sous_plafond: "3.5 m"
+  capacite_max: "30 personnes"
+  
+  zones_amenagement:
+    operations_floor:
+      surface: "120 m²"
+      postes_analystes: 24
+      disposition: "Îlots de 4 postes"
+      ergonomie:
+        - "Bureaux assis-debout électriques"
+        - "Chaises Herman Miller Aeron"
+        - "Repose-pieds ergonomiques"
+        - "Éclairage individuel LED"
+        
+    management_overview:
+      surface: "30 m²"
+      bureaux_vitres: 6
+      position: "Surélevé 50cm, vue panoramique"
+      equipements:
+        - "Écrans supplémentaires supervision"
+        - "Intercom vers operations floor"
+        - "Boutons appel urgence"
+        
+    crisis_conference_room:
+      surface: "40 m²"
+      capacite: "20 personnes"
+      equipements:
+        - "Table ovale 6 mètres"
+        - "Écrans tactiles 86 pouces x2"
+        - "Système visioconférence Poly Studio X50"
+        - "Telephones конференц Yealink CP960"
+        - "Tableau blanc numérique Microsoft Surface Hub"
+        - "Isolation phonique STC 55+"
+        
+    support_areas:
+      break_room:
+        surface: "20 m²"
+        equipements:
+          - "Kitchenette complète"
+          - "Machine café professionnelle"
+          - "Réfrigérateur et micro-ondes"
+          - "Canapés et fauteuils"
+          - "TV 65 pouces détente"
+          
+      secure_locker_room:
+        surface: "15 m²"
+        casiers_biometriques: 50
+       用途: "Stockage effets personnels (téléphones interdits)"
+```
+
+## Infrastructure Technique
+
+### Système d'Affichage
+
+```yaml
+video_wall:
+  type: "Mur vidéo LCD bezel-less"
+  configuration: "4x4 écrans 55 pouces"
+  resolution_totale: "15360 x 8640 (8K+)"
+  luminosite: "700 nits"
+  duree_vie: "100,000 heures"
+  
+  zones_affichage:
+    zone_1_4: "Dashboard SIEM temps réel"
+    zone_5_8: "Carte géographique attaques"
+    zone_9_12: "Alertes prioritaires"
+    zone_13_16: "Métriques SOC et SLA"
+    
+  controleurs:
+    modele: "Datapath FX4-670"
+    entrees: "12 sources HDMI/DisplayPort"
+    sorties: "16 écrans synchronisés"
+    features:
+      - "Picture-by-picture"
+      - "Overlapping windows"
+      - "Preset configurations"
+      - "API control integration"
+```
+
+### Postes de Travail Analystes
+
+```yaml
+analyst_workstation:
+  quantite: 24
+  
+  hardware:
+    workstation:
+      modele: "Dell Precision 5820"
+      cpu: "Intel Xeon W-2255 (10c/20t, 3.7GHz)"
+      ram: "64 GB DDR4-2933 ECC"
+      gpu: "NVIDIA RTX A4000 16GB"
+      stockage:
+        system: "1 TB NVMe PCIe Gen4"
+        data: "4 TB HDD 7200rpm"
+      alimentation: "950W Platinum"
+      
+    moniteurs:
+      configuration: "3x Dell UltraSharp U2723QE 27 pouces"
+      resolution: "3840x2160 (4K) chacun"
+      ergonomie: "Pivot, tilt, height adjustable"
+      calibration: "Delta E < 2 pour accuracy"
+      
+    peripheriques:
+      clavier: "Logitech MX Keys (sans fil chiffré)"
+      souris: "Logitech MX Master 3"
+      casque: "Jabra Evolve2 65 (ANC, Teams certified)"
+      webcam: "Logitech Brio 4K (pour visios)"
+      
+  software:
+    os: "SNISID-OS hardened"
+    browsers: "Firefox ESR durci + Chrome enterprise"
+    productivity: "LibreOffice, OnlyOffice"
+    soc_tools:
+      - "Wazuh Dashboard"
+      - "TheHive"
+      - "Shuffle SOAR"
+      - "MISP"
+      - "Arkime"
+      - "Terminal SSH sécurisé"
+```
+
+### Réseau et Connectivité
+
+```yaml
+network_infrastructure:
+  segmentation:
+    reseau_rouge:
+     用途: "Données classifiées SNISID"
+      isolation: "Air-gap physique"
+      acces: "Postes analysts uniquement"
+      
+    reseau_noir:
+     用途: "Internet et威胁 intelligence"
+      securite: "Firewall nouvelle génération"
+      filtrage: "Proxy avec inspection SSL"
+      
+    reseau_bleu:
+     用途: "Administration infrastructure"
+      acces: "Réservé admins SOC"
+      
+  bande_passante:
+    internet_dedie: "10 Gbps symétrique"
+    liaison_sites_snisid: "10 Gbps fibre noire"
+    backup_satellite: "Starlink Business (150 Mbps)"
+    
+  commutation:
+    switches_acces: "Cisco Catalyst 9300 48 ports"
+    uplinks: "2x 10GbE SFP+ par poste"
+    qos: "Priorisation traffic SOC critique"
+    
+  wifi:
+    ssid_analystes: "SNISID-SOC-SECURE (WPA3-Enterprise)"
+    ssid_invites: "SNISID-GUEST (isolé, captif portal)"
+    couverture: "100% war room + zones adjacentes"
+```
+
+### Alimentation Électrique
+
+```yaml
+power_systems:
+  ups:
+    type: "Onduleurs double conversion online"
+    capacite: "60 kVA"
+    autonomie: "2 heures à pleine charge"
+    redondance: "2N (deux systèmes indépendants)"
+    
+  pdus:
+    type: "PDUs intelligentes APC APDU"
+    outlets: "24 par rack, monitorées individuellement"
+    features:
+      - "Mesure consommation temps réel"
+      - "Alarmes seuils configurables"
+      - "Reset distant par outlet"
+      
+  generateur_backup:
+    capacite: "200 kW"
+    carburant_autonomie: "72 heures"
+    demarrage: "Automatique < 10 secondes"
+    contrat_refuel: "Priorité nationale"
+```
+
+### Environnement et Climatisation
+
+```yaml
+environmental_control:
+  climatisation:
+    type: "Precision cooling In-row"
+    capacite: "80 kW"
+    redondance: "N+1"
+    consignes:
+      temperature: "20°C ± 1°C"
+      humidite: "45% ± 5%"
+      
+  qualite_air:
+    filtration: "HEPA H13"
+    renouvellement: "6 volumes/heure"
+    pression_differentielle: "+15 Pa (surpression)"
+    
+  acoustique:
+    traitement_phonique: "Panneaux absorbants plafond/murs"
+    niveau_bruit_cible: "< 45 dB(A)"
+    isolation_exterieure: "STC 50+"
+```
+
+## Sécurité Physique War Room
+
+```yaml
+physical_security:
+  controles_acces:
+    niveau_1_entree_batiment:
+      - "Gardes armés 24/7"
+      - "Barrières véhicules anti-bélier"
+      - "Caméras LPR (License Plate Recognition)"
+      
+    niveau_2_entree_soc:
+      - "Badge RFID + code PIN"
+      - "Scanner biométrique empreintes"
+      - "Détecteur métaux"
+      
+    niveau_3_entree_war_room:
+      - "Reconnaissance faciale"
+      - "Scanner iris"
+      - "Sabot anti-poursuite (mantrap)"
+      - "Fouille aléatoire sacs"
+      
+  surveillance_video:
+    cameras_interieures: "8x Axis Q6075-E PTZ 4K"
+    couverture: "100% sans angles morts"
+    enregistrement: "90 jours minimum"
+    analytics:
+      - "Détection intrusion"
+      - "Comptage personnes"
+      - "Objets abandonnés"
+      - "Mouvements suspects"
+      
+  alarmes:
+    intrusion: "Capteurs ouverture portes/fenêtres"
+    incendie: "VESDA + détecteurs thermiques"
+    panic_buttons: "Sous chaque poste analyste"
+    silent_alarm: "Vers centre police nationale"
+```
+
+## Procédures Opérationnelles War Room
+
+### Ouverture de Shift
+
+```markdown
+CHECKLIST OUVERTURE SHIFT SOC
+
+Heure: ___________
+Équipe: ___________
+Chef d'équipe: ___________
+
+INFRASTRUCTURE:
+[ ] Vérifier état vidéo wall (tous écrans OK)
+[ ] Tester système audio/intercom
+[ ] Confirmer connectivité réseau (rouge/noir)
+[ ] Vérifier état UPS (charge 100%)
+[ ] Tester alarmes panic buttons
+
+OUTILS SOC:
+[ ] Connexion SIEM Wazuh (dashboard vert)
+[ ] Vérifier flux logs (EPS normal)
+[ ] Tester SOAR Shuffle (playbooks ready)
+[ ] Ouvrir TheHive (tickets en cours)
+[ ] Confirmer feeds Threat Intel (MISP à jour)
+
+COMMUNICATION:
+[ ] Tester visioconférence (appel test)
+[ ] Vérifier téléphones conférence
+[ ] Confirmer canal Slack/Teams sécurisé
+[ ] Distribuer badges temporaires (si visiteurs)
+
+HANDOVER:
+[ ] Briefing avec équipe sortante (30 min)
+[ ] Review incidents en cours
+[ ] Review alertes prioritaires
+[ ] Notes particulières shift précédent
+
+SIGNATURES:
+Chef entrant: _________________
+Chef sortant: _________________
+```
+
+### Fermeture de Shift
+
+```markdown
+CHECKLIST FERMETURE SHIFT SOC
+
+Heure: ___________
+Équipe: ___________
+
+DOCUMENTATION:
+[ ] Mettre à jour tous tickets en cours
+[ ] Compléter logs d'activité shift
+[ ] Documenter incidents résolus
+[ ] Préparer handover notes équipe suivante
+
+NETTOYAGE:
+[ ] Effacer tableaux blancs (sauf infos persistantes)
+[ ] ranger documents confidentiels (armoires fermées)
+[ ] Vider corbeilles (destructeur documents)
+[ ] Nettoyer postes de travail
+
+SÉCURITÉ:
+[ ] Verrouiller armoires preuves
+[ ] Déconnecter sessions (lock screens)
+[ ] Activer alarmes périmétriques
+[ ] Briefing équipe entrante complété
+
+SIGNATURE:
+Chef d'équipe sortant: _________________
+```
+
+## Budget War Room
+
+| Catégorie | Montant (USD) |
+|-----------|---------------|
+| Construction et aménagement | $800,000 |
+| Mur vidéo 4x4 + contrôleurs | $250,000 |
+| Postes de travail (24x) | $360,000 |
+| Infrastructure réseau | $200,000 |
+| Système UPS et électrique | $300,000 |
+| Climatisation precision | $250,000 |
+| Sécurité physique | $150,000 |
+| Ameublement ergonomique | $120,000 |
+| Systèmes communication | $80,000 |
+| Installation et configuration | $150,000 |
+| **TOTAL** | **$2,660,000** |
+
+---
+*Spécifications War Room SOC - Niveau Confidentiel*
+*SNISID - République d'Haïti*

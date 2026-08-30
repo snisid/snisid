@@ -1,0 +1,88 @@
+# SNISID National Kubernetes Platform - Namespaces
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-system
+  labels:
+    name: snisid-system
+    snisid.gov.ht/tier: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-identity
+  labels:
+    name: snisid-identity
+    snisid.gov.ht/tier: core-services
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-api-gateway
+  labels:
+    name: snisid-api-gateway
+    snisid.gov.ht/tier: core-services
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-event-bus
+  labels:
+    name: snisid-event-bus
+    snisid.gov.ht/tier: core-services
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-pki
+  labels:
+    name: snisid-pki
+    snisid.gov.ht/tier: security
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-offline
+  labels:
+    name: snisid-offline
+    snisid.gov.ht/tier: edge-services
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-databases
+  labels:
+    name: snisid-databases
+    snisid.gov.ht/tier: data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-observability
+  labels:
+    name: snisid-observability
+    snisid.gov.ht/tier: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-security
+  labels:
+    name: snisid-security
+    snisid.gov.ht/tier: security
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-applications
+  labels:
+    name: snisid-applications
+    snisid.gov.ht/tier: applications
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: snisid-gitops
+  labels:
+    name: snisid-gitops
+    snisid.gov.ht/tier: platform

@@ -1,0 +1,860 @@
+// ============================================================
+// SNI-SIDE: gRPC Service Definitions
+// Protocol Buffers v3
+// ============================================================
+
+syntax = "proto3";
+
+package sniside.intelligence.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/snisid/sniside/api/intelligence/v1;intelligencev1";
+option java_package = "ht.snisid.sniside.intelligence.v1";
+
+// ============ NATIONAL SOVEREIGN SEARCH ENGINE ============
+service NationalSearchService {
+    // Unified search across all 15 databases
+    rpc UnifiedSearch(UnifiedSearchRequest) returns (UnifiedSearchResponse);
+
+    // Graph intelligence search (Neo4j)
+    rpc GraphSearch(GraphSearchRequest) returns (GraphSearchResponse);
+
+    // Federated search across multiple databases
+    rpc FederatedSearch(FederatedSearchRequest) returns (FederatedSearchResponse);
+
+    // Cross-reference search (find all connected data for an entity)
+    rpc CrossReference(CrossReferenceRequest) returns (CrossReferenceResponse);
+
+    // Stream search results in real-time
+    rpc StreamSearch(StreamSearchRequest) returns (stream SearchResult);
+}
+
+// ============ NCID — CRIMINAL INTELLIGENCE ============
+service NCIDService {
+    rpc SearchWantedPersons(WantedPersonSearchRequest) returns (WantedPersonSearchResponse);
+    rpc GetWantedPerson(GetWantedPersonRequest) returns (WantedPerson);
+    rpc CreateWantedPerson(CreateWantedPersonRequest) returns (WantedPerson);
+    rpc UpdateWantedPerson(UpdateWantedPersonRequest) returns (WantedPerson);
+    rpc GetPersonWarrants(GetPersonWarrantsRequest) returns (WarrantList);
+    rpc GetPersonAliases(GetPersonAliasesRequest) returns (AliasList);
+    rpc SearchCriminalCases(CriminalCaseSearchRequest) returns (CriminalCaseSearchResponse);
+    rpc GetCriminalCase(GetCriminalCaseRequest) returns (CriminalCase);
+    rpc SearchGangs(GangSearchRequest) returns (GangSearchResponse);
+    rpc SearchOrganizations(OrganizationSearchRequest) returns (OrganizationSearchResponse);
+    rpc SearchInterpolNotices(InterpolNoticeSearchRequest) returns (InterpolNoticeSearchResponse);
+    rpc GetCriminalNetwork(GetCriminalNetworkRequest) returns (CriminalNetwork);
+    rpc LinkPersonToCase(LinkPersonToCaseRequest) returns (LinkPersonToCaseResponse);
+}
+
+// ============ HN-NGI — BIOMETRICS ============
+service BiometricService {
+    rpc VerifyBiometric1to1(VerifyBiometricRequest) returns (VerifyBiometricResponse);
+    rpc IdentifyBiometric1toN(IdentifyBiometricRequest) returns (IdentifyBiometricResponse);
+    rpc SearchFace(FaceSearchRequest) returns (FaceSearchResponse);
+    rpc SearchFingerprint(FingerprintSearchRequest) returns (FingerprintSearchResponse);
+    rpc SearchIris(IrisSearchRequest) returns (IrisSearchResponse);
+    rpc SearchVoice(VoiceSearchRequest) returns (VoiceSearchResponse);
+    rpc SearchPalm(PalmSearchRequest) returns (PalmSearchResponse);
+    rpc DetectDuplicates(DuplicateDetectionRequest) returns (DuplicateDetectionResponse);
+    rpc EnrollBiometric(EnrollBiometricRequest) returns (EnrollBiometricResponse);
+}
+
+// ============ HN-CODIS — DNA ============
+service CODISTService {
+    rpc SearchDNAProfiles(DNASearchRequest) returns (DNASearchResponse);
+    rpc SearchExactDNA(ExactDNASearchRequest) returns (ExactDNASearchResponse);
+    rpc SearchFamilialDNA(FamilialDNASearchRequest) returns (FamilialDNASearchResponse);
+    rpc SearchMissingPersonDNA(MissingPersonDNASearchRequest) returns (MissingPersonDNASearchResponse);
+    rpc CreateDNAProfile(CreateDNAProfileRequest) returns (DNAProfile);
+    rpc RecordDNAMatch(RecordDNAMatchRequest) returns (DNAMatch);
+}
+
+// ============ MISSING PERSONS ============
+service MissingPersonsService {
+    rpc SearchMissingPersons(MissingPersonSearchRequest) returns (MissingPersonSearchResponse);
+    rpc GetMissingPerson(GetMissingPersonRequest) returns (MissingPerson);
+    rpc ReportMissingPerson(ReportMissingPersonRequest) returns (MissingPerson);
+    rpc ReportSighting(ReportSightingRequest) returns (Sighting);
+    rpc GetSightings(GetSightingsRequest) returns (SightingList);
+    rpc TriggerAlert(TriggerAlertRequest) returns (TriggerAlertResponse);
+    rpc ResolveCase(ResolveMissingCaseRequest) returns (ResolveMissingCaseResponse);
+}
+
+// ============ VEHICLE INTELLIGENCE ============
+service VehicleIntelligenceService {
+    rpc SearchVehicles(VehicleSearchRequest) returns (VehicleSearchResponse);
+    rpc GetVehicleByVIN(GetVehicleByVINRequest) returns (Vehicle);
+    rpc GetVehicleByPlate(GetVehicleByPlateRequest) returns (Vehicle);
+    rpc GetOwnershipHistory(GetOwnershipHistoryRequest) returns (OwnershipHistoryList);
+    rpc GetVehicleNetwork(GetVehicleNetworkRequest) returns (VehicleNetwork);
+    rpc ReportStolenVehicle(ReportStolenVehicleRequest) returns (StolenVehicleReport);
+}
+
+// ============ ALPR ============
+service ALPRService {
+    rpc SearchALPRReads(ALPRSearchRequest) returns (ALPRSearchResponse);
+    rpc GetALPRRead(GetALPRReadRequest) returns (ALPRRead);
+    rpc AnalyzeRoute(RouteAnalysisRequest) returns (RouteAnalysis);
+    rpc GetHeatmapData(HeatmapRequest) returns (HeatmapResponse);
+    rpc GetCrossBorderTracking(CrossBorderRequest) returns (CrossBorderResponse);
+    rpc IngestALPRRead(IngestALPRReadRequest) returns (IngestALPRReadResponse);
+    rpc StreamALPRReads(stream ALPRRead) returns (StreamALPRResponse);
+}
+
+// ============ FIREARMS INTELLIGENCE ============
+service FirearmsIntelligenceService {
+    rpc SearchFirearms(FirearmSearchRequest) returns (FirearmSearchResponse);
+    rpc GetFirearmBySerial(GetFirearmBySerialRequest) returns (Firearm);
+    rpc SearchBallisticEvidence(BallisticSearchRequest) returns (BallisticSearchResponse);
+    rpc RecordBallisticMatch(RecordBallisticMatchRequest) returns (BallisticMatch);
+}
+
+// ============ BORDER INTELLIGENCE ============
+service BorderIntelligenceService {
+    rpc SearchBorderCrossings(BorderCrossingSearchRequest) returns (BorderCrossingSearchResponse);
+    rpc GetTravelerHistory(GetTravelerHistoryRequest) returns (TravelerHistory);
+    rpc SearchVisas(VisaSearchRequest) returns (VisaSearchResponse);
+    rpc BiometricBorderSearch(BiometricBorderSearchRequest) returns (BiometricBorderSearchResponse);
+    rpc RecordBorderCrossing(RecordBorderCrossingRequest) returns (BorderCrossing);
+}
+
+// ============ COUNTER NARCOTICS ============
+service CounterNarcoticsService {
+    rpc SearchRoutes(NarcoticsRouteSearchRequest) returns (NarcoticsRouteSearchResponse);
+    rpc SearchSeizures(SeizureSearchRequest) returns (SeizureSearchResponse);
+    rpc SearchVessels(VesselSearchRequest) returns (VesselSearchResponse);
+    rpc SearchAircraft(AircraftSearchRequest) returns (AircraftSearchResponse);
+    rpc SearchCartels(CartelSearchRequest) returns (CartelSearchResponse);
+    rpc RecordSeizure(RecordSeizureRequest) returns (Seizure);
+}
+
+// ============ FINANCIAL CRIME ============
+service FinancialCrimeService {
+    rpc SearchTransactions(TransactionSearchRequest) returns (TransactionSearchResponse);
+    rpc GetTransaction(GetTransactionRequest) returns (SuspiciousTransaction);
+    rpc SearchBeneficialOwners(BeneficialOwnerSearchRequest) returns (BeneficialOwnerSearchResponse);
+    rpc SearchPEPs(PEPSearchRequest) returns (PEPSearchResponse);
+    rpc RunAMLAnalysis(AMLAnalysisRequest) returns (AMLAnalysisResponse);
+    rpc GetFinancialNetwork(GetFinancialNetworkRequest) returns (FinancialNetwork);
+}
+
+// ============ CYBERCRIME ============
+service CybercrimeService {
+    rpc SearchIOCs(IOCSearchRequest) returns (IOCSearchResponse);
+    rpc BulkSubmitIOCs(BulkIOCSubmitRequest) returns (BulkIOCSubmitResponse);
+    rpc SearchThreatActors(ThreatActorSearchRequest) returns (ThreatActorSearchResponse);
+    rpc SearchMalware(MalwareSearchRequest) returns (MalwareSearchResponse);
+    rpc SearchCryptoWallets(CryptoWalletSearchRequest) returns (CryptoWalletSearchResponse);
+    rpc SearchCyberIncidents(CyberIncidentSearchRequest) returns (CyberIncidentSearchResponse);
+}
+
+// ============ WATCHLIST ============
+service WatchlistService {
+    rpc UniversalSearch(WatchlistSearchRequest) returns (WatchlistSearchResponse);
+    rpc GetWatchlistEntry(GetWatchlistEntryRequest) returns (WatchlistEntry);
+    rpc CreateWatchlistEntry(CreateWatchlistEntryRequest) returns (WatchlistEntry);
+    rpc GetWatchlistMatches(WatchlistMatchLogRequest) returns (WatchlistMatchLogResponse);
+}
+
+// ============ DOCUMENT FRAUD ============
+service DocumentFraudService {
+    rpc SearchDocuments(DocumentSearchRequest) returns (DocumentSearchResponse);
+    rpc VerifyDocument(VerifyDocumentRequest) returns (VerifyDocumentResponse);
+    rpc GetFraudReports(FraudReportSearchRequest) returns (FraudReportSearchResponse);
+    rpc ReportDocumentFraud(ReportDocumentFraudRequest) returns (DocumentFraudReport);
+}
+
+// ============ GEOINT ============
+service GEOINTService {
+    rpc GetHotspots(HotspotRequest) returns (HotspotResponse);
+    rpc GetRiskZones(RiskZoneRequest) returns (RiskZoneResponse);
+    rpc GeospatialSearch(GeospatialSearchRequest) returns (GeospatialSearchResponse);
+    rpc GetDroneIntelligence(DroneIntelRequest) returns (DroneIntelResponse);
+}
+
+// ============ DIGITAL EVIDENCE ============
+service DigitalEvidenceService {
+    rpc SearchEvidence(EvidenceSearchRequest) returns (EvidenceSearchResponse);
+    rpc GetEvidence(GetEvidenceRequest) returns (EvidenceItem);
+    rpc UploadEvidence(stream EvidenceChunk) returns (UploadEvidenceResponse);
+    rpc DownloadEvidence(DownloadEvidenceRequest) returns (stream EvidenceChunk);
+    rpc SearchEvidenceFaces(EvidenceFaceSearchRequest) returns (EvidenceFaceSearchResponse);
+    rpc SearchEvidenceObjects(EvidenceObjectSearchRequest) returns (EvidenceObjectSearchResponse);
+    rpc SearchEvidenceOCR(EvidenceOCRSearchRequest) returns (EvidenceOCRSearchResponse);
+    rpc MultimodalSearch(MultimodalSearchRequest) returns (MultimodalSearchResponse);
+}
+
+// ============ NATIONAL AI FUSION CENTER ============
+service AIFusionService {
+    rpc AnalyzeFraud(FraudAnalysisRequest) returns (FraudAnalysisResponse);
+    rpc PredictCrime(CrimePredictionRequest) returns (CrimePredictionResponse);
+    rpc DetectDeepfake(DeepfakeDetectionRequest) returns (DeepfakeDetectionResponse);
+    rpc RunAMLRisk(AMLRiskRequest) returns (AMLRiskResponse);
+    rpc DetectInsiderThreat(InsiderThreatRequest) returns (InsiderThreatResponse);
+    rpc GraphRAGQuery(GraphRAGQueryRequest) returns (GraphRAGQueryResponse);
+    rpc AnalyzeBehavioral(BehavioralAnalysisRequest) returns (BehavioralAnalysisResponse);
+    rpc GetModelHealth(ModelHealthRequest) returns (ModelHealthResponse);
+}
+
+// ============ ALERT SERVICE ============
+service AlertService {
+    rpc GetAlerts(AlertListRequest) returns (AlertListResponse);
+    rpc AcknowledgeAlert(AcknowledgeAlertRequest) returns (AcknowledgeAlertResponse);
+    rpc ResolveAlert(ResolveAlertRequest) returns (ResolveAlertResponse);
+    rpc SubscribeToAlerts(AlertSubscriptionRequest) returns (stream Alert);
+}
+
+// ============ MESSAGES ============
+
+// --- Unified Search ---
+message UnifiedSearchRequest {
+    string query = 1;
+    enum SearchType { ALL = 0; NAME = 1; NIU = 2; PHOTO = 3; FINGERPRINT = 4; DNA = 5; PHONE = 6; EMAIL = 7; ADDRESS = 8; PLATE = 9; VIN = 10; PASSPORT = 11; CASE = 12; }
+    SearchType type = 2;
+    repeated string databases = 3;
+    int32 page = 4;
+    int32 limit = 5;
+    bool fuzzy = 6;
+    string agency_context = 7;
+}
+
+message UnifiedSearchResponse {
+    string query = 1;
+    int32 total_results = 2;
+    int32 page = 3;
+    map<string, SearchResultGroup> results = 4;
+    GraphSummary graph = 5;
+    double search_duration_ms = 6;
+}
+
+message SearchResultGroup {
+    int32 total = 1;
+    repeated google.protobuf.Value items = 2;
+}
+
+message GraphSummary {
+    repeated GraphNode nodes = 1;
+    repeated GraphEdge edges = 2;
+    int32 depth = 3;
+}
+
+message GraphNode {
+    string id = 1;
+    string label = 2;
+    string type = 3;
+    map<string, string> properties = 4;
+    double risk_score = 5;
+}
+
+message GraphEdge {
+    string source = 1;
+    string target = 2;
+    string relationship = 3;
+    double weight = 4;
+    map<string, string> properties = 5;
+}
+
+// --- Graph Search ---
+message GraphSearchRequest {
+    string query = 1;
+    string niu = 2;
+    string phone = 3;
+    string plate = 4;
+    int32 depth = 5;
+    repeated string relationship_types = 6;
+    bool include_risk_scores = 7;
+}
+
+message GraphSearchResponse {
+    repeated GraphNode nodes = 1;
+    repeated GraphEdge edges = 2;
+    double centrality_score = 3;
+    int32 network_size = 4;
+    repeated string detected_patterns = 5;
+    string analysis_summary = 6;
+}
+
+// --- Federated Search ---
+message FederatedSearchRequest {
+    string query = 1;
+    repeated string database_names = 2;
+    int32 timeout_seconds = 3;
+    bool require_biometric_consent = 4;
+}
+
+message FederatedSearchResponse {
+    string search_id = 1;
+    map<string, FederatedDatabaseResult> database_results = 2;
+    int32 total_federated_results = 3;
+    double total_duration_ms = 4;
+}
+
+message FederatedDatabaseResult {
+    string database_name = 1;
+    int32 result_count = 2;
+    double query_duration_ms = 3;
+    string status = 4;
+    repeated google.protobuf.Value results = 5;
+    string error_message = 6;
+}
+
+// --- Cross Reference ---
+message CrossReferenceRequest {
+    string entity_type = 1;
+    string entity_id = 2;
+    int32 depth = 3;
+    repeated string database_scope = 4;
+}
+
+message CrossReferenceResponse {
+    string entity_id = 1;
+    string entity_type = 2;
+    repeated CrossReferenceLink links = 3;
+    GraphSummary graph = 4;
+    string intelligence_summary = 5;
+}
+
+message CrossReferenceLink {
+    string target_type = 1;
+    string target_id = 2;
+    string target_name = 3;
+    string relationship = 4;
+    string source_database = 5;
+    double confidence = 6;
+}
+
+// --- Stream Search ---
+message StreamSearchRequest {
+    string query = 1;
+    repeated string databases = 2;
+    bool continuous = 3;
+}
+
+message SearchResult {
+    string database = 1;
+    string result_type = 2;
+    google.protobuf.Value data = 3;
+    double score = 4;
+    google.protobuf.Timestamp timestamp = 5;
+}
+
+// --- NCID Messages ---
+message WantedPerson {
+    string niu = 1;
+    string full_name = 2;
+    string alias = 3;
+    google.protobuf.Timestamp date_of_birth = 4;
+    string nationality = 5;
+    string risk_level = 6;
+    string status = 7;
+    repeated Warrant warrants = 8;
+    repeated Alias aliases = 9;
+    repeated string gang_affiliations = 10;
+    repeated InterpolNotice interpol_notices = 11;
+    double risk_score = 12;
+    google.protobuf.Timestamp created_at = 13;
+    google.protobuf.Timestamp updated_at = 14;
+}
+
+message Warrant {
+    string warrant_id = 1;
+    string warrant_type = 2;
+    string issuing_authority = 3;
+    string person_niu = 4;
+    string case_id = 5;
+    repeated string charges = 6;
+    string status = 7;
+    google.protobuf.Timestamp issued_date = 8;
+    google.protobuf.Timestamp expiry_date = 9;
+    string risk_level = 10;
+}
+
+message Alias {
+    string alias_id = 1;
+    string alias_name = 2;
+    string alias_type = 3;
+    google.protobuf.Timestamp first_used = 4;
+    google.protobuf.Timestamp last_used = 5;
+}
+
+message InterpolNotice {
+    string notice_id = 1;
+    string notice_type = 2;
+    string person_name = 3;
+    string nationality = 4;
+    string issuing_country = 5;
+    repeated string charges = 6;
+    string status = 7;
+    google.protobuf.Timestamp issued_date = 8;
+}
+
+message CriminalCase {
+    string case_id = 1;
+    string case_number = 2;
+    string case_type = 3;
+    string status = 4;
+    string lead_agency = 5;
+    string description = 6;
+    google.protobuf.Timestamp incident_date = 7;
+    string location = 8;
+    double latitude = 9;
+    double longitude = 10;
+    repeated string involved_persons = 11;
+    google.protobuf.Timestamp created_at = 12;
+}
+
+// --- Biometric Messages ---
+message VerifyBiometricRequest {
+    string niu = 1;
+    string biometric_type = 2;
+    bytes template_data = 3;
+    double threshold = 4;
+}
+
+message VerifyBiometricResponse {
+    bool verified = 1;
+    double match_score = 2;
+    double threshold = 3;
+    string gallery_id = 4;
+    int32 search_duration_ms = 5;
+}
+
+message IdentifyBiometricRequest {
+    string biometric_type = 1;
+    bytes template_data = 2;
+    string gallery_id = 3;
+    int32 max_candidates = 4;
+    double threshold = 5;
+}
+
+message IdentifyBiometricResponse {
+    repeated BiometricCandidate candidates = 1;
+    int32 gallery_size = 2;
+    int32 search_duration_ms = 3;
+}
+
+message BiometricCandidate {
+    string niu = 1;
+    string full_name = 2;
+    double score = 3;
+    int32 rank = 4;
+}
+
+// --- DNA Messages ---
+message DNAProfile {
+    string profile_id = 1;
+    string profile_type = 2;
+    string niu = 3;
+    string sample_id = 4;
+    string laboratory_id = 5;
+    string profile_quality = 6;
+    google.protobuf.Timestamp collection_date = 7;
+    string status = 8;
+    google.protobuf.Timestamp created_at = 9;
+}
+
+message DNAMatch {
+    string match_id = 1;
+    string profile_id_1 = 2;
+    string profile_id_2 = 3;
+    string match_type = 4;
+    double match_probability = 5;
+    double random_match_probability = 6;
+    string relationship = 7;
+    string status = 8;
+}
+
+// --- ALPR Messages ---
+message ALPRRead {
+    string read_id = 1;
+    string plate_text = 2;
+    string plate_country = 3;
+    string camera_code = 4;
+    double latitude = 5;
+    double longitude = 6;
+    google.protobuf.Timestamp read_timestamp = 7;
+    int32 speed_kmh = 8;
+    string vehicle_make = 9;
+    string vehicle_model = 10;
+    string vehicle_color = 11;
+    double ocr_confidence = 12;
+    bool alert_triggered = 13;
+}
+
+// --- Watchlist Messages ---
+message WatchlistEntry {
+    string entry_id = 1;
+    string watchlist_type = 2;
+    string entry_category = 3;
+    string value_primary = 4;
+    string full_name = 5;
+    string niu = 6;
+    string document_number = 7;
+    string phone_number = 8;
+    string vehicle_plate = 9;
+    string risk_level = 10;
+    string listing_authority = 11;
+    string reason = 12;
+    string status = 13;
+    google.protobuf.Timestamp created_at = 14;
+}
+
+// --- Alert Messages ---
+message Alert {
+    string alert_id = 1;
+    string source = 2;
+    string alert_type = 3;
+    string severity = 4;
+    string title = 5;
+    string description = 6;
+    repeated string entity_ids = 7;
+    string status = 8;
+    google.protobuf.Timestamp created_at = 9;
+    string created_by = 10;
+    google.protobuf.Timestamp acknowledged_at = 11;
+    string acknowledged_by = 12;
+    string resolution = 13;
+}
+
+// --- AI Fusion Messages ---
+message GraphRAGQueryRequest {
+    string natural_language_query = 1;
+    string seed_entity_id = 2;
+    string seed_entity_type = 3;
+    int32 graph_depth = 4;
+    bool include_risk_analysis = 5;
+}
+
+message GraphRAGQueryResponse {
+    string analysis = 1;
+    repeated GraphNode context_nodes = 2;
+    repeated GraphEdge context_edges = 3;
+    double overall_risk_score = 4;
+    repeated string key_findings = 5;
+    double confidence = 6;
+    map<string, double> entity_risk_scores = 7;
+}
+
+// --- Health & Status ---
+message ModelHealthRequest {
+    string model_name = 1;
+}
+
+message ModelHealthResponse {
+    string model_name = 1;
+    string model_version = 2;
+    string status = 3;
+    double latency_p50_ms = 4;
+    double latency_p99_ms = 5;
+    int32 requests_per_minute = 6;
+    double error_rate = 7;
+    double gpu_utilization = 8;
+    int64 memory_usage_bytes = 9;
+    google.protobuf.Timestamp last_trained = 10;
+    double accuracy_metric = 11;
+}
+
+// --- Request wrappers (for single-ID lookups) ---
+message GetWantedPersonRequest { string niu = 1; }
+message GetPersonWarrantsRequest { string niu = 1; }
+message GetPersonAliasesRequest { string niu = 1; }
+message GetCriminalCaseRequest { string case_id = 1; }
+message GetVehicleByVINRequest { string vin = 1; }
+message GetVehicleByPlateRequest { string plate = 1; }
+message GetALPRReadRequest { string read_id = 1; }
+message GetMissingPersonRequest { string missing_id = 1; }
+message GetFirearmBySerialRequest { string serial = 1; }
+message GetTravelerHistoryRequest { string passport = 1; }
+message GetTransactionRequest { string transaction_id = 1; }
+message GetWatchlistEntryRequest { string entry_id = 1; }
+message GetEvidenceRequest { string evidence_id = 1; }
+message DownloadEvidenceRequest { string evidence_id = 1; }
+
+// --- Response list wrappers ---
+message WarrantList { repeated Warrant warrants = 1; }
+message AliasList { repeated Alias aliases = 1; }
+message SightingList { repeated Sighting sightings = 1; }
+
+// --- Sighting message ---
+message Sighting {
+    string sighting_id = 1;
+    string missing_id = 2;
+    google.protobuf.Timestamp sighting_date = 3;
+    string sighting_location = 4;
+    double latitude = 5;
+    double longitude = 6;
+    string source_type = 7;
+    double confidence_score = 8;
+    string status = 9;
+}
+
+// --- Search request/response pairs ---
+message WantedPersonSearchRequest {
+    string name = 1; string alias = 2; string niu = 3;
+    string nationality = 4; string risk_level = 5; string status = 6;
+    int32 page = 7; int32 limit = 8;
+}
+message WantedPersonSearchResponse { repeated WantedPerson data = 1; int32 total = 2; int32 page = 3; }
+
+message CreateWantedPersonRequest { WantedPerson person = 1; }
+message UpdateWantedPersonRequest { WantedPerson person = 1; }
+
+message CriminalCaseSearchRequest { string case_number = 1; string case_type = 2; string status = 3; string agency = 4; google.protobuf.Timestamp date_from = 5; google.protobuf.Timestamp date_to = 6; int32 page = 7; int32 limit = 8; }
+message CriminalCaseSearchResponse { repeated CriminalCase data = 1; int32 total = 2; }
+
+message GangSearchRequest { string name = 1; string territory = 2; string risk_level = 3; }
+message GangSearchResponse { repeated Gang gangs = 1; }
+message Gang { string gang_id = 1; string name = 2; string territory = 3; repeated string activities = 4; string risk_level = 5; int32 member_count = 6; string status = 7; }
+
+message OrganizationSearchRequest { string name = 1; string type = 2; string country = 3; }
+message OrganizationSearchResponse { repeated CriminalOrganization orgs = 1; }
+message CriminalOrganization { string org_id = 1; string name = 2; string type = 3; string country = 4; string status = 5; string risk_level = 6; }
+
+message InterpolNoticeSearchRequest { string notice_type = 1; string name = 2; string nationality = 3; string status = 4; }
+message InterpolNoticeSearchResponse { repeated InterpolNotice notices = 1; }
+
+message GetCriminalNetworkRequest { string seed_niu = 1; int32 depth = 2; }
+message CriminalNetwork { string network_id = 1; repeated GraphNode nodes = 2; repeated GraphEdge edges = 3; double centrality_score = 4; }
+
+message LinkPersonToCaseRequest { string niu = 1; string case_id = 2; string role = 3; }
+message LinkPersonToCaseResponse { bool success = 1; string link_id = 2; }
+
+// Face/Fingerprint/Iris/Voice search messages
+message FaceSearchRequest { bytes image = 1; double min_confidence = 2; int32 max_results = 3; }
+message FaceSearchResponse { repeated BiometricCandidate candidates = 1; }
+message FingerprintSearchRequest { bytes image = 1; string finger_position = 2; double min_confidence = 3; }
+message IrisSearchRequest { bytes image = 1; string iris_position = 2; }
+message VoiceSearchRequest { bytes audio = 1; string language = 2; }
+message PalmSearchRequest { bytes image = 1; string palm_position = 2; }
+
+message DuplicateDetectionRequest { string biometric_type = 1; double threshold = 2; int32 max_comparisons = 3; }
+message DuplicateDetectionResponse { repeated DuplicateResult duplicates = 1; }
+message DuplicateResult { string niu_1 = 1; string niu_2 = 2; double score = 3; string biometric_type = 4; }
+
+message EnrollBiometricRequest { string niu = 1; string biometric_type = 2; bytes template_data = 3; string enrollment_location = 4; }
+message EnrollBiometricResponse { string enrollment_id = 1; bool success = 2; string status = 3; }
+
+message DNASearchRequest { string profile_type = 1; string sample_id = 2; string niu = 3; }
+message DNASearchResponse { repeated DNAProfile profiles = 1; }
+message ExactDNASearchRequest { repeated string alleles = 1; double min_confidence = 2; }
+message ExactDNASearchResponse { repeated DNAMatch matches = 1; }
+message FamilialDNASearchRequest { string profile_id = 1; string relationship = 2; double min_threshold = 3; }
+message FamilialDNASearchResponse { repeated DNAMatch matches = 1; }
+message MissingPersonDNASearchRequest { string profile_id = 1; }
+message CreateDNAProfileRequest { DNAProfile profile = 1; }
+message RecordDNAMatchRequest { DNAMatch match = 1; }
+message RecordDNAMatchResponse { DNAMatch match = 1; }
+
+message MissingPersonSearchRequest { string name = 1; string case_type = 2; string status = 3; string risk_level = 4; int32 page = 5; int32 limit = 6; }
+message MissingPersonSearchResponse { repeated MissingPerson data = 1; int32 total = 2; }
+message MissingPerson { string missing_id = 1; string full_name = 2; string case_type = 3; google.protobuf.Timestamp last_seen = 4; string last_seen_location = 5; string status = 6; string risk_level = 7; repeated Sighting sightings = 8; }
+
+message ReportMissingPersonRequest { MissingPerson person = 1; }
+message ReportSightingRequest { Sighting sighting = 1; }
+message GetSightingsRequest { string missing_id = 1; }
+message TriggerAlertRequest { string missing_id = 1; string alert_type = 2; repeated string channels = 3; }
+message TriggerAlertResponse { string alert_id = 1; bool triggered = 2; }
+message ResolveMissingCaseRequest { string missing_id = 1; string resolution = 2; string found_status = 3; }
+message ResolveMissingCaseResponse { bool success = 1; }
+
+message VehicleSearchRequest { string vin = 1; string plate = 2; string owner_niu = 3; string make = 4; string model = 5; int32 year = 6; string status = 7; int32 page = 8; int32 limit = 9; }
+message VehicleSearchResponse { repeated Vehicle data = 1; int32 total = 2; }
+message Vehicle { string vehicle_id = 1; string vin = 2; string plate = 3; string make = 4; string model = 5; int32 year = 6; string color = 7; string owner_niu = 8; string owner_name = 9; string status = 10; }
+
+message GetOwnershipHistoryRequest { string vin = 1; }
+message OwnershipHistoryList { repeated OwnershipRecord records = 1; }
+message OwnershipRecord { string owner_niu = 1; string owner_name = 2; google.protobuf.Timestamp ownership_start = 3; google.protobuf.Timestamp ownership_end = 4; }
+
+message GetVehicleNetworkRequest { string vin = 1; int32 depth = 2; }
+message VehicleNetwork { string vin = 1; repeated GraphNode persons = 2; repeated GraphNode vehicles = 3; repeated GraphNode phones = 4; repeated GraphEdge connections = 5; }
+
+message ReportStolenVehicleRequest { string vin = 1; google.protobuf.Timestamp theft_date = 2; string theft_location = 3; string reporting_agency = 4; }
+message StolenVehicleReport { string theft_id = 1; string status = 2; }
+
+message ALPRSearchRequest { string plate = 1; string camera_id = 2; google.protobuf.Timestamp date_from = 3; google.protobuf.Timestamp date_to = 4; int32 page = 5; int32 limit = 6; }
+message ALPRSearchResponse { repeated ALPRRead data = 1; int32 total = 2; }
+message RouteAnalysisRequest { string plate = 1; google.protobuf.Timestamp date_from = 2; google.protobuf.Timestamp date_to = 3; }
+message RouteAnalysis { string plate = 1; repeated RoutePoint points = 2; double total_distance_km = 3; google.protobuf.Timestamp first_seen = 4; google.protobuf.Timestamp last_seen = 5; repeated string frequent_areas = 6; }
+message RoutePoint { string camera_code = 1; google.protobuf.Timestamp timestamp = 2; double latitude = 3; double longitude = 4; }
+message HeatmapRequest { string department = 1; google.protobuf.Timestamp date_from = 2; google.protobuf.Timestamp date_to = 3; string granularity = 4; }
+message HeatmapResponse { repeated HeatmapCell cells = 1; }
+message HeatmapCell { double lat = 1; double lng = 2; int32 vehicle_count = 3; double average_speed = 4; }
+message CrossBorderRequest { string plate = 1; google.protobuf.Timestamp date_from = 2; google.protobuf.Timestamp date_to = 3; }
+message CrossBorderResponse { repeated BorderCrossingEvent crossings = 1; }
+message BorderCrossingEvent { string crossing_id = 1; string plate = 2; string border_point = 3; string direction = 4; google.protobuf.Timestamp timestamp = 5; }
+message IngestALPRReadRequest { ALPRRead read = 1; }
+message IngestALPRReadResponse { string read_id = 1; bool alert_triggered = 2; }
+message StreamALPRResponse { int32 ingested_count = 1; int32 alert_count = 2; }
+
+message FirearmSearchRequest { string serial = 1; string make = 2; string caliber = 3; string type = 4; string status = 5; }
+message FirearmSearchResponse { repeated Firearm data = 1; int32 total = 2; }
+message Firearm { string firearm_id = 1; string serial_number = 2; string make = 3; string model = 4; string caliber = 5; string type = 6; string owner_niu = 7; string status = 8; }
+message BallisticSearchRequest { string caliber = 1; int32 lands_grooves = 2; string twist_direction = 3; string firing_pin_impression = 4; }
+message BallisticSearchResponse { repeated BallisticEvidence evidence = 1; }
+message BallisticEvidence { string ballistic_id = 1; string evidence_number = 2; string caliber = 3; string case_id = 4; }
+message RecordBallisticMatchRequest { string evidence_id_1 = 1; string evidence_id_2 = 2; double match_score = 3; }
+message BallisticMatch { string match_id = 1; double match_score = 2; string verification_status = 3; }
+
+message BorderCrossingSearchRequest { string passport = 1; string niu = 2; string name = 3; string direction = 4; string border_point = 5; google.protobuf.Timestamp date_from = 6; google.protobuf.Timestamp date_to = 7; double risk_score_min = 8; int32 page = 9; int32 limit = 10; }
+message BorderCrossingSearchResponse { repeated BorderCrossing data = 1; int32 total = 2; }
+message BorderCrossing { string crossing_id = 1; string niu = 2; string passport_number = 3; string full_name = 4; string nationality = 5; string direction = 6; string border_point = 7; google.protobuf.Timestamp crossing_date = 8; string crossing_method = 9; double risk_score = 10; }
+
+message VisaSearchRequest { string visa_number = 1; string passport = 2; string visa_type = 3; string status = 4; }
+message VisaSearchResponse { repeated Visa visas = 1; }
+message Visa { string visa_id = 1; string visa_number = 2; string visa_type = 3; string issuing_post = 4; google.protobuf.Timestamp issue_date = 5; google.protobuf.Timestamp expiry_date = 6; string status = 7; }
+
+message BiometricBorderSearchRequest { bytes image = 1; string biometric_type = 2; }
+message BiometricBorderSearchResponse { repeated BiometricCandidate matches = 1; repeated BorderCrossing recent_crossings = 2; }
+message RecordBorderCrossingRequest { BorderCrossing crossing = 1; }
+
+message NarcoticsRouteSearchRequest { string origin = 1; string destination = 2; string drug_type = 3; string risk_level = 4; }
+message NarcoticsRouteSearchResponse { repeated NarcoticsRoute routes = 1; }
+message NarcoticsRoute { string route_id = 1; string route_type = 2; string origin_country = 3; string destination_country = 4; repeated string drugs = 5; string risk_level = 6; string status = 7; }
+
+message SeizureSearchRequest { string drug_type = 1; string agency = 2; google.protobuf.Timestamp date_from = 3; google.protobuf.Timestamp date_to = 4; int32 page = 5; int32 limit = 6; }
+message SeizureSearchResponse { repeated Seizure seizures = 1; int32 total = 2; }
+message Seizure { string seizure_id = 1; google.protobuf.Timestamp seizure_date = 2; string location = 3; repeated string drug_types = 4; double estimated_value_usd = 5; string seizure_agency = 6; int32 arrests = 7; }
+message RecordSeizureRequest { Seizure seizure = 1; }
+
+message VesselSearchRequest { string name = 1; string imo = 2; string flag = 3; }
+message VesselSearchResponse { repeated Vessel vessels = 1; }
+message Vessel { string vessel_id = 1; string name = 2; string imo_number = 3; string flag_country = 4; string vessel_type = 5; double risk_score = 6; }
+message AircraftSearchRequest { string tail_number = 1; string make = 2; string model = 3; }
+message AircraftSearchResponse { repeated Aircraft aircraft = 1; }
+message Aircraft { string aircraft_id = 1; string tail_number = 2; string make = 3; string model = 4; string type = 5; double risk_score = 6; }
+message CartelSearchRequest { string name = 1; string country = 2; string status = 3; }
+message CartelSearchResponse { repeated Cartel cartels = 1; }
+message Cartel { string cartel_id = 1; string name = 2; string country_of_origin = 3; repeated string drugs = 4; string risk_level = 5; string status = 6; }
+
+message TransactionSearchRequest { string sender_niu = 1; string beneficiary_niu = 2; double min_amount = 3; double max_amount = 4; google.protobuf.Timestamp date_from = 5; google.protobuf.Timestamp date_to = 6; double risk_score_min = 7; string status = 8; int32 page = 9; int32 limit = 10; }
+message TransactionSearchResponse { repeated SuspiciousTransaction transactions = 1; int32 total = 2; }
+message SuspiciousTransaction { string transaction_id = 1; string transaction_ref = 2; google.protobuf.Timestamp transaction_date = 3; string transaction_type = 4; double amount = 5; string currency = 6; string sender_name = 7; string beneficiary_name = 8; double risk_score = 9; string status = 10; }
+
+message BeneficialOwnerSearchRequest { string niu = 1; string entity_name = 2; string country = 3; }
+message BeneficialOwnerSearchResponse { repeated BeneficialOwner owners = 1; }
+message BeneficialOwner { string owner_id = 1; string niu = 2; string full_name = 3; string entity_name = 4; double ownership_percentage = 5; bool politically_exposed = 6; double risk_score = 7; }
+
+message PEPSearchRequest { string name = 1; string country = 2; string position = 3; }
+message PEPSearchResponse { repeated PEP peps = 1; }
+message PEP { string pep_id = 1; string niu = 2; string full_name = 3; string position = 4; string institution = 5; string country = 6; string pep_level = 7; double risk_score = 8; }
+
+message AMLAnalysisRequest { string entity_niu = 1; string entity_name = 2; string entity_type = 3; }
+message AMLAnalysisResponse { string analysis_id = 1; double overall_risk_score = 2; repeated AMLRiskFactor risk_factors = 3; repeated string recommendations = 4; }
+message AMLRiskFactor { string factor = 1; double score = 2; string description = 3; }
+
+message GetFinancialNetworkRequest { string seed_entity = 1; int32 depth = 2; }
+message FinancialNetwork { string network_id = 1; repeated GraphNode entities = 2; repeated GraphEdge transactions = 3; double total_value = 4; double risk_score = 5; }
+
+message IOCSearchRequest { string value = 1; string type = 2; string severity = 3; string malware_family = 4; string tlp = 5; int32 page = 6; int32 limit = 7; }
+message IOCSearchResponse { repeated IOC iocs = 1; int32 total = 2; }
+message IOC { string ioc_id = 1; string ioc_value = 2; string ioc_type = 3; int32 confidence = 4; string severity = 5; string malware_family = 6; string threat_actor = 7; google.protobuf.Timestamp last_seen = 8; string tlp_level = 9; string status = 10; }
+
+message BulkIOCSubmitRequest { repeated IOC iocs = 1; }
+message BulkIOCSubmitResponse { int32 accepted = 1; int32 rejected = 2; repeated string errors = 3; }
+
+message ThreatActorSearchRequest { string name = 1; string type = 2; string country = 3; }
+message ThreatActorSearchResponse { repeated ThreatActor actors = 1; }
+message ThreatActor { string actor_id = 1; string name = 2; repeated string alias = 3; string actor_type = 4; string country_of_origin = 5; string status = 6; }
+
+message MalwareSearchRequest { string sha256 = 1; string md5 = 2; string family = 3; string type = 4; }
+message MalwareSearchResponse { repeated MalwareSample samples = 1; }
+message MalwareSample { string sample_id = 1; string sha256_hash = 2; string malware_family = 3; string malware_type = 4; repeated string mitre_ids = 5; }
+
+message CryptoWalletSearchRequest { string address = 1; string blockchain = 2; string wallet_type = 3; double risk_score_min = 4; }
+message CryptoWalletSearchResponse { repeated CryptoWallet wallets = 1; }
+message CryptoWallet { string wallet_id = 1; string wallet_address = 2; string blockchain = 3; string wallet_type = 4; double risk_score = 5; double total_received_usd = 6; }
+
+message CyberIncidentSearchRequest { string type = 1; string severity = 2; google.protobuf.Timestamp date_from = 3; google.protobuf.Timestamp date_to = 4; int32 page = 5; int32 limit = 6; }
+message CyberIncidentSearchResponse { repeated CyberIncident incidents = 1; int32 total = 2; }
+message CyberIncident { string incident_id = 1; string incident_number = 2; string incident_type = 3; string severity = 4; google.protobuf.Timestamp incident_date = 5; string description = 6; string status = 7; }
+
+message WatchlistSearchRequest { string value = 1; string type = 2; string category = 3; string risk_level = 4; string status = 5; int32 page = 6; int32 limit = 7; }
+message WatchlistSearchResponse { repeated WatchlistEntry entries = 1; int32 total = 2; }
+
+message CreateWatchlistEntryRequest { WatchlistEntry entry = 1; }
+
+message WatchlistMatchLogRequest { string status = 1; google.protobuf.Timestamp date_from = 2; google.protobuf.Timestamp date_to = 3; int32 page = 4; int32 limit = 5; }
+message WatchlistMatchLogResponse { repeated WatchlistMatch matches = 1; int32 total = 2; }
+message WatchlistMatch { string match_id = 1; string entry_id = 2; string match_value = 3; string match_source = 4; double match_confidence = 5; google.protobuf.Timestamp detected_at = 6; string status = 7; }
+
+message DocumentSearchRequest { string document_number = 1; string document_type = 2; string holder_niu = 3; string holder_name = 4; string status = 5; int32 page = 6; int32 limit = 7; }
+message DocumentSearchResponse { repeated FraudDocument documents = 1; int32 total = 2; }
+message FraudDocument { string document_id = 1; string document_number = 2; string document_type = 3; string holder_niu = 4; string holder_name = 5; string issuing_country = 6; string status = 7; double risk_score = 8; }
+
+message VerifyDocumentRequest { string document_number = 1; string document_type = 2; string mrz_data = 3; string chip_data = 4; }
+message VerifyDocumentResponse { bool authentic = 1; double confidence = 2; repeated string anomalies = 3; string verification_method = 4; }
+
+message FraudReportSearchRequest { string fraud_type = 1; string detection_method = 2; string status = 3; }
+message FraudReportSearchResponse { repeated DocumentFraudReport reports = 1; }
+message DocumentFraudReport { string fraud_id = 1; string document_id = 2; string fraud_type = 3; google.protobuf.Timestamp detection_date = 4; string detection_method = 5; double confidence_score = 6; string status = 7; }
+
+message ReportDocumentFraudRequest { DocumentFraudReport report = 1; }
+
+message HotspotRequest { string type = 1; string risk_level = 2; double lat = 3; double lng = 4; double radius_km = 5; }
+message HotspotResponse { repeated Hotspot hotspots = 1; }
+message Hotspot { string hotspot_id = 1; string name = 2; string type = 3; double latitude = 4; double longitude = 5; string risk_level = 6; google.protobuf.Timestamp last_incident_date = 7; }
+
+message RiskZoneRequest { string type = 1; string department = 2; }
+message RiskZoneResponse { repeated RiskZone zones = 1; }
+message RiskZone { string zone_id = 1; string zone_name = 2; string zone_type = 3; string risk_level = 4; double risk_score = 5; repeated double boundary = 6; }
+
+message GeospatialSearchRequest { double lat = 1; double lng = 2; double radius_km = 3; repeated string layers = 4; google.protobuf.Timestamp date_from = 5; google.protobuf.Timestamp date_to = 6; }
+message GeospatialSearchResponse { repeated GeospatialLayer layers = 1; }
+message GeospatialLayer { string layer_id = 1; string layer_name = 2; string layer_type = 3; google.protobuf.Timestamp acquisition_date = 4; }
+
+message DroneIntelRequest { google.protobuf.Timestamp date_from = 1; google.protobuf.Timestamp date_to = 2; string area = 3; }
+message DroneIntelResponse { repeated DroneFlight flights = 1; }
+message DroneFlight { string drone_id = 1; string drone_model = 2; google.protobuf.Timestamp flight_date = 3; double altitude_m = 4; repeated double flight_path = 5; }
+
+message EvidenceSearchRequest { string case_number = 1; string evidence_type = 2; string agency = 3; google.protobuf.Timestamp date_from = 4; google.protobuf.Timestamp date_to = 5; int32 page = 6; int32 limit = 7; }
+message EvidenceSearchResponse { repeated EvidenceItem items = 1; int32 total = 2; }
+message EvidenceItem { string evidence_id = 1; string evidence_number = 2; string evidence_type = 3; string case_number = 4; string title = 5; string mime_type = 6; int64 file_size = 7; google.protobuf.Timestamp captured_date = 8; string status = 9; }
+
+message EvidenceChunk { string evidence_id = 1; bytes data = 2; string filename = 3; int64 offset = 4; bool is_last = 5; }
+message UploadEvidenceResponse { string evidence_id = 1; string evidence_number = 2; bool success = 3; }
+
+message EvidenceFaceSearchRequest { bytes image = 1; double min_confidence = 2; }
+message EvidenceFaceSearchResponse { repeated EvidenceFaceMatch matches = 1; }
+message EvidenceFaceMatch { string evidence_id = 1; double confidence = 2; string person_niu = 3; BoundingBox bbox = 4; }
+message BoundingBox { double x = 1; double y = 2; double width = 3; double height = 4; }
+
+message EvidenceObjectSearchRequest { string object_class = 1; double min_confidence = 2; }
+message EvidenceObjectSearchResponse { repeated EvidenceObjectMatch matches = 1; }
+message EvidenceObjectMatch { string evidence_id = 1; string object_class = 2; double confidence = 3; BoundingBox bbox = 4; }
+
+message EvidenceOCRSearchRequest { string text_query = 1; double min_confidence = 2; }
+message EvidenceOCRSearchResponse { repeated EvidenceOCRMatch matches = 1; }
+message EvidenceOCRMatch { string evidence_id = 1; string extracted_text = 2; double confidence = 3; int32 frame_number = 4; }
+
+message MultimodalSearchRequest { string query = 1; repeated string modalities = 2; int32 limit = 3; }
+message MultimodalSearchResponse { repeated MultimodalResult results = 1; }
+message MultimodalResult { string evidence_id = 1; string modality = 2; double score = 3; string description = 4; }
+
+message FraudAnalysisRequest { string entity_niu = 1; int32 graph_depth = 2; }
+message FraudAnalysisResponse { double risk_score = 1; repeated string fraud_indicators = 2; map<string, double> feature_importance = 3; string model_version = 4; GraphSummary network_context = 5; }
+
+message CrimePredictionRequest { string region = 1; google.protobuf.Timestamp prediction_window_start = 2; google.protobuf.Timestamp prediction_window_end = 3; }
+message CrimePredictionResponse { repeated CrimePrediction predictions = 1; double model_confidence = 2; }
+message CrimePrediction { string zone = 1; string crime_type = 2; double predicted_probability = 3; string risk_level = 4; }
+
+message DeepfakeDetectionRequest { bytes media = 1; string media_type = 2; }
+message DeepfakeDetectionResponse { bool is_fake = 1; double confidence = 2; map<string, double> artifact_scores = 3; string analysis_method = 4; }
+
+message AMLRiskRequest { string entity_niu = 1; }
+message AMLRiskResponse { double risk_score = 1; string risk_level = 2; repeated string risk_factors = 3; repeated string linked_entities = 4; string model_version = 5; }
+
+message InsiderThreatRequest { string user_id = 1; google.protobuf.Timestamp window_start = 2; google.protobuf.Timestamp window_end = 3; }
+message InsiderThreatResponse { double threat_score = 1; repeated string anomalous_behaviors = 2; string risk_level = 3; repeated string recommendations = 4; }
+
+message BehavioralAnalysisRequest { string entity_niu = 1; google.protobuf.Timestamp window_days = 2; }
+message BehavioralAnalysisResponse { double anomaly_score = 1; bool is_anomalous = 2; repeated string anomaly_types = 3; string baseline_profile = 4; map<string, double> behavioral_features = 5; }
+
+message AlertListRequest { string source = 1; string severity = 2; string status = 3; google.protobuf.Timestamp date_from = 4; google.protobuf.Timestamp date_to = 5; int32 page = 6; int32 limit = 7; }
+message AlertListResponse { repeated Alert alerts = 1; int32 total = 2; int32 page = 3; }
+message AcknowledgeAlertRequest { string alert_id = 1; }
+message AcknowledgeAlertResponse { bool success = 1; }
+message ResolveAlertRequest { string alert_id = 1; string resolution = 2; string action_taken = 3; }
+message ResolveAlertResponse { bool success = 1; }
+message AlertSubscriptionRequest { repeated string sources = 1; repeated string severities = 2; string agency = 3; }

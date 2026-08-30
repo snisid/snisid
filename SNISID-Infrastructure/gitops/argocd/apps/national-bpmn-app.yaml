@@ -1,0 +1,58 @@
+# SNISID — ArgoCD : National BPMN Application (Camunda/Zeebe)
+# Classification: RESTREINT DEFENSE
+# Cluster: snisid-bpmn (Tier-1)
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-bpmn-engine
+  namespace: argocd
+  labels:
+    snisid.gov.tier: "tier-1"
+    snisid.gov.region: "core"
+    snisid.gov.service: "bpmn-engine"
+    snisid.gov.owner: "equipe-processus"
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    snisid.gov.data-classification: "restricted"
+finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: snisid-national
+  source:
+    repoURL: "https://git.interne.snisid.gouv.local/infrastructure/national.git"
+    targetRevision: "main"
+    path: "helm/snisid-bpmn"
+    helm:
+      valueFiles:
+        - "values-core-prod.yaml"
+      parameters:
+        - name: "replicaCount"
+          value: "4"
+        - name: "image.registry"
+          value: "registry.interne.snisid.gouv.local"
+  destination:
+    server: "https://api.bpmn.snisid.gouv.local:6443"
+    namespace: snisid-bpmn
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m
+    managedNamespaceMetadata:
+      labels:
+        istio-injection: enabled
+        snisid.gov.tier: tier-1
+        snisid.gov.region: core
+  ignoreDifferences: []
+  revisionHistoryLimit: 10

@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trait-svc
+  namespace: snisid-core
+  labels:
+    app: trait-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trait-svc
+  template:
+    metadata:
+      labels:
+        app: trait-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8122"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: trait-svc
+        image: snisid/trait-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8122
+        env:
+        - name: PORT
+          value: "8122"
+        - name: ENV
+          value: "prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: postgres-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8122
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8122
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

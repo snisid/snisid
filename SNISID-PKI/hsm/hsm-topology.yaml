@@ -1,0 +1,274 @@
+# SNISID — HSM National Topology & Operational Security
+# Classification: TOP-SECRET
+# Role: Protection physique et logique de toutes les clés privées PKI nationales
+# Hardware: Thales Luna 7 Network HSM (FIPS 140-2 Level 3, tamper-evident)
+
+---
+# Core DC HSM Cluster
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-hsm-core-topology
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: hsm-core
+    snisid.gov.data-classification: top-secret
+data:
+  topology.yaml: |
+    site:
+      name: "SNISID-HSM-CORE-DC"
+      location: "National Core Datacenter — Tier-4 secure zone"
+      access_level: "Level 4 (highest)"
+      
+    hsm_appliances:
+      - id: HSM-CORE-01
+        model: "Thales Luna 7 Network HSM"
+        serial: "LUNA7-HT-CORE-01"
+        firmware: "7.4.0 (hash: sha256:XXXXXXXX)"
+        attestation_cert: "Thales-Attestation-HSM-CORE-01.pem"
+        network:
+          mgmt_ip: "10.1.0.10/24"
+          vlan: 20  # Tier-0 HSM network
+          firewall: "nftables-host — deny all except Vault Identity cluster nodes"
+        partitions:
+          - name: SNISID_ROOT_CA
+            purpose: "Root CA private key (offline partition — administrable uniquement en cérémonie)"
+            key_label: snisid-root-ca-2026-key
+            algorithm: EC-secp384r1
+            extractable: false
+            modifiable: false
+            key_owner: "Root CA Ceremony Custodians (6)"
+            m_of_n: "4-of-6"
+            online: false
+            activation: "Physical HSM front panel + M-of-N smartcards"
+            
+          - name: SNISID_GOV_CA
+            purpose: "Government Intermediate CA private key"
+            key_label: snisid-gov-intermediate-ca-key
+            algorithm: EC-secp384r1
+            extractable: false
+            modifiable: false
+            key_owner: "IGC + Government CA Manager"
+            m_of_n: "2-of-4"
+            online: true
+            activation: "Auto (partition policy) — Vault agent via PKCS#11"
+            
+          - name: SNISID_CITIZEN_CA
+            purpose: "Citizen Intermediate CA private key"
+            key_label: snisid-citizen-intermediate-ca-key
+            algorithm: EC-secp384r1
+            extractable: false
+            modifiable: false
+            key_owner: "IGC + Citizen CA Manager"
+            m_of_n: "2-of-4"
+            online: true
+            activation: "Auto — Vault agent via PKCS#11"
+            privacy_note: "Partition isolated from Gov/Infra/Judicial for RGPD-equivalent compliance"
+            
+          - name: SNISID_INFRA_CA
+            purpose: "Infrastructure Intermediate CA private key"
+            key_label: snisid-infra-intermediate-ca-key
+            algorithm: EC-secp384r1
+            extractable: false
+            modifiable: false
+            key_owner: "Infrastructure CA Manager + IGC"
+            m_of_n: "2-of-4"
+            online: true
+            activation: "Auto — cert-manager + Vault agent via PKCS#11"
+            
+          - name: SNISID_JUDICIAL_CA
+            purpose: "Judicial Intermediate CA private key"
+            key_label: snisid-judicial-intermediate-ca-key
+            algorithm: EC-secp384r1
+            extractable: false
+            modifiable: false
+            key_owner: "Judicial Council + IGC"
+            m_of_n: "2-of-4"
+            online: true
+            activation: "Auto — Vault agent via PKCS#11 (restricted to judicial workflow)"
+            
+          - name: SNISID_DEVICE_CA
+            purpose: "Device Trust Intermediate CA private key"
+            key_label: snisid-device-intermediate-ca-key
+            algorithm: EC-secp384r1
+            extractable: false
+            modifiable: false
+            key_owner: "Device CA Manager + IGC"
+            m_of_n: "2-of-4"
+            online: true
+            activation: "Auto — provisioning service via PKCS#11"
+            
+          - name: SNISID_TSA
+            purpose: "Timestamp Authority private key"
+            key_label: snisid-tsa-key
+            algorithm: EC-secp384r1
+            extractable: false
+            modifiable: false
+            key_owner: "IGC"
+            m_of_n: "2-of-3"
+            online: true
+            activation: "Auto — TSA service via PKCS#11"
+            
+          - name: SNISID_KEY_ESCROW
+            purpose: "Temporary key escrow for citizen recovery / judicial interception"
+            key_label: "escrow-*"
+            algorithm: "AES-256-GCM, EC-secp384r1"
+            extractable: false  # Wrapped only, never plain text
+            modifiable: false
+            key_owner: "IGC + Judicial Authority (dual control)"
+            m_of_n: "3-of-5"
+            online: true
+            activation: "Dual authorization + judicial order + IGC approval"
+            legal_framework: "Interception légale / Récupération citoyen — cadre strict"
+            
+      - id: HSM-CORE-02
+        model: "Thales Luna 7 Network HSM"
+        serial: "LUNA7-HT-CORE-02"
+        role: "Hot standby (synchronized, active-active for online partitions)"
+        network:
+          mgmt_ip: "10.1.0.11/24"
+        replication: "Real-time for online partitions. Root CA partition disabled (offline)."
+
+    physical_security:
+      room_access: "Biometric (iris + fingerprint) + smartcard + armed guard"
+      tamper_evidence: "Seals Thales + national custom seals photographed daily"
+      video_surveillance: "4K cameras, 24/7, 10 years retention, dual power"
+      environmental: "Fire suppression FM-200 + water mist backup. Temperature 18-24°C. Humidity 40-60%."
+      power: "Dual utility + UPS (4h) + Diesel generator (72h) + Solar backup (emergency)"
+      faraday_cage: "Room shielded (TEMPEST level) — no RF leakage"
+      
+    audit:
+      hsm_audit_log: "Forwarded real-time to SIEM national (syslog TLS 1.3)"
+      video_audit: "AI anomaly detection (unauthorized person, tamper seal change)"
+      operator_log: "All HSM CLI operations logged with operator biometric ID"
+      frequency_external_audit: "Quarterly (IGC) + Annually (external sovereign auditor)"
+
+---
+# DR DC HSM Cluster
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-hsm-dr-topology
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: hsm-dr
+    snisid.gov.data-classification: top-secret
+data:
+  topology.yaml: |
+    site:
+      name: "SNISID-HSM-DR-DC"
+      location: "Secondary DR Datacenter — Tier-4 secure zone"
+      access_level: "Level 4"
+      
+    hsm_appliances:
+      - id: HSM-DR-01
+        model: "Thales Luna 7 Network HSM"
+        serial: "LUNA7-HT-DR-01"
+        network:
+          mgmt_ip: "10.2.0.10/24"
+          vlan: 120  # DR Tier-0 HSM network
+        partitions:
+          - name: SNISID_ROOT_CA_BACKUP
+            purpose: "Root CA key backup (mirror — disabled unless Root CA reconstruction)"
+            key_label: snisid-root-ca-2026-key
+            status: "DISABLED / STANDBY"
+            activation: "Cérémonie reconstruction uniquement — 4-of-6 custodians required"
+            
+          - name: SNISID_GOV_CA_DR
+            purpose: "Government CA DR mirror"
+            replication: "Async from Core, sync every 1h via secure transport"
+            
+          - name: SNISID_CITIZEN_CA_DR
+            purpose: "Citizen CA DR mirror"
+            replication: "Async from Core, sync every 1h"
+            
+          - name: SNISID_INFRA_CA_DR
+            purpose: "Infrastructure CA DR mirror"
+            replication: "Async from Core, sync every 1h"
+            
+          - name: SNISID_JUDICIAL_CA_DR
+            purpose: "Judicial CA DR mirror"
+            replication: "Async from Core, sync every 1h"
+            
+          - name: SNISID_DEVICE_CA_DR
+            purpose: "Device CA DR mirror"
+            replication: "Async from Core, sync every 1h"
+            
+    physical_security:
+      # Identical to Core DC specifications
+      room_access: "Biometric (iris + fingerprint) + smartcard + armed guard"
+      tamper_evidence: "Seals Thales + national custom seals"
+      video_surveillance: "4K cameras, 24/7, 10 years retention"
+      environmental: "Fire suppression FM-200 + water mist. Climate controlled."
+      power: "Dual utility + UPS + Diesel + Solar"
+      faraday_cage: "TEMPEST level"
+
+---
+# Key Escrow Sites (Shamir + Physical)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: snisid-key-escrow-sites
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: key-escrow
+    snisid.gov.data-classification: top-secret
+data:
+  escrow.yaml: |
+    scheme: "Shamir Secret Sharing + Physical Vault"
+    threshold: 4
+    total_shares: 6
+    
+    shares:
+      - id: SHARE-01
+        location: "Coffre présidentiel — Site A (Capitale)"
+        custodian: "Custodian A (Présidence)"
+        access: "Biometric + smartcard + dual guard"
+        media: "Optical disc (M-DISC) + Paper sealed envelope"
+        verification: "SHA-256 hash published in Official Gazette"
+        
+      - id: SHARE-02
+        location: "Coffre IGC HQ — Site B (Capitale)"
+        custodian: "Custodian B (IGC Director)"
+        access: "Biometric + smartcard + dual guard"
+        media: "Optical disc (M-DISC) + Paper sealed envelope"
+        
+      - id: SHARE-03
+        location: "Banque Centrale vault — Site C (Capitale)"
+        custodian: "Custodian C (IGC Audit Chief)"
+        access: "Biometric + smartcard + bank guard protocol"
+        media: "Optical disc (M-DISC) + Paper sealed envelope"
+        
+      - id: SHARE-04
+        location: "Ambassade nationale — Site D (Pays allié A)"
+        custodian: "Custodian D (Justice Representative)"
+        access: "Diplomatic pouch protocol + embassy vault"
+        media: "Optical disc (M-DISC) + Paper sealed envelope"
+        seal_integrity: "Verified annually by ambassador + IGC delegate"
+        
+      - id: SHARE-05
+        location: "Ambassade nationale — Site E (Pays allié B)"
+        custodian: "Custodian E (Technical Architect)"
+        access: "Diplomatic pouch protocol + embassy vault"
+        media: "Optical disc (M-DISC) + Paper sealed envelope"
+        
+      - id: SHARE-06
+        location: "Base militaire sécurisée — Site F (Intérieur)"
+        custodian: "Custodian F (Technical Ops)"
+        access: "Military clearance + biometric + armed guard"
+        media: "Optical disc (M-DISC) + Paper sealed envelope"
+    
+    reconstruction_procedure: |
+      1. Décision présidentielle / Haute autorité nationale (attaque existentielle PKI)
+      2. Convocation 4+ custodians physiquement à Site A (salle blanche)
+      3. Vérification biométrie + smartcard chaque custodian
+      4. Extraction supports respectifs
+      5. Vérification sceaux + hash SHA-256 contre registre officiel
+      6. Reconstruction clé Shamir sur laptop air-gapped (Linux boot CD vérifié)
+      7. Import clé dans HSM backup (ne sort jamais du HSM après import)
+      8. Génération nouveau certificat Root CA (nouvelle clé recommandée, reconstruction uniquement si HSM Core détruit)
+      9. Nouvelle cérémonie de distribution Shamir (nouveaux custodians potentiellement)
+      10. Audit complet + rapport national

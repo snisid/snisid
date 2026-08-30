@@ -1,0 +1,80 @@
+{
+  "title": "FISA Court — Oversight & Compliance",
+  "uid": "ns-fisa-court",
+  "tags": ["ns", "fisa", "compliance", "oversight"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Warrants Filed vs Approved vs Denied",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(fisa_warrants_filed_total[1d]))",
+          "legendFormat": "Filed"
+        },
+        {
+          "expr": "sum(rate(fisa_warrants_approved_total[1d]))",
+          "legendFormat": "Approved"
+        },
+        {
+          "expr": "sum(rate(fisa_warrants_denied_total[1d]))",
+          "legendFormat": "Denied"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Emergency Authorizations (72h Rule)",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(fisa_emergency_authorizations_total[24h]))",
+          "legendFormat": "Last 24h"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Renewals Granted",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(fisa_renewals_granted_total[1d]))",
+          "legendFormat": "Renewals/day"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 }
+    },
+    {
+      "title": "Active Warrants by Type",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(fisa_active_warrants) by (type)",
+          "legendFormat": "{{type}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Reports Submitted vs Overdue",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(fisa_reports_submitted_total[1d]))",
+          "legendFormat": "Submitted/day"
+        },
+        {
+          "expr": "sum(fisa_reports_overdue)",
+          "legendFormat": "Overdue (total)"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

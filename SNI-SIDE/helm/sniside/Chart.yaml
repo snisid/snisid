@@ -1,0 +1,57 @@
+apiVersion: v2
+name: sniside
+version: 2.1.0
+appVersion: "2.1.0"
+description: SNI-SIDE — National Sovereign Intelligence, Security, Investigation & Sovereign Data Ecosystem
+type: application
+keywords:
+  - national-security
+  - intelligence
+  - law-enforcement
+  - biometrics
+  - neo4j
+  - graph-intelligence
+  - aml
+  - cybercrime
+home: https://sniside.ht
+sources:
+  - https://github.com/sniside/sniside-platform
+dependencies:
+  - name: postgresql
+    version: ~15.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+    alias: postgresql
+  - name: cockroachdb
+    version: ~14.0
+    repository: https://charts.cockroachdb.com/
+    condition: cockroachdb.enabled
+  - name: kafka
+    version: ~28.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: kafka.enabled
+    alias: kafka
+  - name: redis
+    version: ~19.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+    alias: redis
+  - name: minio
+    version: ~8.0
+    repository: https://charts.min.io/
+    condition: minio.enabled
+  - name: prometheus
+    version: ~25.0
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: monitoring.enabled
+    alias: prometheus
+  - name: grafana
+    version: ~7.0
+    repository: https://grafana.github.io/helm-charts
+    condition: monitoring.enabled
+    alias: grafana
+maintainers:
+  - name: SNISID Engineering
+    email: eng@sniside.ht
+icon: https://sniside.ht/icon.png
+kubeVersion: ">=1.28-0"

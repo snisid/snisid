@@ -1,0 +1,38 @@
+{
+  "name": "ncid_full_migration",
+  "version": "1.0",
+  "description": "Migration complète des données criminelles legacy vers NCID",
+  "estimated_rows": 50000,
+  "batch_size": 500,
+  "kafka_events": true,
+  "neo4j_update": true,
+  "sources": [
+    {
+      "type": "postgres",
+      "connection": "postgresql://legacy:password@192.168.1.100:5432/crimedb",
+      "query": "SELECT * FROM wanted_persons WHERE status = 'ACTIVE'"
+    },
+    {
+      "type": "csv",
+      "path": "/data/legacy/gangs.csv"
+    },
+    {
+      "type": "excel",
+      "path": "/data/legacy/criminal_cases.xlsx",
+      "sheet": "Cases 2020-2025"
+    }
+  ],
+  "targets": [
+    {"schema": "snisid_ncid", "table": "wanted_persons"},
+    {"schema": "snisid_ncid", "table": "gangs"},
+    {"schema": "snisid_ncid", "table": "cases"}
+  ],
+  "mapping": {
+    "file": "mappings/ncid_migration.json"
+  },
+  "post_process": [
+    {"action": "emit_kafka", "topic": "sniside.ncid.wanted.created"},
+    {"action": "update_neo4j", "label": "Citizen"},
+    {"action": "emit_kafka", "topic": "sniside.ncid.case.opened"}
+  ]
+}

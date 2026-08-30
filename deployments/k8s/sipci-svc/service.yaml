@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sipci-svc
+  namespace: snisid-core
+  labels:
+    app: sipci-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8131
+    targetPort: 8131
+    protocol: TCP
+    name: http
+  selector:
+    app: sipci-svc

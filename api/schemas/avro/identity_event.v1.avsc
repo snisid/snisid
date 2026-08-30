@@ -1,0 +1,31 @@
+{
+  "namespace": "snisid.identity.v1",
+  "type": "record",
+  "name": "IdentityEvent",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+          {"name": "actor", "type": "string"},
+          {"name": "source", "type": "string"}
+        ]
+      }
+    },
+    {"name": "identityId", "type": "string"},
+    {"name": "action", "type": "string"}, 
+    {"name": "status", "type": "string"},
+    {
+      "name": "metadata",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+# SNISID — Configuration de la Migration de Données
+# Copier vers config.yaml et adapter
+
+source:
+  type: csv                          # csv | sqlserver | postgresql | rest
+  path: "/data/source/citizens.csv"  # Chemin fichier (csv)
+  connection_string: ""              # Chaîne de connexion (sqlserver)
+  host: "localhost"                  # Hôte (postgresql)
+  port: 5432                         # Port (postgresql)
+  database: "source_db"              # Base de données
+  user: "migration_user"             # Utilisateur
+  password: ""                       # Mot de passe
+  query: "SELECT * FROM citizens"    # Requête SQL
+  api_url: ""                        # URL API (rest)
+  api_endpoint: "/citizens"          # Endpoint API (rest)
+  api_key: ""                        # Clé API (rest)
+  csv_delimiter: ","
+  encoding: "utf-8"
+
+target:
+  api_url: "http://localhost:8081"   # URL API SNISID
+  api_key: ""                        # Clé API
+  batch_size: 100                    # Taille des lots
+  rate_limit: 50                     # Requêtes par seconde
+
+pipeline:
+  batch_size: 500                    # Taille des lots ETL
+  dry_run: false                     # Mode simulation
+
+checkpoint:
+  path: "/var/snisid/migration/checkpoint.json"
+
+matching:
+  soundex_enabled: true
+  jaro_weight: 0.7
+  threshold_high: 0.90
+  threshold_medium: 0.75
+  threshold_low: 0.55
+
+logging:
+  level: "INFO"
+  file: "migration.log"

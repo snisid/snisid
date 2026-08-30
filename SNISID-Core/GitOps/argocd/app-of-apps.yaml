@@ -1,0 +1,490 @@
+---
+# ============================================================
+# SNISID-Core — GitOps ArgoCD App-of-Apps
+# Document ID: SNISID-GITOPS-001
+# Version: 1.0.0
+# ============================================================
+
+# ── ArgoCD App-of-Apps (Root Application) ────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    snisid.gov.ht/managed-by: argocd
+    snisid.gov.ht/tier: platform
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: "#snisid-ops-alerts"
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: "#snisid-ops-deployments"
+    notifications.argoproj.io/subscribe.on-health-degraded.pagerduty: "snisid-platform"
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://gitlab.snisid.gov.ht/snisid/snisid-core.git
+    targetRevision: main
+    path: GitOps/applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false      # Ne pas supprimer automatiquement (safety)
+      selfHeal: true    # Auto-corriger la dérive
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - RespectIgnoreDifferences=true
+    - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
+  revisionHistoryLimit: 10
+
+---
+# ── ArgoCD Project ────────────────────────────────────────
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: snisid-platform
+  namespace: argocd
+spec:
+  description: "SNISID National Identity Platform — Production"
+  sourceRepos:
+  - https://gitlab.snisid.gov.ht/snisid/snisid-core.git
+  - https://gitlab.snisid.gov.ht/snisid/snisid-services.git
+  - https://charts.bitnami.com/bitnami
+  - https://strimzi.io/charts/
+  - https://charts.jetstack.io
+  - https://helm.cilium.io/
+  - https://charts.argoproj.io
+  destinations:
+  - namespace: snisid-*
+    server: https://kubernetes.default.svc
+  - namespace: argocd
+    server: https://kubernetes.default.svc
+  - namespace: istio-system
+    server: https://kubernetes.default.svc
+  - namespace: gatekeeper-system
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: ClusterRole
+  - group: '*'
+    kind: ClusterRoleBinding
+  - group: '*'
+    kind: ClusterIssuer
+  - group: '*'
+    kind: IngressClass
+  - group: 'networking.k8s.io'
+    kind: NetworkPolicy
+  namespaceResourceBlacklist:
+  - group: ''
+    kind: ResourceQuota   # Géré séparément par plateforme
+  roles:
+  - name: platform-admin
+    description: "Administrateurs plateforme SNISID"
+    policies:
+    - p, proj:snisid-platform:platform-admin, applications, *, snisid-platform/*, allow
+    groups:
+    - snisid:platform-engineers
+  - name: readonly
+    description: "Vue en lecture seule (audit)"
+    policies:
+    - p, proj:snisid-platform:readonly, applications, get, snisid-platform/*, allow
+    groups:
+    - snisid:auditors
+
+---
+# ── Applications individuelles ────────────────────────────
+
+# Infrastructure Base
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-k8s-base
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://gitlab.snisid.gov.ht/snisid/snisid-core.git
+    targetRevision: main
+    path: Kubernetes/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+
+---
+# Cilium CNI
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium-cni
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://helm.cilium.io/
+    chart: cilium
+    targetRevision: 1.15.3
+    helm:
+      values: |
+        kubeProxyReplacement: true
+        hostServices:
+          enabled: true
+        k8sServiceHost: 10.96.0.1
+        k8sServicePort: 443
+        hubble:
+          enabled: true
+          relay:
+            enabled: true
+          ui:
+            enabled: true
+        mtls:
+          mode: strict
+        autoDirectNodeRoutes: true
+        ipam:
+          mode: kubernetes
+        prometheus:
+          enabled: true
+        operator:
+          prometheus:
+            enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+# Istio Service Mesh
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-base
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: base
+    targetRevision: 1.21.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istiod
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: istiod
+    targetRevision: 1.21.0
+    helm:
+      values: |
+        pilot:
+          autoscaleEnabled: true
+          autoscaleMin: 2
+          autoscaleMax: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+        meshConfig:
+          defaultConfig:
+            tracing:
+              zipkin:
+                address: tempo.snisid-observability:9411
+          accessLogFile: /dev/stdout
+          accessLogEncoding: JSON
+          enableTracing: true
+          outboundTrafficPolicy:
+            mode: REGISTRY_ONLY   # Block external traffic by default
+          defaultVirtualServiceExportTo:
+          - "."
+        global:
+          mtls:
+            enabled: true
+          proxy:
+            clusterDomain: cluster.local
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+# Kong API Gateway
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kong-gateway
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://charts.konghq.com
+    chart: kong
+    targetRevision: 2.35.0
+    helm:
+      valueFiles:
+      - ../../API-Gateway/kong/kong-values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-api-gateway
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+# Kafka / Strimzi
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: strimzi-operator
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://strimzi.io/charts/
+    chart: strimzi-kafka-operator
+    targetRevision: 0.41.0
+    helm:
+      values: |
+        replicas: 2
+        resources:
+          requests: { cpu: 200m, memory: 384Mi }
+          limits: { cpu: 1, memory: 768Mi }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-event-bus
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-cluster
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://gitlab.snisid.gov.ht/snisid/snisid-core.git
+    targetRevision: main
+    path: EventBus/kafka
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-event-bus
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+# HashiCorp Vault
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hashicorp-vault
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://helm.releases.hashicorp.com
+    chart: vault
+    targetRevision: 0.28.0
+    helm:
+      valueFiles:
+      - ../../Security/vault/vault-values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-security
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false   # Vault: ne jamais pruner automatiquement
+
+---
+# Keycloak IAM
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keycloak-iam
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://codecentric.github.io/helm-charts
+    chart: keycloak
+    targetRevision: 24.0.3
+    helm:
+      values: |
+        replicas: 3
+        image:
+          repository: harbor.snisid.gov.ht/keycloak/keycloak
+          tag: "24.0"
+        postgresql:
+          enabled: false   # CockroachDB externe
+        extraEnv: |
+          - name: KC_DB
+            value: postgres
+          - name: KC_DB_URL
+            value: jdbc:postgresql://cockroachdb.snisid-databases:5432/keycloak
+          - name: KC_DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: keycloak-db-credentials
+                key: username
+          - name: KC_PROXY
+            value: edge
+          - name: KC_HOSTNAME_STRICT
+            value: "false"
+          - name: KC_LOG_LEVEL
+            value: INFO
+        resources:
+          requests: { memory: 512Mi, cpu: 250m }
+          limits: { memory: 2Gi, cpu: 1 }
+        autoscaling:
+          enabled: true
+          minReplicas: 2
+          maxReplicas: 8
+          targetCPUUtilizationPercentage: 70
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-security
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+# Cert-Manager
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.14.5
+    helm:
+      values: |
+        installCRDs: true
+        replicaCount: 2
+        prometheus:
+          enabled: true
+          servicemonitor:
+            enabled: true
+            namespace: snisid-observability
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+# Observability Stack
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 58.2.2
+    helm:
+      valueFiles:
+      - ../../Observability/prometheus/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-observability
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+# SNISID Services (Identity, Biometrics, Civil Registry)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-identity-service
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://gitlab.snisid.gov.ht/snisid/snisid-services.git
+    targetRevision: main
+    path: identity-service/deploy/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-identity
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+    - ServerSideApply=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-biometric-service
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://gitlab.snisid.gov.ht/snisid/snisid-services.git
+    targetRevision: main
+    path: biometric-service/deploy/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-biometrics
+  syncPolicy:
+    automated:
+      selfHeal: true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-civil-registry
+  namespace: argocd
+spec:
+  project: snisid-platform
+  source:
+    repoURL: https://gitlab.snisid.gov.ht/snisid/snisid-services.git
+    targetRevision: main
+    path: civil-registry/deploy/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: snisid-civil-registry
+  syncPolicy:
+    automated:
+      selfHeal: true

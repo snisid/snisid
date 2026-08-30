@@ -1,0 +1,297 @@
+openapi: "3.0.3"
+info:
+  title: "ID-CORE API"
+  description: "HT National ID Platform - Core Identity Management"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8201/api/v1/idcore"
+paths:
+  /enroll:
+    post:
+      summary: "Enroll a new citizen"
+      operationId: enrollCitizen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollRequest"
+      responses:
+        '201':
+          description: "Citizen enrolled successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentResult"
+        '400':
+          description: "Invalid request"
+        '409':
+          description: "Duplicate detected"
+  /citizens/{nin}:
+    get:
+      summary: "Get citizen by NIN"
+      operationId: getCitizenByNIN
+      parameters:
+        - name: nin
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Citizen found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Citizen"
+        '404':
+          description: "Citizen not found"
+  /citizens/search:
+    get:
+      summary: "Search citizens"
+      operationId: searchCitizens
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Search results"
+        '400':
+          description: "Missing query parameter"
+  /dedup/resolve:
+    post:
+      summary: "Resolve a dedup candidate"
+      operationId: resolveDedup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveDedupRequest"
+      responses:
+        '200':
+          description: "Resolved successfully"
+        '400':
+          description: "Invalid request"
+  /citizens/{nin}/status:
+    patch:
+      summary: "Update citizen status"
+      operationId: updateCitizenStatus
+      parameters:
+        - name: nin
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStatusRequest"
+      responses:
+        '200':
+          description: "Status updated"
+        '400':
+          description: "Invalid request"
+  /citizens/{nin}/history:
+    get:
+      summary: "Get citizen change history"
+      operationId: getCitizenHistory
+      parameters:
+        - name: nin
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "History found"
+        '404':
+          description: "Citizen not found"
+  /stats/population:
+    get:
+      summary: "Get population statistics"
+      operationId: getPopulationStats
+      responses:
+        '200':
+          description: "Population stats"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PopulationStats"
+components:
+  schemas:
+    EnrollRequest:
+      type: object
+      required:
+        - enrollment_type
+        - full_name_legal
+        - first_name
+        - last_name
+        - nationality
+        - dept_code
+        - created_by
+      properties:
+        enrollment_type:
+          type: string
+          enum: ["BIRTH", "ADULT_FIRST_ENROLLMENT", "NATURALIZATION", "REGULARIZATION", "REFUGEE_STATUS", "RECONSTRUCTION_LOST_RECORDS"]
+        full_name_legal:
+          type: string
+        first_name:
+          type: string
+        middle_names:
+          type: string
+        last_name:
+          type: string
+        maiden_name:
+          type: string
+        dob:
+          type: string
+          format: date
+        pob_commune:
+          type: string
+        pob_dept_code:
+          type: string
+        gender:
+          type: string
+        nationality:
+          type: string
+        dept_code:
+          type: string
+        current_address:
+          type: string
+        current_commune:
+          type: string
+        photo_ref:
+          type: string
+        mother_nin:
+          type: string
+        father_nin:
+          type: string
+        created_by:
+          type: string
+        biometric_sample:
+          type: string
+          format: byte
+    EnrollmentResult:
+      type: object
+      properties:
+        citizen:
+          $ref: "#/components/schemas/Citizen"
+        nin:
+          type: string
+    Citizen:
+      type: object
+      properties:
+        citizen_id:
+          type: string
+          format: uuid
+        nin:
+          type: string
+        status:
+          type: string
+        enrollment_type:
+          type: string
+        full_name_legal:
+          type: string
+        first_name:
+          type: string
+        middle_names:
+          type: string
+        last_name:
+          type: string
+        maiden_name:
+          type: string
+        dob:
+          type: string
+          format: date-time
+        pob_commune:
+          type: string
+        pob_dept_code:
+          type: string
+        gender:
+          type: string
+        nationality:
+          type: string
+        dept_code:
+          type: string
+        current_address:
+          type: string
+        current_commune:
+          type: string
+        biometric_template_id:
+          type: string
+          format: uuid
+        photo_ref:
+          type: string
+        mother_nin:
+          type: string
+        father_nin:
+          type: string
+        date_of_death:
+          type: string
+          format: date-time
+        death_certificate_ref:
+          type: string
+        is_merged:
+          type: boolean
+        merged_into_citizen_id:
+          type: string
+          format: uuid
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ResolveDedupRequest:
+      type: object
+      required:
+        - candidate_id
+        - resolution
+        - reviewed_by
+      properties:
+        candidate_id:
+          type: string
+        resolution:
+          type: string
+        reviewed_by:
+          type: string
+    UpdateStatusRequest:
+      type: object
+      required:
+        - status
+        - reason
+        - authorized_by
+      properties:
+        status:
+          type: string
+          enum: ["ACTIVE", "SUSPENDED", "DECEASED", "CANCELLED", "MERGED_DUPLICATE"]
+        reason:
+          type: string
+        authorized_by:
+          type: string
+    PopulationStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        active:
+          type: integer
+        suspended:
+          type: integer
+        deceased:
+          type: integer
+        cancelled:
+          type: integer
+        merged:
+          type: integer

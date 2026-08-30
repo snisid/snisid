@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-ht
+  namespace: snisid-core
+  labels:
+    app: data-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: data-ht
+  template:
+    metadata:
+      labels:
+        app: data-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8213"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: data-ht
+        image: snisid/data-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8213
+        env:
+        - name: DATA_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: DATA_DB_PORT
+          value: "26257"
+        - name: DATA_DB_NAME
+          value: "snisid_data"
+        - name: DATA_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: DATA_DB_SSLMODE
+          value: "disable"
+        - name: DATA_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: DATA_SERVICE_PORT
+          value: "8213"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8213
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8213
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

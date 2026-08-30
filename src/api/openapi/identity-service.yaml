@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: SNISID Identity Service API
+  description: Core transactional write-service for managing citizen identities (CQRS Command Path).
+  version: 1.0.0
+servers:
+  - url: https://api.snisid.ht/v1/identity
+paths:
+  /citizens:
+    post:
+      summary: Register a new citizen
+      description: Appends a CitizenRegistered event to the Event Store.
+      operationId: registerCitizen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CitizenRegistrationRequest'
+      responses:
+        '202':
+          description: Accepted. Event successfully appended to store.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitizenRegistrationResponse'
+        '400':
+          description: Invalid request payload.
+        '401':
+          description: Unauthorized.
+        '403':
+          description: Forbidden (RBAC/ABAC denied).
+        '500':
+          description: Internal server error.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CitizenRegistrationRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - dateOfBirth
+        - placeOfBirth
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        placeOfBirth:
+          type: string
+    CitizenRegistrationResponse:
+      type: object
+      properties:
+        citizenId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: PENDING_BIOMETRICS
+        correlationId:
+          type: string
+          format: uuid

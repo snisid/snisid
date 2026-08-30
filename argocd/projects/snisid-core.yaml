@@ -1,0 +1,99 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: snisid-core
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+spec:
+  description: SNISID Core Platform Infrastructure
+  sourceRepos:
+  - 'https://git.snisid.ht/snisid/infrastructure.git'
+  destinations:
+  - namespace: snisid
+    server: https://kubernetes.default.svc
+  - namespace: istio-system
+    server: https://kubernetes.default.svc
+  - namespace: vault
+    server: https://kubernetes.default.svc
+  - namespace: cert-manager
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  orphanedResources:
+    warn: true
+  syncWindows:
+  - kind: allow
+    schedule: '0 2 * * *'
+    duration: 4h
+    applications:
+    - '*-core'
+  roles:
+  - name: admin
+    policies:
+    - p, proj:snisid-core:admin, applications, *, snisid-core/*, allow
+    groups:
+    - snisid-platform-team
+  - name: viewer
+    policies:
+    - p, proj:snisid-core:viewer, applications, get, snisid-core/*, allow
+    groups:
+    - snisid-developer
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: snisid-services
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+spec:
+  description: SNISID Backend Services
+  sourceRepos:
+  - 'https://git.snisid.ht/snisid/services.git'
+  destinations:
+  - namespace: snisid
+    server: https://kubernetes.default.svc
+  orphanedResources:
+    warn: true
+  syncWindows:
+  - kind: allow
+    schedule: '0 4 * * *'
+    duration: 2h
+    applications:
+    - '*-service'
+  roles:
+  - name: admin
+    policies:
+    - p, proj:snisid-services:admin, applications, *, snisid-services/*, allow
+    groups:
+    - snisid-backend-team
+  - name: viewer
+    policies:
+    - p, proj:snisid-services:viewer, applications, get, snisid-services/*, allow
+    groups:
+    - snisid-developer
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: snisid-apps
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+spec:
+  description: SNISID Frontend Applications
+  sourceRepos:
+  - 'https://git.snisid.ht/snisid/applications.git'
+  destinations:
+  - namespace: snisid-apps
+    server: https://kubernetes.default.svc
+  orphanedResources:
+    warn: true
+  roles:
+  - name: admin
+    policies:
+    - p, proj:snisid-apps:admin, applications, *, snisid-apps/*, allow
+    groups:
+    - snisid-frontend-team

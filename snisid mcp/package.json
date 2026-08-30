@@ -1,0 +1,61 @@
+{
+  "name": "snisid-mcp-ecosystem",
+  "version": "1.0.0",
+  "description": "SNISID sovereign MCP ecosystem for Haiti - secure TypeScript enterprise scaffold",
+  "type": "module",
+  "private": true,
+  "main": "dist/mcp/server/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "tsx watch mcp/server/index.ts --http",
+    "mcp:stdio": "tsx mcp/server/index.ts --stdio",
+    "mcp:http": "tsx mcp/server/index.ts --http",
+    "mcp:build": "npm run typecheck && npm run test",
+    "mcp:inspect": "npx @modelcontextprotocol/inspector npm run mcp:stdio",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write .",
+    "security:audit": "npm audit --audit-level=high",
+    "mock:gov": "tsx mock/governmentApiMock.ts",
+    "token:dev": "tsx scripts/create-test-token.ts",
+    "setup:local": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-local-env.ps1"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.13.0",
+    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "0.58.0",
+    "@opentelemetry/sdk-node": "0.200.0",
+    "@qdrant/js-client-rest": "1.13.0",
+    "axios": "1.7.9",
+    "bcrypt": "5.1.1",
+    "cors": "2.8.5",
+    "dotenv": "16.4.7",
+    "express": "5.2.1",
+    "express-rate-limit": "7.5.0",
+    "helmet": "8.1.0",
+    "ioredis": "5.5.0",
+    "jsonwebtoken": "9.0.2",
+    "uuid": "11.1.0",
+    "winston": "3.17.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "5.0.2",
+    "@types/cors": "2.8.17",
+    "@types/express": "5.0.1",
+    "@types/jsonwebtoken": "9.0.9",
+    "@types/node": "22.15.0",
+    "@types/supertest": "6.0.3",
+    "eslint": "9.24.0",
+    "prettier": "3.5.3",
+    "supertest": "7.1.0",
+    "tsx": "4.19.3",
+    "typescript": "5.8.3",
+    "vitest": "3.1.2"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}

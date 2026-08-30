@@ -1,0 +1,436 @@
+**1. 👉 “Add PostgreSQL + Neo4j + real persistence layer per service”**
+
+**2. 👉 “Add Istio zero-trust mesh + mTLS enforcement”**
+
+**3. 👉 “Convert this into full Helm deployment (one command deploy)”**
+
+
+
+Order of execution (mandatory):
+
+
+
+Persistence layer (PostgreSQL + Neo4j)
+
+Helm packaging (so deployments are reproducible)
+
+Istio zero-trust mesh (after services are stable)
+
+
+
+If you invert this, debugging becomes a nightmare.
+
+
+
+🧱 PHASE 1 — REAL PERSISTENCE LAYER
+
+🎯 GOAL
+
+
+
+Each domain owns its data:
+
+
+
+no shared DB
+
+no cross-service queries
+
+access only via APIs/events
+
+🗄️ DATABASE MAPPING
+
+risk-engine          → PostgreSQL
+
+identity-service     → PostgreSQL
+
+financial-service    → PostgreSQL
+
+audit-service        → PostgreSQL (or object store later)
+
+graph-service        → Neo4j
+
+⚙️ 1. POSTGRES (RISK ENGINE)
+
+infra/k8s/postgres-risk.yaml
+
+apiVersion: v1
+
+kind: PersistentVolumeClaim
+
+metadata:
+
+&#x20; name: postgres-risk-pvc
+
+spec:
+
+&#x20; accessModes:
+
+&#x20;   - ReadWriteOnce
+
+&#x20; resources:
+
+&#x20;   requests:
+
+&#x20;     storage: 5Gi
+
+\---
+
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+
+&#x20; name: postgres-risk
+
+spec:
+
+&#x20; replicas: 1
+
+&#x20; selector:
+
+&#x20;   matchLabels:
+
+&#x20;     app: postgres-risk
+
+&#x20; template:
+
+&#x20;   metadata:
+
+&#x20;     labels:
+
+&#x20;       app: postgres-risk
+
+&#x20;   spec:
+
+&#x20;     containers:
+
+&#x20;     - name: postgres
+
+&#x20;       image: postgres:15
+
+&#x20;       env:
+
+&#x20;       - name: POSTGRES\_DB
+
+&#x20;         value: riskdb
+
+&#x20;       - name: POSTGRES\_USER
+
+&#x20;         value: snisid
+
+&#x20;       - name: POSTGRES\_PASSWORD
+
+&#x20;         value: snisid
+
+&#x20;       volumeMounts:
+
+&#x20;       - mountPath: /var/lib/postgresql/data
+
+&#x20;         name: storage
+
+&#x20;     volumes:
+
+&#x20;     - name: storage
+
+&#x20;       persistentVolumeClaim:
+
+&#x20;         claimName: postgres-risk-pvc
+
+🧠 2. GO DB CONNECTION
+
+pkg/db/postgres.go
+
+package db
+
+
+
+import (
+
+&#x20;   "database/sql"
+
+&#x20;   \_ "github.com/lib/pq"
+
+)
+
+
+
+func Connect(dsn string) (\*sql.DB, error) {
+
+&#x20;   return sql.Open("postgres", dsn)
+
+}
+
+🧠 3. RISK REPOSITORY
+
+package repository
+
+
+
+import "database/sql"
+
+
+
+type RiskRepo struct {
+
+&#x20;   DB \*sql.DB
+
+}
+
+
+
+func (r \*RiskRepo) Save(score float64) error {
+
+&#x20;   \_, err := r.DB.Exec("INSERT INTO risks(score) VALUES($1)", score)
+
+&#x20;   return err
+
+}
+
+🕸️ 4. NEO4J (GRAPH SERVICE)
+
+infra/k8s/neo4j.yaml
+
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+
+&#x20; name: neo4j
+
+spec:
+
+&#x20; replicas: 1
+
+&#x20; selector:
+
+&#x20;   matchLabels:
+
+&#x20;     app: neo4j
+
+&#x20; template:
+
+&#x20;   metadata:
+
+&#x20;     labels:
+
+&#x20;       app: neo4j
+
+&#x20;   spec:
+
+&#x20;     containers:
+
+&#x20;     - name: neo4j
+
+&#x20;       image: neo4j:5
+
+&#x20;       env:
+
+&#x20;       - name: NEO4J\_AUTH
+
+&#x20;         value: neo4j/password
+
+&#x20;       ports:
+
+&#x20;       - containerPort: 7687
+
+GO CLIENT
+
+import "github.com/neo4j/neo4j-go-driver/v5/neo4j"
+
+
+
+driver, \_ := neo4j.NewDriver("bolt://neo4j:7687",
+
+&#x20;   neo4j.BasicAuth("neo4j", "password", ""))
+
+📦 PHASE 2 — HELM (FULL DEPLOYMENT)
+
+🎯 GOAL
+
+
+
+One command:
+
+
+
+helm install snisid ./infra/helm
+
+🧱 HELM STRUCTURE
+
+infra/helm/
+
+├── Chart.yaml
+
+├── values.yaml
+
+├── templates/
+
+│   ├── api-gateway.yaml
+
+│   ├── risk-engine.yaml
+
+│   ├── postgres.yaml
+
+│   ├── kafka.yaml
+
+│   └── neo4j.yaml
+
+⚙️ values.yaml
+
+global:
+
+&#x20; imageRegistry: snisid
+
+
+
+riskEngine:
+
+&#x20; replicas: 2
+
+
+
+postgres:
+
+&#x20; storage: 5Gi
+
+
+
+kafka:
+
+&#x20; enabled: true
+
+🧠 TEMPLATE EXAMPLE
+
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+
+&#x20; name: risk-engine
+
+spec:
+
+&#x20; replicas: {{ .Values.riskEngine.replicas }}
+
+&#x20; template:
+
+&#x20;   spec:
+
+&#x20;     containers:
+
+&#x20;     - name: risk-engine
+
+&#x20;       image: {{ .Values.global.imageRegistry }}/risk-engine:latest
+
+⚡ PHASE 3 — ISTIO ZERO-TRUST MESH
+
+🎯 GOAL
+
+mTLS between all services
+
+identity-bound traffic
+
+no implicit trust
+
+⚙️ INSTALL ISTIO (LOCAL)
+
+istioctl install --set profile=demo -y
+
+kubectl label namespace default istio-injection=enabled
+
+🔐 STRICT mTLS
+
+apiVersion: security.istio.io/v1beta1
+
+kind: PeerAuthentication
+
+metadata:
+
+&#x20; name: default
+
+spec:
+
+&#x20; mtls:
+
+&#x20;   mode: STRICT
+
+🧠 SERVICE AUTHORIZATION
+
+apiVersion: security.istio.io/v1beta1
+
+kind: AuthorizationPolicy
+
+metadata:
+
+&#x20; name: risk-policy
+
+spec:
+
+&#x20; rules:
+
+&#x20; - from:
+
+&#x20;   - source:
+
+&#x20;       principals:
+
+&#x20;       - cluster.local/ns/default/sa/api-gateway
+
+📡 FINAL RUNTIME FLOW (FULL SYSTEM)
+
+Client
+
+&#x20; ↓
+
+API Gateway (Istio mTLS)
+
+&#x20; ↓
+
+Policy Engine
+
+&#x20; ↓
+
+Risk Engine → PostgreSQL
+
+&#x20; ↓
+
+Kafka Events
+
+&#x20; ↓
+
+Audit Service → DB
+
+&#x20; ↓
+
+Graph Service → Neo4j
+
+🔥 WHAT YOU NOW HAVE
+
+
+
+✔ real persistence per service
+
+✔ graph intelligence storage
+
+✔ reproducible Helm deployment
+
+✔ zero-trust service mesh
+
+✔ event-driven + stateful system
+
+
+
+⚠️ CRITICAL FAILURE POINTS (WATCH THIS)
+
+DB bottlenecks → add connection pooling
+
+Kafka lag → partition tuning
+
+Istio misconfig → traffic blocked
+
+schema drift → version migrations REQUIRED
+

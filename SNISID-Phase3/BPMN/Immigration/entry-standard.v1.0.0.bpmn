@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_imm_entry" targetNamespace="https://snisid.gouv.ht/bpmn/immigration">
+  <bpmn:process id="immigration.entry.standard" name="Entrée standard frontière" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Scan" name="Scan passeport (MRZ + chip ICAO)"><bpmn:extensionElements><zeebe:taskDefinition type="icao.passport.scan"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Bio" name="Match biométrique 1:1 (face + finger)"><bpmn:extensionElements><zeebe:taskDefinition type="biometric.match.1to1"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Watchlist" name="Vérification watchlist (Interpol, AML, judicial)"><bpmn:extensionElements><zeebe:taskDefinition type="watchlist.check"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:callActivity id="Fraud"><bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:exclusiveGateway id="Gw"><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>fOk</bpmn:outgoing><bpmn:outgoing>fKo</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Stamp" name="Tampon entrée + enregistrement"><bpmn:extensionElements><zeebe:taskDefinition type="immigration.entry.stamp"/></bpmn:extensionElements><bpmn:incoming>fOk</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Sign"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="EOk"><bpmn:incoming>f9</bpmn:incoming></bpmn:endEvent>
+    <bpmn:userTask id="Refer" name="Référé contrôle 2nd niveau (refus)"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="border-officers-l2"/></bpmn:extensionElements><bpmn:incoming>fKo</bpmn:incoming><bpmn:outgoing>fR</bpmn:outgoing></bpmn:userTask>
+    <bpmn:endEvent id="EKo"><bpmn:incoming>fR</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="Scan"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Scan" targetRef="Bio"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Bio" targetRef="Watchlist"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Watchlist" targetRef="Fraud"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Fraud" targetRef="Gw"/>
+    <bpmn:sequenceFlow id="fOk" sourceRef="Gw" targetRef="Stamp"><bpmn:conditionExpression>= fraudScore &lt; 0.6 and watchlistHit = false</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fKo" sourceRef="Gw" targetRef="Refer"><bpmn:conditionExpression>= fraudScore &gt;= 0.6 or watchlistHit = true</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f7" sourceRef="Stamp" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="Sign" targetRef="K"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="K" targetRef="EOk"/>
+    <bpmn:sequenceFlow id="fR" sourceRef="Refer" targetRef="EKo"/>
+      <bpmn:boundaryEvent id="SlaBE" attachedToRef="Stamp" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT1M</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fSlaE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="SlaEsc"><bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fSlaE</bpmn:incoming><bpmn:outgoing>fSlaE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="SlaEnd"><bpmn:incoming>fSlaE2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="fSlaE" sourceRef="SlaBE" targetRef="SlaEsc"/>
+    <bpmn:sequenceFlow id="fSlaE2" sourceRef="SlaEsc" targetRef="SlaEnd"/>
+    <bpmn:serviceTask id="Notify" name="Notification citoyen"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements></bpmn:serviceTask>
+</bpmn:process>
+</bpmn:definitions>

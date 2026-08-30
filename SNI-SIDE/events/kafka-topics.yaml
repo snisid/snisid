@@ -1,0 +1,348 @@
+# ============================================================
+# SNI-SIDE: Kafka Event Streaming — Topics & Schemas
+# Strimzi Kafka Operator on Kubernetes
+# ============================================================
+
+topics:
+  # ============ NCID EVENTS ============
+  - name: sniside.ncid.wanted.created
+    partitions: 12
+    replicationFactor: 3
+    config:
+      cleanup.policy: compact
+      retention.ms: 31536000000  # 1 year
+      compression.type: zstd
+
+  - name: sniside.ncid.wanted.updated
+    partitions: 12
+    replicationFactor: 3
+    config:
+      cleanup.policy: compact
+
+  - name: sniside.ncid.warrant.issued
+    partitions: 6
+    replicationFactor: 3
+    config:
+      cleanup.policy: delete
+      retention.ms: 31536000000
+
+  - name: sniside.ncid.warrant.executed
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.ncid.case.opened
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.ncid.case.updated
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.ncid.gang.intelligence
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.ncid.interpol.notice
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ BIOMETRIC EVENTS ============
+  - name: sniside.biometric.enrolled
+    partitions: 12
+    replicationFactor: 3
+    config:
+      cleanup.policy: compact
+
+  - name: sniside.biometric.verified
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.biometric.match.found
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.biometric.duplicate.detected
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.biometric.quality.alert
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ DNA/CODIS EVENTS ============
+  - name: sniside.codis.profile.created
+    partitions: 6
+    replicationFactor: 3
+    config:
+      cleanup.policy: compact
+
+  - name: sniside.codis.match.positive
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.codis.match.familial
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.codis.victim.identified
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ MISSING PERSONS EVENTS ============
+  - name: sniside.missing.reported
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.missing.sighting
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.missing.alert.triggered
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.missing.found
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.missing.border.crossing
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ VEHICLE EVENTS ============
+  - name: sniside.vehicle.registered
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.vehicle.stolen
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.vehicle.wanted
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.vehicle.ownership.changed
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.vehicle.atlert
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ ALPR EVENTS ============
+  - name: sniside.alpr.read
+    partitions: 24
+    replicationFactor: 3
+    config:
+      cleanup.policy: delete
+      retention.ms: 2592000000  # 30 days
+      compression.type: zstd
+
+  - name: sniside.alpr.wanted.detected
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.alpr.anomaly
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.alpr.cross.border
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ FIREARMS EVENTS ============
+  - name: sniside.firearm.stolen
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.firearm.recovered
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.firearm.ballistic.match
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ BORDER EVENTS ============
+  - name: sniside.border.crossing
+    partitions: 12
+    replicationFactor: 3
+    config:
+      cleanup.policy: delete
+      retention.ms: 31536000000
+
+  - name: sniside.border.wanted.match
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.border.visa.issued
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.border.deportation
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ NARCOTICS EVENTS ============
+  - name: sniside.narcotics.seizure
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.narcotics.route.identified
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.narcotics.intelligence
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ FINANCIAL EVENTS ============
+  - name: sniside.financial.transaction.suspicious
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.financial.aml.alert
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.financial.pep.identified
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.financial.network.detected
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ CYBER EVENTS ============
+  - name: sniside.cyber.ioc.submitted
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.cyber.ioc.critical
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.cyber.incident
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.cyber.campaign.detected
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ WATCHLIST EVENTS ============
+  - name: sniside.watchlist.entry.created
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.watchlist.match
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.watchlist.alert
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ DOCUMENT FRAUD EVENTS ============
+  - name: sniside.document.fraud.detected
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.document.stolen.reported
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ GEOINT EVENTS ============
+  - name: sniside.geoint.hotspot.updated
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.geoint.risk.zone.changed
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ EVIDENCE EVENTS ============
+  - name: sniside.evidence.uploaded
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.evidence.analyzed
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.evidence.face.match
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ AI FUSION EVENTS ============
+  - name: sniside.ai.fraud.detected
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.ai.predictive.alert
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.ai.graph.insight
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.ai.deepfake.detected
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.ai.aml.risk.update
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.ai.behavioral.alert
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.ai.insider.threat
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ NATIONAL SEARCH ENGINE EVENTS ============
+  - name: sniside.search.federated.query
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.search.federated.result
+    partitions: 12
+    replicationFactor: 3
+
+  # ============ ADVANCED SYSTEMS EVENTS ============
+  - name: sniside.rtcc.incident
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.fusion.cell.intelligence
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.ntip.threat.update
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.crisis.activated
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.counter.terrorism.alert
+    partitions: 6
+    replicationFactor: 3
+
+  # ============ GRAPH INTELLIGENCE EVENTS ============
+  - name: sniside.graph.relationship.created
+    partitions: 12
+    replicationFactor: 3
+
+  - name: sniside.graph.network.detected
+    partitions: 6
+    replicationFactor: 3
+
+  - name: sniside.graph.link.analysis
+    partitions: 6
+    replicationFactor: 3

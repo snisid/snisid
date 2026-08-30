@@ -1,0 +1,16 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: fisa-court-svc
+  namespace: snisid-national-security
+  labels:
+    app: fisa-court-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8312
+    targetPort: 8312
+    protocol: TCP
+    name: http
+  selector:
+    app: fisa-court-svc

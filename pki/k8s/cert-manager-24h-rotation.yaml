@@ -1,0 +1,23 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: identity-svc-tls
+  namespace: snisid-core
+spec:
+  secretName: identity-svc-tls-secret
+  # Durée de vie stricte de 24 heures
+  duration: 24h
+  # Renouvellement automatique 2 heures avant l'expiration
+  renewBefore: 2h
+  issuerRef:
+    name: snisid-vault-issuer
+    kind: ClusterIssuer
+  commonName: identity-svc.snisid.local
+  dnsNames:
+  - identity-svc.snisid.local
+  - identity-svc.snisid-core.svc.cluster.local
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth

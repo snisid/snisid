@@ -1,0 +1,24 @@
+{
+  "namespace": "snisid.identity.v1",
+  "type": "record",
+  "name": "LifecycleEvent",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "identityId", "type": "string"},
+    {"name": "fromState", "type": "string"},
+    {"name": "toState", "type": "string"},
+    {"name": "reason", "type": "string"},
+    {"name": "principal", "type": "string"}
+  ]
+}

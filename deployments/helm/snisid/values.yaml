@@ -1,0 +1,15 @@
+image:
+  repository: ghcr.io/snisid
+  tag: latest
+
+services:
+  identityApi:
+    port: 8081
+  eventGateway:
+    port: 8082
+  alertFeed:
+    port: 8083
+  graphEngine:
+    port: 8084
+  socApi:
+    port: 8085

@@ -1,0 +1,26 @@
+{
+  "document": "SNISID Audit & Risk Governance",
+  "version": "1.0.0",
+  "objective": "Créer contrôle permanent.",
+  "absolute_rule": "Audit permanent.",
+  "domains": [
+    {"domain": "Compliance Office", "function": "Contrôle", "owner": "Legal & Compliance"},
+    {"domain": "Internal Audit", "function": "Inspection", "owner": "Audit Office"},
+    {"domain": "Risk Office", "function": "Gestion risques", "owner": "Conseil Audit & Risque"},
+    {"domain": "Continuous Compliance", "function": "Monitoring", "owner": "Compliance Office"},
+    {"domain": "Red Team Office", "function": "Tests offensifs", "owner": "Conseil Cyber National + Audit Office"}
+  ],
+  "controls": [
+    "journaux immuables",
+    "revue des accès privilégiés",
+    "contrôle séparation des tâches",
+    "audit des workflows critiques",
+    "audit PKI et cérémonies de clés",
+    "audit inter-agences",
+    "contrôles anti-corruption",
+    "rapports mensuels de risque",
+    "red team semestriel",
+    "conformité continue automatisée"
+  ],
+  "risk_levels": ["LOW", "MEDIUM", "HIGH", "CRITICAL", "SOVEREIGN"]
+}

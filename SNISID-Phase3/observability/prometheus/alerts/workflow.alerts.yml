@@ -1,0 +1,90 @@
+# SNISID — Workflow alerts
+groups:
+
+  - name: snisid.workflow
+    rules:
+
+      - alert: WorkflowHighFailureRate
+        expr: snisid:workflow_failure_ratio:5m > 0.05
+        for: 5m
+        labels:
+          severity: sev2
+          team: wgo
+          runbook: runbooks/01-workflow-failure.md
+        annotations:
+          summary: "⚠️ {{ $labels.workflow_id }} échec > 5 % sur 5 min"
+          description: "Taux d'échec {{ $value | humanizePercentage }} (region={{ $labels.region }})."
+
+      - alert: WorkflowCriticalFailureRate
+        expr: snisid:workflow_failure_ratio:5m{workflow_id=~"civil-registry\\..*|identity\\..*"} > 0.01
+        for: 2m
+        labels:
+          severity: sev1
+          team: wgo
+          page: 'true'
+        annotations:
+          summary: "🚨 Workflow CRITIQUE {{ $labels.workflow_id }} en panne"
+          description: "Taux d'échec {{ $value | humanizePercentage }} sur workflow critique."
+
+      - alert: WorkflowSLABreach
+        expr: snisid:workflow_sla_breach:rate5m > 0
+        for: 1m
+        labels:
+          severity: sev2
+          team: wgo
+        annotations:
+          summary: "⏱  SLA dépassé pour {{ $labels.workflow_id }}"
+          description: "{{ $value }} dépassements/sec ({{ $labels.severity }})."
+
+      - alert: WorkflowLatencyP99TooHigh
+        expr: snisid:workflow_duration:p99:5m{workflow_id="identity.verification.online"} > 30
+        for: 5m
+        labels:
+          severity: sev2
+          team: wgo
+        annotations:
+          summary: "🐢 identity.verification.online p99 > 30s"
+          description: "p99 = {{ $value }}s"
+
+      - alert: UserTaskBacklog
+        expr: snisid:user_task_age:p95:5m > 14400  # 4h
+        for: 15m
+        labels:
+          severity: sev3
+          team: ops
+        annotations:
+          summary: "🪑 Tâches utilisateur en attente > 4h ({{ $labels.workflow_id }}/{{ $labels.task_id }})"
+          description: "p95 âge tâche = {{ $value | humanizeDuration }}. Groupe : {{ $labels.assignee_group }}"
+
+      - alert: FraudSpike
+        expr: snisid:fraud_detected:rate5m{action="REJECT"} > 0.5
+        for: 5m
+        labels:
+          severity: sev1
+          team: fraud
+          runbook: runbooks/04-fraud-escalation.md
+        annotations:
+          summary: "🕵 Pic de fraudes rejetées sur {{ $labels.workflow_id }}"
+          description: "{{ $value }} rejets/sec. Activer cellule anti-fraude."
+
+      - alert: PKIDegraded
+        expr: snisid:pki_sign_duration:p99:5m > 1
+        for: 5m
+        labels:
+          severity: sev1
+          team: pki
+          runbook: runbooks/06-pki-failure.md
+        annotations:
+          summary: "🔐 PKI lente : p99 signature > 1s"
+          description: "p99 = {{ $value }}s (purpose={{ $labels.purpose }})"
+
+      - alert: WorkflowEngineDown
+        expr: up{job="snisid-workflow-engine"} == 0
+        for: 1m
+        labels:
+          severity: sev1
+          team: ops
+          page: 'true'
+        annotations:
+          summary: "💀 Worker {{ $labels.instance }} HS"
+          description: "Workflow engine pod down."

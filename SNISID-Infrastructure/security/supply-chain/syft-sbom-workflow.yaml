@@ -1,0 +1,146 @@
+# SNISID — Syft SBOM Workflow : Bill of Materials Logiciel Nationale
+# Classification: SECRET
+# Role: Génération, stockage et vérification SBOM pour toutes les images nationales
+# Stockage: S3 Ceph (snisid-sbom-bucket) + attach Cosign
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-sbom-generator
+  namespace: snisid-cyber
+  labels:
+    snisid.gov.tier: "tier-1"
+    snisid.gov.service: "supply-chain"
+spec:
+  schedule: "0 3 * * *"  # Quotidien 03h00
+  concurrencyPolicy: Forbid
+  successfulJobHistoryLimit: 7
+  failedJobHistoryLimit: 14
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            snisid.gov/tier: tier-1
+            snisid.gov/service: sbom-generator
+        spec:
+          serviceAccountName: sbom-generator
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: syft
+              image: registry.interne.snisid.gouv.local/anchore/syft:v0.100.0
+              imagePullPolicy: Always
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  REGISTRY="registry.interne.snisid.gouv.local"
+                  S3_ENDPOINT="https://s3.interne.snisid.gouv.local"
+                  BUCKET="snisid-sbom-bucket"
+                  TODAY=$(date +%Y%m%d)
+
+                  echo "=== SNISID SBOM Generation — ${TODAY} ==="
+
+                  # Liste des images officielles SNISID (tag 'latest' exclu)
+                  IMAGES=$(skopeo list-tags --tls-verify=true docker://${REGISTRY}/snisid/ | \
+                    jq -r '.Tags[] | select(. != "latest" and startswith("v"))' | sort -u)
+
+                  for tag in ${IMAGES}; do
+                    img="${REGISTRY}/snisid/core-api:${tag}"
+                    safe_tag=$(echo "${tag}" | tr '/' '_')
+                    sbom_file="/tmp/sbom-${safe_tag}.spdx.json"
+                    vuln_file="/tmp/vuln-${safe_tag}.json"
+
+                    echo "--- Processing ${img} ---"
+
+                    # 1. SBOM avec Syft
+                    syft ${img} -o spdx-json=${sbom_file}
+
+                    # 2. Scan CVE avec Trivy (format SARIF + JSON)
+                    trivy image --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+                      --format json -o ${vuln_file} ${img}
+
+                    # 3. Attacher SBOM à l'image via Cosign
+                    cosign attach sbom --sbom ${sbom_file} ${img}
+                    cosign sign --key env://COSIGN_PRIVATE_KEY ${img}
+
+                    # 4. Upload S3 Ceph (immutabilité bucket)
+                    s3cmd put --acl-private ${sbom_file} \
+                      s3://${BUCKET}/sboms/${TODAY}/core-api-${safe_tag}.spdx.json
+                    s3cmd put --acl-private ${vuln_file} \
+                      s3://${BUCKET}/vulns/${TODAY}/core-api-${safe_tag}.json
+
+                    # 5. Validation policy: pas de licence GPL-3.0 dans SBOM Tier-0
+                    if grep -q '"licenseId": "GPL-3.0"' ${sbom_file} || \
+                       grep -q '"licenseId": "AGPL-3.0"' ${sbom_file}; then
+                      echo "ALERT: GPL-3.0 detected in ${img} — BLOCKING"
+                      # Alert SOC National via webhook
+                      curl -s -X POST --cacert /etc/ssl/certs/snisid-ca.crt \
+                        -H "Authorization: Bearer ${SIEM_WEBHOOK_TOKEN}" \
+                        -H "Content-Type: application/json" \
+                        -d "{\"alert\":\"sbom-gpl-violation\",\"image\":\"${img}\",\"severity\":\"critical\"}" \
+                        https://siem.interne.snisid.gouv.local/api/v1/alerts || true
+                      exit 1
+                    fi
+                  done
+
+                  echo "=== SBOM Generation Complete ==="
+              env:
+                - name: COSIGN_PRIVATE_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: snisid-cosign-key
+                      key: private-key
+                - name: SIEM_WEBHOOK_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: siem-webhook-credentials
+                      key: token
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+                - name: ca-bundle
+                  mountPath: /etc/ssl/certs/snisid-ca.crt
+                  subPath: ca.crt
+                  readOnly: true
+                - name: s3cfg
+                  mountPath: /root/.s3cfg
+                  subPath: s3cfg
+                  readOnly: true
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 10Gi
+            - name: ca-bundle
+              secret:
+                secretName: snisid-pki-ca
+                items:
+                  - key: tls.crt
+                    path: ca.crt
+            - name: s3cfg
+              secret:
+                secretName: s3cmd-config
+          restartPolicy: OnFailure
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sbom-generator
+  namespace: snisid-cyber
+  labels:
+    snisid.gov/tier: tier-1
+    snisid.gov/service: supply-chain
+automountServiceAccountToken: false

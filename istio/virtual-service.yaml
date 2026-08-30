@@ -1,0 +1,101 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: snisid-routing
+  namespace: snisid
+spec:
+  hosts:
+  - "api.snisid.ht"
+  gateways:
+  - snisid-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /v1/identity/
+    route:
+    - destination:
+        host: identity-service.snisid.svc.cluster.local
+        port:
+          number: 8080
+      weight: 100
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+    timeout: 30s
+  - match:
+    - uri:
+        prefix: /v1/biometrics/
+    route:
+    - destination:
+        host: biometrics-service.snisid.svc.cluster.local
+        port:
+          number: 8080
+      weight: 100
+    retries:
+      attempts: 2
+      perTryTimeout: 5s
+    timeout: 60s
+  - match:
+    - uri:
+        prefix: /v1/fraud/
+    route:
+    - destination:
+        host: fraud-engine.snisid.svc.cluster.local
+        port:
+          number: 8080
+      weight: 100
+    retries:
+      attempts: 2
+      perTryTimeout: 3s
+    timeout: 30s
+  - match:
+    - uri:
+        prefix: /v1/audit/
+    route:
+    - destination:
+        host: audit-service.snisid.svc.cluster.local
+        port:
+          number: 8080
+      weight: 100
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+    timeout: 10s
+  - match:
+    - uri:
+        prefix: /v1/public/
+    route:
+    - destination:
+        host: gateway-service.snisid.svc.cluster.local
+        port:
+          number: 8080
+      weight: 100
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: gateway-service.snisid.svc.cluster.local
+        port:
+          number: 8080
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: snisid-internal-routing
+  namespace: snisid
+spec:
+  hosts:
+  - "*.snisid.svc.cluster.local"
+  gateways:
+  - snisid-internal-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /v1/
+    route:
+    - destination:
+        host: gateway-service.snisid.svc.cluster.local
+        port:
+          number: 8080
+    timeout: 30s

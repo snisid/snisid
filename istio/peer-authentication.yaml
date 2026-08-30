@@ -1,0 +1,23 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-strict
+  namespace: snisid
+  labels:
+    app.kubernetes.io/part-of: snisid
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: permissive-for-legacy
+  namespace: snisid-legacy
+  labels:
+    app.kubernetes.io/part-of: snisid
+    app.kubernetes.io/component: security
+spec:
+  mtls:
+    mode: PERMISSIVE

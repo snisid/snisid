@@ -1,0 +1,109 @@
+{
+    "verified_database": {
+        "HT-SNISID-100001": {
+            "iui": "HT-SNISID-100001",
+            "last_name": "JEAN BAPTISTE",
+            "first_name": "MELISSA",
+            "birth_date": "1988-04-12",
+            "gender": "F",
+            "birth_place": "PORTAUPRINCE",
+            "legacy_cin": "111-222-333-44",
+            "biometrics_hash": "wsq_hash_98231",
+            "migration_metadata": {
+                "migrated_at": "2026-05-25T07:32:20.477318",
+                "source_system": "ONI_Legacy",
+                "raw_id": "ONI-98231"
+            }
+        },
+        "HT-SNISID-100002": {
+            "iui": "HT-SNISID-100002",
+            "last_name": "HYPPOLITE",
+            "first_name": "JEAN-PIERRE",
+            "birth_date": "1980-02-28",
+            "gender": "M",
+            "birth_place": "CAPHAÏTIEN",
+            "legacy_cin": "444-555-666-77",
+            "biometrics_hash": "wsq_hash_45120",
+            "migration_metadata": {
+                "migrated_at": "2026-05-25T07:32:20.477612",
+                "source_system": "ONI_Legacy",
+                "raw_id": "ONI-45120"
+            }
+        },
+        "HT-SNISID-100003": {
+            "iui": "HT-SNISID-100003",
+            "last_name": "DURENT",
+            "first_name": "JN-CLAUDE",
+            "birth_date": "1975-01-01",
+            "gender": "M",
+            "birth_place": "GONAÏVES",
+            "legacy_cin": null,
+            "biometrics_hash": null,
+            "migration_metadata": {
+                "migrated_at": "2026-05-25T07:32:20.477715",
+                "source_system": "Civil_Registry",
+                "raw_id": "CIVIL-212"
+            }
+        }
+    },
+    "quarantine_database": [
+        {
+            "raw_record": {
+                "source": "Immigration_DIE",
+                "raw_id": "DIE-9921",
+                "last_name": "LUBIN",
+                "first_name": "Pierre",
+                "birth_date": "15/10/1985",
+                "gender": "M",
+                "birth_place": "Okap",
+                "legacy_cin": "444-555-666-77",
+                "biometrics_hash": "wsq_hash_9921"
+            },
+            "reason": "CIN Conflict with HT-SNISID-100002",
+            "level": "Q1 - Identity Conflict"
+        },
+        {
+            "raw_record": {
+                "source": "ONI_Legacy",
+                "raw_id": "ONI-12344",
+                "last_name": "ST-LOUIS",
+                "first_name": "Marie N/A",
+                "birth_date": "31/11/1990",
+                "gender": "F",
+                "birth_place": "Jacmel",
+                "legacy_cin": "777-888-999-00",
+                "biometrics_hash": "wsq_hash_12344"
+            },
+            "reason": "Date Validation Failure: Invalid format or date arithmetic error (e.g. Feb 29 on non-leap year)",
+            "level": "Q1 - Critical Invalid"
+        }
+    ],
+    "conflicts": [
+        {
+            "conflicting_record_1": {
+                "iui": "HT-SNISID-100002",
+                "last_name": "HYPPOLITE",
+                "first_name": "JEAN-PIERRE",
+                "birth_date": "1980-02-28",
+                "gender": "M",
+                "birth_place": "CAPHAÏTIEN",
+                "legacy_cin": "444-555-666-77",
+                "biometrics_hash": "wsq_hash_45120",
+                "migration_metadata": {
+                    "migrated_at": "2026-05-25T07:32:20.477612",
+                    "source_system": "ONI_Legacy",
+                    "raw_id": "ONI-45120"
+                }
+            },
+            "conflicting_record_2": {
+                "raw_id": "DIE-9921",
+                "last_name": "LUBIN",
+                "first_name": "PIERRE",
+                "birth_date": "1985-10-15",
+                "legacy_cin": "444-555-666-77",
+                "source": "Immigration_DIE"
+            },
+            "conflict_type": "CIN Duplicate Owner Violation"
+        }
+    ]
+}

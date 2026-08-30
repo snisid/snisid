@@ -1,0 +1,64 @@
+name: SNISID Sovereign Supply Chain Build
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-sign:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Required for keyless signing or attaching OIDC proofs
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Build Identity Service
+      run: cd src/services/identity-service && go build -o identity-service ./cmd/server
+
+    - name: Build Docker Image
+      run: |
+        docker build -t snisid-registry.local/core/identity-service:${{ github.sha }} -f src/services/identity-service/Dockerfile .
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3.1.1
+
+    - name: Install Syft
+      uses: anchore/sbom-action/download-syft@v0.14.3
+
+    - name: Login to Sovereign Harbor Registry
+      uses: docker/login-action@v3
+      with:
+        registry: snisid-registry.local
+        username: ${{ secrets.HARBOR_USER }}
+        password: ${{ secrets.HARBOR_TOKEN }}
+
+    - name: Push Container Image
+      run: docker push snisid-registry.local/core/identity-service:${{ github.sha }}
+
+    - name: Generate SPDX SBOM
+      run: |
+        syft snisid-registry.local/core/identity-service:${{ github.sha }} -o spdx-json > identity-service-sbom.spdx.json
+
+    - name: Sign Container Image
+      run: |
+        cosign sign --key env://COSIGN_PRIVATE_KEY -y snisid-registry.local/core/identity-service:${{ github.sha }}
+      env:
+        COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+
+    - name: Attach and Sign SBOM
+      run: |
+        cosign attach sbom --sbom identity-service-sbom.spdx.json snisid-registry.local/core/identity-service:${{ github.sha }}
+        cosign sign --key env://COSIGN_PRIVATE_KEY -y snisid-registry.local/core/identity-service:${{ github.sha }}-sbom
+      env:
+        COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}

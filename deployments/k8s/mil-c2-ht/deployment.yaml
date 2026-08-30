@@ -1,0 +1,63 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mil-c2-ht
+  namespace: snisid-national-security
+  labels:
+    app: mil-c2-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mil-c2-ht
+  template:
+    metadata:
+      labels:
+        app: mil-c2-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8304"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: mil-c2-ht
+        image: snisid/mil-c2-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8304
+        env:
+        - name: PORT
+          value: "8304"
+        - name: ENV
+          value: "prod"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: snisid-secrets
+              key: jwt-secret
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        - name: MILC2_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: snisid_milc2-url
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8304
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8304
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

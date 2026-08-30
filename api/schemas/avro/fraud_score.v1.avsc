@@ -1,0 +1,35 @@
+{
+  "namespace": "snisid.fraud.v1",
+  "type": "record",
+  "name": "FraudScoreReport",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "identityId", "type": "string"},
+    {"name": "overallScore", "type": "int"},
+    {
+      "name": "modelScores",
+      "type": {
+        "type": "map",
+        "values": "int"
+      }
+    },
+    {
+      "name": "explanationChain",
+      "type": {
+        "type": "array",
+        "items": "string"
+      }
+    }
+  ]
+}

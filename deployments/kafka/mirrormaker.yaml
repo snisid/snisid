@@ -1,0 +1,26 @@
+# mirrormaker.yaml
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: nexus-cross-region-sync
+  namespace: nexus-infra
+spec:
+  version: 3.5.0
+  connectCluster: "region-b-target"
+  clusters:
+    - alias: "region-a-source"
+      bootstrapServers: "kafka-a.nexus.svc:9092"
+    - alias: "region-b-target"
+      bootstrapServers: "kafka-b.nexus.svc:9092"
+  mirrors:
+    - sourceCluster: "region-a-source"
+      targetCluster: "region-b-target"
+      sourceConnector:
+        config:
+          replication.factor: 3
+          offset-syncs.topic.replication.factor: 3
+          sync.topic.acls.enabled: "true"
+      checkpointConnector:
+        config:
+          checkpoints.topic.replication.factor: 3
+      topicsPattern: "identity-events,fraud-alerts,biometric-mismatch"

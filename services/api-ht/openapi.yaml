@@ -1,0 +1,104 @@
+openapi: "3.0.3"
+info:
+  title: "API-HT API"
+  description: "HT National ID Platform - Developer Portal"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8214/api/v1/devportal"
+paths:
+  /register:
+    post:
+      summary: "Register a developer account"
+      operationId: registerDeveloper
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - contact_name
+              properties:
+                email:
+                  type: string
+                  format: email
+                contact_name:
+                  type: string
+                org_name:
+                  type: string
+                contact_phone:
+                  type: string
+      responses:
+        '201':
+          description: "Account registered"
+        '400':
+          description: "Invalid request"
+        '409':
+          description: "Email already registered"
+  /keys/request:
+    post:
+      summary: "Request an API key"
+      operationId: requestApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_id
+              properties:
+                account_id:
+                  type: string
+                  format: uuid
+                description:
+                  type: string
+      responses:
+        '201':
+          description: "API key created"
+        '400':
+          description: "Invalid request"
+  /catalog:
+    get:
+      summary: "Get API catalog"
+      operationId: getCatalog
+      responses:
+        '200':
+          description: "API catalog"
+  /usage/{key_id}:
+    get:
+      summary: "Get API usage logs"
+      operationId: getApiUsage
+      parameters:
+        - name: key_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Usage logs"
+        '400':
+          description: "Invalid key_id"
+  /keys/{id}/revoke:
+    post:
+      summary: "Revoke an API key"
+      operationId: revokeApiKey
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: "Key revoked"
+        '400':
+          description: "Invalid key id"
+components:
+  schemas: {}

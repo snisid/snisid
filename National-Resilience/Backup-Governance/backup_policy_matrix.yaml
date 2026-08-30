@@ -1,0 +1,21 @@
+backup_policy_matrix:
+  B0_vital:
+    examples: [IAM, identity_registry, recovery_keys, P0_configuration]
+    frequency: continuous_plus_daily
+    retention: legal_7_years_or_more
+    immutable: true
+    air_gapped: true
+    restore_test_frequency: weekly
+  B1_critical:
+    examples: [enrollment_transactions, audit_logs, interagency_apis]
+    frequency: hourly_plus_daily
+    retention: 3_to_7_years
+    immutable: true
+    air_gapped: partial
+    restore_test_frequency: monthly
+  B2_essential:
+    examples: [citizen_portals, ministry_reporting]
+    frequency: daily
+    retention: 1_to_3_years
+    immutable: recommended
+    restore_test_frequency: quarterly

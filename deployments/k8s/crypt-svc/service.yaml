@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: crypt-svc
+  namespace: snisid-core
+  labels:
+    app: crypt-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8117
+    targetPort: 8117
+    protocol: TCP
+    name: http
+  selector:
+    app: crypt-svc

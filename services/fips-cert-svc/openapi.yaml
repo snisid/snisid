@@ -1,0 +1,149 @@
+openapi: "3.0.3"
+info:
+  title: "FIPS Certification API"
+  description: "FIPS 140 cryptographic module certification framework"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8098/api/v1/fips"
+paths:
+  /modules:
+    post:
+      summary: "Register a crypto module"
+      operationId: registerModule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - version
+                - vendor
+                - fips_level
+              properties:
+                name:
+                  type: string
+                version:
+                  type: string
+                vendor:
+                  type: string
+                fips_level:
+                  type: string
+                algorithms:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: "Module registered"
+        '400':
+          description: "Invalid request"
+    get:
+      summary: "List registered modules"
+      operationId: listModules
+      responses:
+        '200':
+          description: "Module list"
+  /modules/{id}:
+    get:
+      summary: "Get module validation status"
+      operationId: getModule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Module found"
+        '404':
+          description: "Module not found"
+  /modules/{id}/validate:
+    post:
+      summary: "Submit validation evidence"
+      operationId: submitValidation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cert_number
+                - validation_date
+              properties:
+                cert_number:
+                  type: string
+                validation_date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: "Validation submitted"
+        '400':
+          description: "Invalid request"
+  /modules/{id}/cve:
+    post:
+      summary: "Report CVE for module"
+      operationId: reportCVE
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cve_id
+                - severity
+              properties:
+                cve_id:
+                  type: string
+                severity:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: "CVE reported"
+        '400':
+          description: "Invalid request"
+  /compliance/{service}:
+    get:
+      summary: "Get FIPS compliance by service"
+      operationId: getCompliance
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Compliance report"
+        '404':
+          description: "Not available"
+  /dashboard:
+    get:
+      summary: "FIPS compliance dashboard"
+      operationId: getDashboard
+      responses:
+        '200':
+          description: "Dashboard data"
+components:
+  schemas: {}

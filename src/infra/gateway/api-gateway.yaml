@@ -1,0 +1,60 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: snisid-api-gateway
+  namespace: snisid-core
+spec:
+  gatewayClassName: kong
+  listeners:
+  - name: https
+    protocol: HTTPS
+    port: 443
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: snisid-tls-secret
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: global-oidc
+  namespace: snisid-core
+  annotations:
+    kubernetes.io/ingress.class: kong
+config:
+  issuer: "https://sso.snisid.local/auth/realms/national"
+  client_id: "api-gateway"
+  client_secret: ["env", "OIDC_CLIENT_SECRET"]
+  redirect_uri: ["https://api.snisid.local/cb"]
+plugin: openid-connect
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: global-rate-limit
+  namespace: snisid-core
+config:
+  minute: 100
+  limit_by: ip
+  policy: redis
+  redis_host: redis.snisid-core.svc.cluster.local
+plugin: rate-limiting
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: identity-service-route
+  namespace: snisid-core
+  annotations:
+    konghq.com/plugins: global-oidc, global-rate-limit
+spec:
+  parentRefs:
+  - name: snisid-api-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /v1/identity
+    backendRefs:
+    - name: identity-service
+      port: 50051

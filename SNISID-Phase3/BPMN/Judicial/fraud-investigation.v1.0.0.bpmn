@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Def_jud_fraud" targetNamespace="https://snisid.gouv.ht/bpmn/judicial">
+  <bpmn:process id="judicial.investigation.fraud" name="Enquête fraude (judiciaire)" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Open" name="Ouverture dossier (case ID)"><bpmn:extensionElements><zeebe:taskDefinition type="case.open"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Susp" name="Suspension préventive identité"><bpmn:extensionElements><zeebe:taskDefinition type="identity.suspend"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:userTask id="Invest" name="Enquête fraude (analyste + police judiciaire)"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="fraud-investigators"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="Pros" name="Saisine parquet (si confirmé)"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="prosecutors"/></bpmn:extensionElements><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="Court" name="Jugement"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="civil-judges"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="Sign"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K" name="Kafka judicial.fraud.case"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f9</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A" targetRef="Open"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Open" targetRef="Susp"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Susp" targetRef="Invest"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Invest" targetRef="Pros"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Pros" targetRef="Court"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Court" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="Sign" targetRef="K"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="K" targetRef="E"/>
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,164 @@
+openapi: "3.0.3"
+info:
+  title: "PKI Bridge API"
+  description: "Cross-certification PKI bridge service"
+  version: "1.0.0"
+  contact:
+    name: "SNISID Team"
+servers:
+  - url: "http://localhost:8099/api/v1/pki-bridge"
+paths:
+  /foreign-cas:
+    post:
+      summary: "Register foreign CA"
+      operationId: registerForeignCA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - country
+                - public_key_pem
+              properties:
+                name:
+                  type: string
+                country:
+                  type: string
+                public_key_pem:
+                  type: string
+                cert_policy:
+                  type: string
+      responses:
+        '201':
+          description: "Foreign CA registered"
+        '400':
+          description: "Invalid request"
+  /cross-certs:
+    post:
+      summary: "Issue cross-certificate"
+      operationId: issueCrossCert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subject
+                - issuer_ca_id
+                - serial_number
+                - not_before
+                - not_after
+                - certificate_pem
+              properties:
+                subject:
+                  type: string
+                issuer_ca_id:
+                  type: string
+                  format: uuid
+                serial_number:
+                  type: string
+                not_before:
+                  type: string
+                  format: date
+                not_after:
+                  type: string
+                  format: date
+                certificate_pem:
+                  type: string
+      responses:
+        '201':
+          description: "Cross-certificate issued"
+        '400':
+          description: "Invalid request"
+  /cross-certs/{subject}:
+    get:
+      summary: "Get cross-cert for subject"
+      operationId: getCrossCert
+      parameters:
+        - name: subject
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Cross-certificate found"
+        '404':
+          description: "Not found"
+  /trust-anchors:
+    get:
+      summary: "List accepted trust anchors"
+      operationId: listTrustAnchors
+      responses:
+        '200':
+          description: "Trust anchor list"
+  /validate-path:
+    post:
+      summary: "Validate certificate path"
+      operationId: validatePath
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - leaf_subject
+                - intermediates
+                - root_subject
+              properties:
+                leaf_subject:
+                  type: string
+                intermediates:
+                  type: array
+                  items:
+                    type: string
+                root_subject:
+                  type: string
+      responses:
+        '200':
+          description: "Path validation result"
+        '400':
+          description: "Invalid request"
+  /bridges:
+    get:
+      summary: "List PKI bridge agreements"
+      operationId: listAgreements
+      responses:
+        '200':
+          description: "Agreement list"
+    post:
+      summary: "Create bridge agreement"
+      operationId: createAgreement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - partner_ca
+                - policy_id
+              properties:
+                name:
+                  type: string
+                partner_ca:
+                  type: string
+                policy_id:
+                  type: string
+                  format: uuid
+                expires_at:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: "Agreement created"
+        '400':
+          description: "Invalid request"
+components:
+  schemas: {}

@@ -1,0 +1,101 @@
+{
+  "uid": "snisid-slo-national",
+  "title": "SNISID — SLO National",
+  "tags": ["snisid", "slo", "wgo"],
+  "timezone": "America/Port-au-Prince",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-30d", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "region", "type": "query", "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+        "query": "label_values(snisid_workflow_started_total, region)",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true, "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "stat", "title": "🇭🇹 Disponibilité Workflows CRITIQUES (30j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0.99, "max": 1,
+        "thresholds": { "mode": "absolute", "steps": [
+          {"color":"red","value":0},{"color":"orange","value":0.995},{"color":"green","value":0.999}]}}},
+      "targets": [{ "refId": "A", "expr": "min(slo:civil_birth_simple:availability:30d, slo:identity_verification_online:availability:30d, slo:identity_enrollment:availability:30d)" }]
+    },
+    {
+      "type": "stat", "title": "Error budget restant — Naissance (30j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 5 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": -1, "max": 1,
+        "thresholds": { "mode": "absolute", "steps": [
+          {"color":"red","value":-1},{"color":"orange","value":0.1},{"color":"green","value":0.5}]}}},
+      "targets": [{ "refId": "A", "expr": "slo:civil_birth_simple:error_budget_remaining:30d" }]
+    },
+    {
+      "type": "stat", "title": "Error budget restant — Identité Verif (30j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 5 },
+      "fieldConfig": { "defaults": { "unit": "percentunit",
+        "thresholds": { "mode": "absolute", "steps": [
+          {"color":"red","value":-1},{"color":"orange","value":0.1},{"color":"green","value":0.5}]}}},
+      "targets": [{ "refId": "A", "expr": "slo:identity_verification_online:error_budget_remaining:30d" }]
+    },
+    {
+      "type": "stat", "title": "Error budget Kafka Mesh (30j)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 5 },
+      "fieldConfig": { "defaults": { "unit": "percentunit",
+        "thresholds": { "mode": "absolute", "steps": [
+          {"color":"red","value":-1},{"color":"orange","value":0.1},{"color":"green","value":0.5}]}}},
+      "targets": [{ "refId": "A", "expr": "slo:kafka_mesh:error_budget_remaining:30d" }]
+    },
+
+    {
+      "type": "timeseries", "title": "Disponibilité par workflow (1h rolling)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": { "x": 0, "y": 5, "w": 24, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0.95, "max": 1 } },
+      "targets": [
+        { "refId": "A", "expr": "slo:civil_birth_simple:availability:1h", "legendFormat": "civil-birth-simple" },
+        { "refId": "B", "expr": "slo:identity_verification_online:availability:5m", "legendFormat": "identity-verification" },
+        { "refId": "C", "expr": "slo:identity_enrollment:availability:30d", "legendFormat": "identity-enrollment-30d" },
+        { "refId": "D", "expr": "slo:judicial_validation:availability:30d", "legendFormat": "judicial-validation-30d" }
+      ]
+    },
+
+    {
+      "type": "table", "title": "SLA breaches (5 min)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "topk(20, snisid:workflow_sla_breach:rate5m)", "format": "table", "instant": true }
+      ]
+    },
+
+    {
+      "type": "timeseries", "title": "Workflows actifs par domaine",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (workflow_id) (snisid_workflow_active)" }
+      ]
+    },
+
+    {
+      "type": "timeseries", "title": "Latence p99 workflows critiques (s)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": { "x": 0, "y": 21, "w": 24, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "refId": "A", "expr": "snisid:workflow_duration:p99:5m{workflow_id=\"identity.verification.online\"}", "legendFormat": "identity verif" },
+        { "refId": "B", "expr": "snisid:workflow_duration:p99:5m{workflow_id=\"identity.enrollment.standard\"}", "legendFormat": "identity enroll" },
+        { "refId": "C", "expr": "snisid:workflow_duration:p99:5m{workflow_id=\"civil-registry.birth.simple\"}", "legendFormat": "birth simple" }
+      ]
+    }
+  ]
+}

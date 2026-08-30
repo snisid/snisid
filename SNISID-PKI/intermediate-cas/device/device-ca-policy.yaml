@@ -1,0 +1,179 @@
+# SNISID — Device Trust Intermediate CA Policy & Configuration
+# Classification: TOP-SECRET
+# Domain: Enrollment Stations, Edge Nodes, Mobile Units, Biometric Devices, Kiosks
+# Issuer: SNISID Root CA (offline ceremony)
+# Path: Vault PKI mount `snisid-pki-device`
+# HSM: Thales Luna 7 Core DC — Partition SNISID_DEVICE_CA
+# Trust model: Attestation-based (TPM / Secure Boot / Device Identity) + PKI certificate
+# Revocation: Immediate if device theft, compromise, or end-of-life
+
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: snisid-device-intermediate-issuer
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: tier-0
+    snisid.gov.service: pki-device
+    snisid.gov.data-classification: top-secret
+spec:
+  vault:
+    path: snisid-pki-device/issue/device-certs
+    server: https://vault.snisid-identity.svc.cluster.local:8200
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: cert-manager-device-ca
+        secretRef:
+          name: cert-manager-device-vault-auth
+          key: token
+    caBundle: |
+      -----BEGIN CERTIFICATE-----
+      <SNISID-DEVICE-INTERMEDIATE-CA-CERT>
+      -----END CERTIFICATE-----
+
+---
+# Vault PKI Mount Configuration: snisid-pki-device
+
+vault_mount_config: |
+  path = "snisid-pki-device"
+  type = "pki"
+  default_lease_ttl_seconds = 31536000   # 1 year default
+  max_lease_ttl_seconds     = 63072000   # 2 years max
+
+vault_policy_device_ca: |
+  path "snisid-pki-device/issue/device-certs" {
+    capabilities = ["create", "update"]
+    # Automated issuance via provisioning service (enrollment stations, MDM)
+    # Requires device attestation (TPM quote / Secure Boot / manufacturer cert)
+  }
+  path "snisid-pki-device/sign/device-certs" {
+    capabilities = ["deny"]  # No manual signing
+  }
+  path "snisid-pki-device/revoke" {
+    capabilities = ["create", "update"]
+    # Auto-revocation by Wazuh/Falco compromise detection
+    # Manual revocation by Device CA Manager + SOC
+  }
+  path "snisid-pki-device/roles/*" {
+    capabilities = ["read"]
+  }
+  path "snisid-pki-device/cert/ca" {
+    capabilities = ["read"]
+  }
+
+vault_pki_role_device_certs: |
+  name = "device-certs"
+  allowed_domains = ["device.snisid.ht", "edge.snisid.gouv.local", "mobile.snisid.gouv.local"]
+  allow_subdomains = true
+  allow_ip_sans = true
+  allowed_ip_sans = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+  allowed_uri_sans = ["urn:snisid:device:*", "spiffe://snisid.gov/ns/*/sa/*"]
+  allowed_serial_numbers = ["*"]
+  max_ttl = "17520h"       # 2 years max (device lifetime aligned)
+  default_ttl = "8760h"    # 1 year default
+  ttl = "8760h"
+  key_type = "ec"
+  key_bits = 256           # P-256 acceptable for high-volume device issuance (performance)
+  signature_algorithm = "ecdsa-with-SHA256"
+  
+  policy_identifiers = [
+    "1.3.6.1.4.1.SNISID.1.5",      # SNISID Device Trust Policy
+    "1.3.6.1.4.1.SNISID.0.1"       # SNISID CP Nationale
+  ]
+  
+  key_usage = ["DigitalSignature", "KeyEncipherment"]
+  ext_key_usage = ["ServerAuth", "ClientAuth"]
+  
+  require_cn = true
+  
+  organization = ["SNISID Device Trust"]
+  ou = ["{device-type}", "{tier}", "{region}"]
+  country = ["HT"]
+  
+  # CRL / OCSP
+  crl = true
+  crl_expiry = "24h"
+  crl_distribution_points = ["http://crl.snisid.gouv.local/device/ca.crl"]
+  issuing_certificates = ["http://pki.snisid.gouv.local/device/ca.crt"]
+  ocsp_servers = ["http://ocsp.snisid.gouv.local"]
+
+# Device Attestation Requirements
+device_attestation:
+  required: true
+  methods:
+    - type: tpm2_quote
+      description: "TPM 2.0 EK + AK quote verification"
+      required_for: [enrollment-station, biometric-device, edge-node]
+    - type: secure_boot
+      description: "UEFI Secure Boot enabled + PK/KEK signatures verified"
+      required_for: [all-except-mobile-legacy]
+    - type: manufacturer_cert
+      description: "Manufacturer IDevID or LDevID certificate chain"
+      required_for: [biometric-device, kiosk]
+    - type: measured_boot
+      description: "PCR measurements match golden template"
+      required_for: [enrollment-station]
+  
+  provisioning_flow: |
+    1. Device powers on — Secure Boot + Measured Boot
+    2. Device connects to provisioning network (isolated VLAN)
+    3. Device presents TPM EK certificate + AK quote + PCR log
+    4. Provisioning service verifies attestation against golden templates
+    5. Provisioning service checks device UUID against national device registry
+    6. Provisioning service requests Vault PKI device certificate
+    7. Certificate injected into device TPM NVRAM (private key never exported)
+    8. Device certificate published to national device trust registry (read-only)
+    9. Device authorized to join production network (802.1X / mTLS admission)
+
+# Revocation Triggers
+device_revocation_triggers:
+  - name: theft_or_loss
+    description: "Device declared stolen or lost by operator"
+    auto_revoke: false
+    approval: "Device CA Manager + SOC + local authority"
+    timeline: "< 4 hours from declaration"
+  - name: compromise_detected
+    description: "Falco / Wazuh / Tetragon detected anomalous device behavior"
+    auto_revoke: true
+    approval: "SOC auto + post-hoc Device CA Manager validation"
+    timeline: "< 15 minutes from detection"
+  - name: end_of_life
+    description: "Device decommissioned"
+    auto_revoke: false
+    approval: "Device CA Manager"
+    timeline: "< 24 hours from decommission"
+  - name: firmware_vulnerability
+    description: "Critical unpatched firmware CVE on device model"
+    auto_revoke: true
+    approval: "SOC + Device CA Manager"
+    timeline: "< 1 hour from CVE classification"
+  - name: network_anomaly
+    description: "Device communicating with unauthorized endpoints"
+    auto_revoke: true
+    approval: "SOC auto"
+    timeline: "< 5 minutes from Cilium/Falco alert"
+
+# HSM Key Reference
+hsm_key_reference:
+  partition: SNISID_DEVICE_CA
+  key_label: snisid-device-intermediate-ca-key
+  algorithm: EC
+  curve: secp384r1
+  extractable: false
+  modifiable: false
+  key_type: PRIVATE_KEY
+  storage: HSM
+
+# Device Certificate Embedded Metadata (Subject Directory Attributes extension)
+device_metadata_extension:
+  oid: "1.3.6.1.4.1.SNISID.3.1"
+  content:
+    device_uuid: "{UUID}"
+    device_model: "{model}"
+    firmware_version: "{firmware_hash}"
+    provisioning_date: "{ISO8601}"
+    provisioning_station: "{station_id}"
+    tpm_ek_public_hash: "sha256:{tpm_ek_hash}"
+    secure_boot_enabled: true
+    measured_boot_golden_template: "sha256:{template_hash}"

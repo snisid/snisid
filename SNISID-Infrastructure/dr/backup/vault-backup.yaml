@@ -1,0 +1,173 @@
+# SNISID — Vault Backup Strategy (Secrets & PKI Nationale)
+# Classification: TOP-SECRET
+# Role: Backup Raft snapshot + audit logs + PKI root CA offline
+# RPO: < 1 heure (snapshots Raft automatiques)
+# RTO: < 15 minutes (restauration snapshot validé)
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snisid-vault-raft-snapshot
+  namespace: snisid-identity
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.service: "vault-backup"
+    snisid.gov.data-classification: "top-secret"
+spec:
+  schedule: "0 * * * *"  # Toutes les heures
+  concurrencyPolicy: Forbid
+  successfulJobHistoryLimit: 24
+  failedJobHistoryLimit: 48
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            snisid.gov/tier: tier-0
+            snisid.gov/service: vault-backup
+        spec:
+          serviceAccountName: vault-backup-operator
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: vault-backup
+              image: registry.interne.snisid.gouv.local/hashicorp/vault:1.15.4
+              imagePullPolicy: Always
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  VAULT_ADDR="https://vault.snisid-identity.svc.cluster.local:8200"
+                  S3_BUCKET="snisid-backup-gold"
+                  BACKUP_PREFIX="vault-raft-${TIMESTAMP}"
+
+                  echo "=== SNISID Vault Raft Snapshot — ${TIMESTAMP} ==="
+
+                  # 1. Login via Kubernetes auth (sa vault-backup-operator)
+                  vault login -method=kubernetes role=vault-backup-operator
+
+                  # 2. Générer snapshot Raft chiffré (Vault native encryption)
+                  vault operator raft snapshot save /tmp/${BACKUP_PREFIX}.snap
+
+                  # 3. Vérification intégrité snapshot
+                  vault operator raft snapshot inspect /tmp/${BACKUP_PREFIX}.snap | tee /tmp/${BACKUP_PREFIX}.inspect
+
+                  # 4. Chiffrement secondaire (AES-256-GCM clé externe HSM)
+                  ENCRYPTION_KEY=$(vault read -field=snapshot-key snisid/data/backup/vault-snapshot)
+                  openssl enc -aes-256-gcm -pass pass:"${ENCRYPTION_KEY}" -in /tmp/${BACKUP_PREFIX}.snap -out /tmp/${BACKUP_PREFIX}.snap.enc
+
+                  # 5. Upload S3 Ceph (bucket WORM immutabilité 7 ans)
+                  s3cmd put --storage-class=STANDARD_IA --acl-private /tmp/${BACKUP_PREFIX}.snap.enc \
+                    s3://${S3_BUCKET}/vault/raft/${BACKUP_PREFIX}.snap.enc
+                  s3cmd put --storage-class=STANDARD_IA --acl-private /tmp/${BACKUP_PREFIX}.inspect \
+                    s3://${S3_BUCKET}/vault/inspect/${BACKUP_PREFIX}.inspect
+
+                  # 6. Audit log rotation + backup (chiffré)
+                  # Les audit logs sont forwardés temps réel vers SIEM, mais backup local pour reconstruction
+                  # (traité par sidecar log-collector Vault, pas ici)
+
+                  # 7. Validation restoration (DRY-RUN non-destructif)
+                  # Test load snapshot dans environnement isolé DR
+                  echo "=== Snapshot Validation — Trigger DR dry-run ==="
+                  curl -s -X POST --cacert /etc/ssl/certs/snisid-ca.crt \
+                    -H "Authorization: Bearer ${DR_TEST_TOKEN}" \
+                    -d "{\"snapshot_path\":\"s3://${S3_BUCKET}/vault/raft/${BACKUP_PREFIX}.snap.enc\",\"action\":\"validate\"}" \
+                    https://vault-dr-test.interne.snisid.gouv.local/api/v1/snapshot/validate || true
+
+                  # 8. Air-gapped LTO trigger (vault backup = priorité max)
+                  curl -s -X POST --cacert /etc/ssl/certs/snisid-ca.crt \
+                    -H "Authorization: Bearer ${TAPE_ROBOT_TOKEN}" \
+                    -d "{\"bucket\":\"${S3_BUCKET}\",\"prefix\":\"vault/raft/\",\"tape_label\":\"SNISID-VAULT-${TIMESTAMP}\",\"priority\":\"urgent\"}" \
+                    https://tape-robot.interne.snisid.gouv.local/api/v1/stage || true
+
+                  # 9. Cleanup local (shred sécurisé)
+                  shred -u -n 35 -z /tmp/${BACKUP_PREFIX}.snap
+                  shred -u -n 35 -z /tmp/${BACKUP_PREFIX}.snap.enc
+                  shred -u -n 35 -z /tmp/${BACKUP_PREFIX}.inspect
+
+                  echo "=== Vault Backup Complete ==="
+              env:
+                - name: VAULT_ADDR
+                  value: "https://vault.snisid-identity.svc.cluster.local:8200"
+                - name: VAULT_CACERT
+                  value: "/etc/ssl/certs/snisid-ca.crt"
+                - name: TAPE_ROBOT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: tape-robot-credentials
+                      key: token
+                - name: DR_TEST_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: dr-test-credentials
+                      key: token
+              volumeMounts:
+                - name: vault-backup-sa-token
+                  mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                  readOnly: true
+                - name: s3cfg
+                  mountPath: /root/.s3cfg
+                  readOnly: true
+                - name: ca-bundle
+                  mountPath: /etc/ssl/certs/snisid-ca.crt
+                  subPath: ca.crt
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: vault-backup-sa-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      expirationSeconds: 3600
+                      path: token
+            - name: s3cfg
+              secret:
+                secretName: s3cmd-backup-config
+            - name: ca-bundle
+              secret:
+                secretName: snisid-pki-ca
+                items:
+                  - key: tls.crt
+                    path: ca.crt
+            - name: tmp
+              emptyDir:
+                sizeLimit: 10Gi
+          restartPolicy: OnFailure
+
+---
+# ServiceAccount vault-backup-operator (RBAC minimal)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-backup-operator
+  namespace: snisid-identity
+  labels:
+    snisid.gov/tier: tier-0
+    snisid.gov/service: vault-backup
+automountServiceAccountToken: true
+
+---
+# Vault Policy — backup-operator (lecture snapshot uniquement)
+# Ce policy est créé dans Vault directement (hors K8s manifests) :
+# path "sys/storage/raft/snapshot" {
+#   capabilities = ["read"]
+# }
+# path "sys/storage/raft/snapshot-save" {
+#   capabilities = ["read"]
+# }
+# path "snisid/data/backup/*" {
+#   capabilities = ["read"]
+# }

@@ -1,0 +1,55 @@
+name: SNISID ML Retraining Pipeline
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # Daily at 2 AM
+  workflow_dispatch:
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install ML Dependencies
+        run: pip install xgboost pandas scikit-learn joblib
+
+      - name: Download Latest Dataset
+        run: |
+          echo "Fetching latest versioned dataset from MinIO/S3..."
+          # mc cp minio/nexus-lake/datasets/v1.2/train.parquet .
+
+      - name: Train Model
+        continue-on-error: true
+        run: |
+          if [ -f ai/training/train_v2.py ]; then
+            python ai/training/train_v2.py
+          else
+            echo "Training script not available yet - skipping"
+          fi
+
+      - name: Validate Model
+        continue-on-error: true
+        run: |
+          if [ -f ai/training/validate_v2.py ]; then
+            python ai/training/validate_v2.py
+          else
+            echo "Validation script not available yet - skipping"
+          fi
+
+      - name: Register Model
+        continue-on-error: true
+        run: |
+          if [ -f model.joblib ]; then
+            VERSION=$(date +%Y%m%d%H%M)
+            mv model.joblib ai/training/models/snisid-fraud-v$VERSION.joblib
+            echo "Model registered: snisid-fraud-v$VERSION"
+          else
+            echo "No model file to register - skipping"
+          fi

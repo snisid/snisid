@@ -1,0 +1,169 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-core-platform
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: core
+spec:
+  project: snisid-core
+  source:
+    repoURL: 'https://git.snisid.ht/snisid/infrastructure.git'
+    path: helm/charts/snisid-core
+    targetRevision: main
+    helm:
+      releaseName: snisid-core
+      valuesFiles:
+      - values.yaml
+      - values-${ENV}.yaml
+  destination:
+    namespace: snisid
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-istio-base
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: core
+spec:
+  project: snisid-core
+  source:
+    repoURL: 'https://istio-release.storage.googleapis.com/charts'
+    chart: base
+    targetRevision: 1.22.0
+  destination:
+    namespace: istio-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-istiod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: core
+spec:
+  project: snisid-core
+  source:
+    repoURL: 'https://istio-release.storage.googleapis.com/charts'
+    chart: istiod
+    targetRevision: 1.22.0
+    helm:
+      values: |
+        meshConfig:
+          accessLogFile: /dev/stdout
+          enableTracing: true
+          defaultConfig:
+            holdApplicationUntilProxyStarts: true
+        pilot:
+          env:
+            PILOT_ENABLE_IP_AUTOALLOCATE: "true"
+  destination:
+    namespace: istio-system
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-vault
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: core
+spec:
+  project: snisid-core
+  source:
+    repoURL: 'https://helm.releases.hashicorp.com'
+    chart: vault
+    targetRevision: 0.28.1
+    helm:
+      values: |
+        server:
+          affinity: ""
+          ha:
+            enabled: true
+            replicas: 3
+            raft:
+              enabled: true
+              config: |
+                ui = true
+                listener "tcp" {
+                  tls_disable = false
+                  address = "0.0.0.0:8200"
+                }
+                storage "raft" {
+                  path = "/vault/data"
+                }
+                service_registration "kubernetes" {}
+          service:
+            enabled: true
+          dataStorage:
+            size: 10Gi
+        injector:
+          enabled: true
+  destination:
+    namespace: vault
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-cert-manager
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: snisid
+    snisid.ht/phase: core
+spec:
+  project: snisid-core
+  source:
+    repoURL: 'https://charts.jetstack.io'
+    chart: cert-manager
+    targetRevision: v1.15.0
+    helm:
+      values: |
+        installCRDs: true
+        replicaCount: 2
+  destination:
+    namespace: cert-manager
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

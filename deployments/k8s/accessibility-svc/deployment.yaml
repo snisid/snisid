@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accessibility-svc
+  namespace: snisid-core
+  labels:
+    app: accessibility-svc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: accessibility-svc
+  template:
+    metadata:
+      labels:
+        app: accessibility-svc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8101"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: accessibility-svc
+        image: snisid/accessibility-svc:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8101
+        env:
+        - name: ACCESS_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: ACCESS_DB_PORT
+          value: "26257"
+        - name: ACCESS_DB_NAME
+          value: "snisid_accessibility"
+        - name: ACCESS_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: ACCESS_DB_SSLMODE
+          value: "disable"
+        - name: ACCESS_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: ACCESS_SERVICE_PORT
+          value: "8101"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8101
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8101
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

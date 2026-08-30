@@ -1,0 +1,27 @@
+{
+  "gsos_version": "1.0",
+  "origin": {
+    "country": "string",
+    "agency": "string",
+    "system": "string"
+  },
+  "identity": {
+    "entity_id": "string",
+    "type": "user|system|device"
+  },
+  "event": {
+    "category": "auth|admin|network|fraud|identity",
+    "action": "string",
+    "severity": "low|medium|high|critical"
+  },
+  "risk": {
+    "score": "float",
+    "model": "string"
+  },
+  "sharing_policy": {
+    "allowed_countries": ["string"],
+    "classification": "unclassified|restricted|confidential|secret"
+  },
+  "signature": "string",
+  "timestamp": "iso8601"
+}

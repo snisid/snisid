@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fir-svc
+  namespace: snisid-core
+  labels:
+    app: fir-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8093
+    targetPort: 8093
+    protocol: TCP
+    name: http
+  selector:
+    app: fir-svc

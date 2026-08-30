@@ -1,0 +1,272 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-vc-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-vc
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-vc
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-pki-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-pki
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-pki
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-sd-jwt-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-sd-jwt
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-sd-jwt
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-did-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-did
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-did
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-vp-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-vp
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-vp
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-status-list-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-status-list
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-status-list
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-didcomm-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-didcomm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-didcomm
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-credential-flow-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-credential-flow
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-credential-flow
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-siopv2-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-siopv2
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-siopv2
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-wallet-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-wallet
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-wallet
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-chapi-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-chapi
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-chapi
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-credential-manifest-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-credential-manifest
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-credential-manifest
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ns-revocation-monitor
+  namespace: snisid-monitoring
+  labels:
+    release: kube-prometheus-stack
+    app: ns-monitor
+    service: ns-revocation
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ns-revocation
+  namespaceSelector:
+    matchNames:
+      - ns-core
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s

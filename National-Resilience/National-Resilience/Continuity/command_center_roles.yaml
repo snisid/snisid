@@ -1,0 +1,8 @@
+roles:
+  crisis_commander: global_operational_decision
+  dr_lead: failover_and_recovery
+  cyber_lead: containment_and_clean_restore
+  identity_continuity_lead: IAM_registry_emergency_issuance
+  communications_lead: secure_internal_external_messages
+  agency_liaison: ministries_regions_coordination
+  logistics_power_lead: energy_fuel_physical_access

@@ -1,0 +1,83 @@
+# SNISID: Zero Trust Service Mesh Configuration (Istio)
+# Path: deploy/kubernetes/hardened-cluster/zero-trust-mesh.yaml
+
+---
+# 1. Enforce STRICT mTLS for all communication within the mesh
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# 2. Deny all traffic by default (Zero Trust Principle)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: istio-system
+spec:
+  {}
+
+---
+# 3. Require JWT Authentication for all external requests
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: require-jwt
+  namespace: istio-system
+spec:
+  jwtRules:
+  - issuer: "https://auth.snisid.gov.int"
+    jwksUri: "https://auth.snisid.gov.int/.well-known/jwks.json"
+
+---
+# 4. Service-to-Service Authorization Example: Identity Engine to Vault
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: identity-engine-to-vault
+  namespace: snisid-core
+spec:
+  selector:
+    matchLabels:
+      app: vault
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/snisid-core/sa/identity-engine-sa"]
+
+---
+# 5. Egress Gateway Control: Whitelist National Biometric Hub
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: national-biometric-hub
+  namespace: snisid-core
+spec:
+  hosts:
+  - hub.biometrics.gov.int
+  ports:
+  - number: 443
+    name: https
+    protocol: TLS
+  resolution: DNS
+  location: MESH_EXTERNAL
+
+---
+# 6. Sidecar Configuration: Restrict Outbound Traffic to Local Namespace
+apiVersion: networking.istio.io/v1alpha3
+kind: Sidecar
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  egress:
+  - hosts:
+    - "./*"
+    - "istio-system/*"
+    - "snisid-core/*"

@@ -1,0 +1,67 @@
+# SNISID Sovereign Air-gapped Root CA Configuration
+# Strictly complies with ANSSI RGS and NIST 800-57
+
+[ ca ]
+default_ca = snisid_root_ca
+
+[ snisid_root_ca ]
+dir               = ./root-ca-dir
+certs             = $dir/certs
+crl_dir           = $dir/crl
+new_certs_dir     = $dir/newcerts
+database          = $dir/index.txt
+serial            = $dir/serial
+RANDFILE          = $dir/private/.rand
+
+private_key       = $dir/private/snisid_root_ca.key.pem
+certificate       = $dir/certs/snisid_root_ca.cert.pem
+
+crlnumber         = $dir/crlnumber
+crl               = $dir/crl/snisid_root_ca.crl.pem
+crl_extensions    = crl_ext
+default_crl_days  = 30
+
+default_md        = sha384
+name_opt          = ca_default
+cert_opt          = ca_default
+default_days      = 7300 # 20 Years validity for the Root CA
+preserve          = no
+policy            = policy_strict
+
+[ policy_strict ]
+countryName             = match
+stateOrProvinceName     = match
+organizationName        = match
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+default_bits        = 4096
+distinguished_name  = req_distinguished_name
+string_mask         = utf8only
+default_md          = sha384
+x509_extensions     = v3_ca
+
+[ req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+stateOrProvinceName             = State or Province Name
+localityName                    = Locality Name
+0.organizationName              = Organization Name
+organizationalUnitName          = Organizational Unit Name
+commonName                      = Common Name
+emailAddress                    = Email Address
+
+[ v3_ca ]
+# Extensions for a typical CA
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+
+[ v3_intermediate_ca ]
+# Extensions for an Intermediate CA (Vault)
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true, pathlen:0 # Prevents the Intermediate from signing other Intermediates
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- identity.enrollment.standard v1.0.0 — SLA 24h — Création identité nationale -->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Def_id_enroll" targetNamespace="https://snisid.gouv.ht/bpmn/identity">
+  <bpmn:process id="identity.enrollment.standard" name="Enrôlement identité standard" isExecutable="true" zeebe:versionTag="1.0.0">
+    <bpmn:startEvent id="S"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:serviceTask id="A1" name="Audit start"><bpmn:extensionElements><zeebe:taskDefinition type="audit.emit"/></bpmn:extensionElements><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Bio" name="Capture biométrie (10 fingers + face + iris)"><bpmn:extensionElements><zeebe:taskDefinition type="biometric.capture"/></bpmn:extensionElements><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Quality" name="Contrôle qualité ICAO/NIST"><bpmn:extensionElements><zeebe:taskDefinition type="biometric.quality.check"/></bpmn:extensionElements><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Dedup" name="Anti-doublon ABIS"><bpmn:extensionElements><zeebe:taskDefinition type="abis.deduplicate"/></bpmn:extensionElements><bpmn:incoming>f4</bpmn:incoming><bpmn:outgoing>f5</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="GwDup" name="Doublon ?"><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>fNo</bpmn:outgoing><bpmn:outgoing>fYes</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:callActivity id="DupRes" name="Résolution doublon"><bpmn:extensionElements><zeebe:calledElement processId="identity.duplicate.resolution"/></bpmn:extensionElements><bpmn:incoming>fYes</bpmn:incoming><bpmn:outgoing>fDupEnd</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:endEvent id="EndDup" name="Suspendu doublon"><bpmn:incoming>fDupEnd</bpmn:incoming></bpmn:endEvent>
+    <bpmn:callActivity id="Fraud"><bpmn:extensionElements><zeebe:calledElement processId="fraud.detection.automated"/></bpmn:extensionElements><bpmn:incoming>fNo</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:userTask id="Agent" name="Validation agent ONI"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="oni-agents-l1"/></bpmn:extensionElements><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="Sup" name="Validation superviseur (4-eyes)"><bpmn:extensionElements><zeebe:assignmentDefinition candidateGroups="oni-supervisors"/></bpmn:extensionElements><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="NIN" name="Génération NIN (Numéro Identité National)"><bpmn:extensionElements><zeebe:taskDefinition type="identity.nin.generate"/></bpmn:extensionElements><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Sign" name="Signature PKI carte/credentials"><bpmn:extensionElements><zeebe:taskDefinition type="pki.sign.qualified"/></bpmn:extensionElements><bpmn:incoming>f9</bpmn:incoming><bpmn:outgoing>f10</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Issue" name="Émission carte / e-ID"><bpmn:extensionElements><zeebe:taskDefinition type="identity.card.issue"/></bpmn:extensionElements><bpmn:incoming>f10</bpmn:incoming><bpmn:outgoing>f11</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="K" name="Kafka identity.enrolled"><bpmn:extensionElements><zeebe:taskDefinition type="kafka.emit"/></bpmn:extensionElements><bpmn:incoming>f11</bpmn:incoming><bpmn:outgoing>f12</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="N"><bpmn:extensionElements><zeebe:taskDefinition type="notification.send"/></bpmn:extensionElements><bpmn:incoming>f12</bpmn:incoming><bpmn:outgoing>f13</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:endEvent id="E"><bpmn:incoming>f13</bpmn:incoming></bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="f1" sourceRef="S" targetRef="A1"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="A1" targetRef="Bio"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="Bio" targetRef="Quality"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="Quality" targetRef="Dedup"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="Dedup" targetRef="GwDup"/>
+    <bpmn:sequenceFlow id="fYes" sourceRef="GwDup" targetRef="DupRes"><bpmn:conditionExpression>= duplicateFound = true</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fNo" sourceRef="GwDup" targetRef="Fraud"><bpmn:conditionExpression>= duplicateFound = false</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fDupEnd" sourceRef="DupRes" targetRef="EndDup"/>
+    <bpmn:sequenceFlow id="f6" sourceRef="Fraud" targetRef="Agent"/>
+    <bpmn:sequenceFlow id="f7" sourceRef="Agent" targetRef="Sup"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="Sup" targetRef="NIN"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="NIN" targetRef="Sign"/>
+    <bpmn:sequenceFlow id="f10" sourceRef="Sign" targetRef="Issue"/>
+    <bpmn:sequenceFlow id="f11" sourceRef="Issue" targetRef="K"/>
+    <bpmn:sequenceFlow id="f12" sourceRef="K" targetRef="N"/>
+    <bpmn:sequenceFlow id="f13" sourceRef="N" targetRef="E"/>
+      <bpmn:boundaryEvent id="SlaBE" attachedToRef="Sup" cancelActivity="false">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT24H</bpmn:timeDuration></bpmn:timerEventDefinition>
+      <bpmn:outgoing>fSlaE</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:callActivity id="SlaEsc"><bpmn:extensionElements><zeebe:calledElement processId="escalation.sla.breach"/></bpmn:extensionElements>
+      <bpmn:incoming>fSlaE</bpmn:incoming><bpmn:outgoing>fSlaE2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="SlaEnd"><bpmn:incoming>fSlaE2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="fSlaE" sourceRef="SlaBE" targetRef="SlaEsc"/>
+    <bpmn:sequenceFlow id="fSlaE2" sourceRef="SlaEsc" targetRef="SlaEnd"/>
+</bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,93 @@
+{
+  "uid": "snisid-workflow-health",
+  "title": "SNISID — Workflow Health",
+  "tags": ["snisid", "workflow", "sre"],
+  "timezone": "America/Port-au-Prince",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "workflow", "type": "query", "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+        "query": "label_values(snisid_workflow_started_total, workflow_id)",
+        "includeAll": true, "multi": true
+      },
+      {
+        "name": "region", "type": "query", "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+        "query": "label_values(snisid_workflow_started_total, region)",
+        "includeAll": true, "multi": true
+      }
+    ]
+  },
+  "panels": [
+    { "type": "stat", "title": "Workflows démarrés (5m)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":0,"y":0,"w":6,"h":4},
+      "targets": [{"refId":"A","expr":"sum(rate(snisid_workflow_started_total{workflow_id=~\"$workflow\",region=~\"$region\"}[5m]))"}]
+    },
+    { "type": "stat", "title": "Workflows échoués (5m)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":6,"y":0,"w":6,"h":4},
+      "fieldConfig":{"defaults":{"unit":"short","thresholds":{"mode":"absolute","steps":[
+        {"color":"green","value":0},{"color":"orange","value":0.1},{"color":"red","value":1}]}}},
+      "targets": [{"refId":"A","expr":"sum(rate(snisid_workflow_failures_total{workflow_id=~\"$workflow\",region=~\"$region\"}[5m]))"}]
+    },
+    { "type": "stat", "title": "Taux d'échec (5m)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":12,"y":0,"w":6,"h":4},
+      "fieldConfig":{"defaults":{"unit":"percentunit","thresholds":{"mode":"absolute","steps":[
+        {"color":"green","value":0},{"color":"orange","value":0.01},{"color":"red","value":0.05}]}}},
+      "targets": [{"refId":"A","expr":"avg(snisid:workflow_failure_ratio:5m{workflow_id=~\"$workflow\"})"}]
+    },
+    { "type": "stat", "title": "Workflows actifs",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":18,"y":0,"w":6,"h":4},
+      "targets": [{"refId":"A","expr":"sum(snisid_workflow_active{workflow_id=~\"$workflow\"})"}]
+    },
+
+    { "type": "timeseries", "title": "Taux de réussite par workflow",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":0,"y":4,"w":12,"h":8},
+      "fieldConfig":{"defaults":{"unit":"percentunit","min":0.9,"max":1}},
+      "targets": [{"refId":"A","expr":"snisid:workflow_success_ratio:5m{workflow_id=~\"$workflow\"}","legendFormat":"{{workflow_id}}"}]
+    },
+    { "type": "timeseries", "title": "Latence p50/p95/p99 (s)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":12,"y":4,"w":12,"h":8},
+      "fieldConfig":{"defaults":{"unit":"s"}},
+      "targets": [
+        {"refId":"A","expr":"snisid:workflow_duration:p50:5m{workflow_id=~\"$workflow\"}","legendFormat":"p50 {{workflow_id}}"},
+        {"refId":"B","expr":"snisid:workflow_duration:p95:5m{workflow_id=~\"$workflow\"}","legendFormat":"p95 {{workflow_id}}"},
+        {"refId":"C","expr":"snisid:workflow_duration:p99:5m{workflow_id=~\"$workflow\"}","legendFormat":"p99 {{workflow_id}}"}
+      ]
+    },
+
+    { "type": "timeseries", "title": "Incidents Zeebe",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":0,"y":12,"w":12,"h":8},
+      "targets": [
+        {"refId":"A","expr":"rate(zeebe_incident_events_total{action=\"CREATED\"}[5m])","legendFormat":"created"},
+        {"refId":"B","expr":"rate(zeebe_incident_events_total{action=\"RESOLVED\"}[5m])","legendFormat":"resolved"}
+      ]
+    },
+    { "type": "timeseries", "title": "Âge p95 user tasks (s)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":12,"y":12,"w":12,"h":8},
+      "fieldConfig":{"defaults":{"unit":"s"}},
+      "targets": [{"refId":"A","expr":"snisid:user_task_age:p95:5m","legendFormat":"{{workflow_id}}/{{task_id}}"}]
+    },
+
+    { "type": "timeseries", "title": "Détections fraude (5m, par action)",
+      "datasource": { "type": "prometheus", "uid": "prom-snisid" },
+      "gridPos": {"x":0,"y":20,"w":12,"h":8},
+      "targets": [{"refId":"A","expr":"sum by (action) (snisid:fraud_detected:rate5m)","legendFormat":"{{action}}"}]
+    },
+    { "type": "logs", "title": "Logs erreurs récentes (Loki)",
+      "datasource": { "type": "loki", "uid": "loki-snisid" },
+      "gridPos": {"x":12,"y":20,"w":12,"h":8},
+      "targets": [{"refId":"A","expr":"{app=\"snisid-workflow-engine\"} |= \"error\" | json | level=\"error\""}]
+    }
+  ]
+}

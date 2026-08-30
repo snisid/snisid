@@ -1,0 +1,16 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: air-defense-ht
+  namespace: snisid-national-security
+  labels:
+    app: air-defense-ht
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8303
+    targetPort: 8303
+    protocol: TCP
+    name: http
+  selector:
+    app: air-defense-ht

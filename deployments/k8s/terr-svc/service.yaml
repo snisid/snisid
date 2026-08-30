@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: terr-svc
+  namespace: snisid-core
+  labels:
+    app: terr-svc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8098
+    targetPort: 8098
+    protocol: TCP
+    name: http
+  selector:
+    app: terr-svc

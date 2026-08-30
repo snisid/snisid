@@ -1,0 +1,282 @@
+# SNISID — Loki : Log Aggregation Nationale
+# Classification: SECRET
+# Cluster: snisid-obs (Tier-3, read-only depuis autres tiers)
+# Backend: S3 Ceph RGW (tenant snisid-logs)
+
+loki:
+  enabled: true
+  commonConfig:
+    replication_factor: 3
+  storage:
+    type: s3
+    s3:
+      endpoint: s3.interne.snisid.gouv.local
+      region: national
+      bucketnames: snisid-logs-loki-chunks
+      access_key_id: ${LOKI_S3_ACCESS_KEY}  # Vault-injected
+      secret_access_key: ${LOKI_S3_SECRET_KEY}
+      s3forcepathstyle: true
+      insecure: false
+      http_config:
+        tls_config:
+          ca_file: /etc/ssl/certs/snisid-ca.crt
+  schemaConfig:
+    configs:
+      - from: "2026-01-01"
+        store: boltdb-shipper
+        object_store: s3
+        schema: v12
+        index:
+          prefix: loki_index_
+          period: 24h
+  limits_config:
+    enforce_metric_name: false
+    reject_old_samples: true
+    reject_old_samples_max_age: 168h
+    ingestion_rate_mb: 16
+    ingestion_burst_size_mb: 32
+    per_stream_rate_limit: 3MB
+    per_stream_rate_limit_burst: 15MB
+    retention_period: 30d  # Hot retention
+    max_query_lookback: 365d  # Warm via Ceph lifecycle
+    max_query_series: 10000
+    max_query_parallelism: 32
+  
+  # Multi-tenancy national
+  auth_enabled: true
+  tenant_id: "snisid-national"
+
+  # Compaction & index
+  compactor:
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
+    compaction_interval: 10m
+    shared_store: s3
+
+  # Querier HA
+  querier:
+    max_concurrent: 4
+    query_timeout: 300s
+
+  # Distributor
+  distributor:
+    ring:
+      kvstore:
+        store: memberlist
+
+  # Ingester
+  ingester:
+    lifecycler:
+      ring:
+        replication_factor: 3
+        kvstore:
+          store: memberlist
+      final_sleep: 0s
+    chunk_idle_period: 1h
+    chunk_retain_period: 30s
+    max_transfer_retries: 0
+    wal:
+      dir: /loki/wal
+      flush_on_shutdown: true
+
+  # Ruler (alerting sur logs)
+  ruler:
+    alertmanager_url: http://alertmanager.snisid-obs.svc.cluster.local:9093
+    ring:
+      kvstore:
+        store: memberlist
+    rule_path: /loki/rules
+    storage:
+      type: local
+      local:
+        directory: /loki/rules
+    enable_api: true
+
+# Deployment mode: Simple Scalable (read/write/backend)
+deploymentMode: SimpleScalable
+
+backend:
+  replicas: 3
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: ceph-rbd-tier3
+  resources:
+    requests:
+      memory: 4Gi
+      cpu: 1000m
+    limits:
+      memory: 8Gi
+      cpu: 4000m
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+read:
+  replicas: 3
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 500m
+    limits:
+      memory: 4Gi
+      cpu: 2000m
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+write:
+  replicas: 3
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 500m
+    limits:
+      memory: 4Gi
+      cpu: 2000m
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# Memcached caches
+cache:
+  enabled: true
+  type: memcached
+  chunksCache:
+    enabled: true
+    replicas: 2
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 250m
+  resultsCache:
+    enabled: true
+    replicas: 2
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 100m
+
+# Promtail (agents log collection sur tous les nœuds)
+promtail:
+  enabled: true
+  config:
+    clients:
+      - url: http://loki-gateway.snisid-obs.svc.cluster.local/loki/api/v1/push
+        tenant_id: snisid-national
+        batchwait: 1s
+        batchsize: 1048576
+        tls_config:
+          ca_file: /etc/ssl/certs/snisid-ca.crt
+    snippets:
+      pipelineStages:
+        - cri: {}
+        - json:
+            expressions:
+              level: log.level
+              service_name: service.name
+              trace_id: snisid.gov.trace_id
+        - labels:
+            level:
+            service_name:
+        - timestamp:
+            source: timestamp
+            format: RFC3339Nano
+    scrapeConfigs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - snisid-core
+                - snisid-identity
+                - snisid-bpmn
+                - snisid-data
+                - snisid-cyber
+                - snisid-obs
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_label_snisid_gov_tier]
+            target_label: tier
+          - source_labels: [__meta_kubernetes_pod_label_snisid_gov_service]
+            target_label: service
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 0  # Required for journald access (hardened via AppArmor/Seccomp)
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+      add:
+        - DAC_READ_SEARCH
+
+# Gateway (nginx ingress to Loki)
+gateway:
+  enabled: true
+  replicas: 2
+  basicAuth:
+    enabled: true
+    username: loki-gateway  # Vault-injected
+    password: ${LOKI_GATEWAY_PASSWORD}
+  ingress:
+    enabled: true
+    ingressClassName: cilium
+    hosts:
+      - host: loki.national.snisid.gouv.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: loki-gateway-tls
+        hosts:
+          - loki.national.snisid.gouv.local
+
+# Monitoring
+monitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      snisid.gov/service: prometheus
+      snisid.gov/tier: tier-3
+  selfMonitoring:
+    enabled: true
+    grafanaAgent:
+      installOperator: false
+  lokiCanary:
+    enabled: true
+    replicas: 1
+
+# Affinity & Topology
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: loki
+        topologyKey: kubernetes.io/hostname

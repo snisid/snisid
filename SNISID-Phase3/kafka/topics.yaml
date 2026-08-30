@@ -1,0 +1,267 @@
+---
+# SNISID — National Kafka Event Mesh
+# Topics declarative configuration (managed via GitOps / Strimzi)
+apiVersion: snisid.gouv.ht/v1
+kind: KafkaTopicsCatalog
+metadata:
+  name: snisid-national-mesh
+  cluster: snisid-prod
+spec:
+  defaults:
+    replicationFactor: 3
+    minInSyncReplicas: 2
+    cleanupPolicy: delete
+    retentionMs: 31536000000  # 1 an
+    compressionType: zstd
+
+  topics:
+    # ============ CIVIL REGISTRY ============
+    - name: civil-registry.birth.declared.v1
+      partitions: 24
+      retentionMs: 315360000000  # 10 ans
+      criticality: CRITICAL
+    - name: civil-registry.birth.created.v1
+      partitions: 24
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: civil-registry.birth.recognized.v1
+      partitions: 12
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: civil-registry.birth.late-regularized.v1
+      partitions: 12
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: civil-registry.death.registered.v1
+      partitions: 24
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: civil-registry.death.disaster.v1
+      partitions: 24
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: civil-registry.disappearance.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: civil-registry.marriage.civil.registered.v1
+      partitions: 12
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: civil-registry.marriage.judicial.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: civil-registry.marriage.religious.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: civil-registry.divorce.administrative.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: civil-registry.divorce.judicial.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: civil-registry.adoption.national.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: civil-registry.adoption.international.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: HIGH
+
+    # ============ IDENTITY ============
+    - name: identity.enrollment.started.v1
+      partitions: 24
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: identity.enrolled.v1
+      partitions: 24
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: identity.verified.v1
+      partitions: 48
+      retentionMs: 157680000000  # 5 ans
+      criticality: CRITICAL
+    - name: identity.duplicate.detected.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: identity.revoked.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: identity.suspended.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: identity.corrected.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: identity.appeal.opened.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: identity.state
+      partitions: 12
+      cleanupPolicy: compact
+      retentionMs: -1  # infini
+      criticality: CRITICAL
+
+    # ============ JUDICIAL ============
+    - name: judicial.flagged.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: judicial.validated.v1
+      partitions: 12
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: judicial.case.opened.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: judicial.case.closed.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: judicial.order.suspension.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: CRITICAL
+    - name: judicial.appeal.filed.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: HIGH
+
+    # ============ ELECTIONS ============
+    - name: elections.voter.registered.v1
+      partitions: 12
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: elections.voter.validated.v1
+      partitions: 24
+      retentionMs: 157680000000
+      criticality: HIGH
+    - name: elections.candidate.approved.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: elections.results.published.v1
+      partitions: 12
+      retentionMs: 315360000000
+      criticality: HIGH
+
+    # ============ IMMIGRATION ============
+    - name: immigration.entry.recorded.v1
+      partitions: 12
+      retentionMs: 157680000000
+      criticality: HIGH
+    - name: immigration.visa.requested.v1
+      partitions: 6
+      retentionMs: 157680000000
+      criticality: HIGH
+    - name: immigration.deportation.ordered.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: HIGH
+
+    # ============ TAX ============
+    - name: tax.taxpayer.registered.v1
+      partitions: 6
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: tax.declaration.submitted.v1
+      partitions: 12
+      retentionMs: 315360000000
+      criticality: HIGH
+
+    # ============ HEALTH ============
+    - name: health.vaccination.recorded.v1
+      partitions: 6
+      retentionMs: 157680000000
+      criticality: MEDIUM
+    - name: health.epidemic.alert.v1
+      partitions: 3
+      retentionMs: 157680000000
+      criticality: HIGH
+
+    # ============ FRAUD ============
+    - name: fraud.detected.v1
+      partitions: 12
+      retentionMs: 157680000000
+      criticality: HIGH
+    - name: fraud.case.opened.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: HIGH
+    - name: fraud.case.confirmed.v1
+      partitions: 3
+      retentionMs: 315360000000
+      criticality: HIGH
+
+    # ============ SECURITY ============
+    - name: security.alert.raised.v1
+      partitions: 12
+      retentionMs: 157680000000
+      criticality: HIGH
+    - name: security.access.denied.v1
+      partitions: 12
+      retentionMs: 31536000000
+      criticality: HIGH
+    - name: security.policy.violation.v1
+      partitions: 6
+      retentionMs: 157680000000
+      criticality: HIGH
+
+    # ============ AUDIT ============
+    - name: audit.workflow.transition.v1
+      partitions: 24
+      replicationFactor: 3
+      minInSyncReplicas: 3
+      retentionMs: 946080000000  # 30 ans
+      criticality: AUDIT
+    - name: audit.user.action.v1
+      partitions: 24
+      replicationFactor: 3
+      minInSyncReplicas: 3
+      retentionMs: 946080000000
+      criticality: AUDIT
+    - name: audit.data.access.v1
+      partitions: 24
+      replicationFactor: 3
+      minInSyncReplicas: 3
+      retentionMs: 946080000000
+      criticality: AUDIT
+
+    # ============ OFFLINE ============
+    - name: offline.batch.uploaded.v1
+      partitions: 12
+      retentionMs: 31536000000
+      criticality: HIGH
+    - name: offline.conflict.detected.v1
+      partitions: 3
+      retentionMs: 31536000000
+      criticality: HIGH
+    - name: offline.sync.completed.v1
+      partitions: 12
+      retentionMs: 31536000000
+      criticality: HIGH
+
+    # ============ DEAD LETTER QUEUES (template) ============
+    - name: _internal.dlq.civil-registry
+      partitions: 3
+      retentionMs: 7776000000  # 90j
+      criticality: HIGH
+    - name: _internal.dlq.identity
+      partitions: 3
+      retentionMs: 7776000000
+      criticality: HIGH
+    - name: _internal.dlq.judicial
+      partitions: 3
+      retentionMs: 7776000000
+      criticality: HIGH

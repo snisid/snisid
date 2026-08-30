@@ -1,0 +1,62 @@
+# SNISID — Kafka alerts
+groups:
+
+  - name: snisid.kafka
+    rules:
+
+      - alert: KafkaUnderReplicatedPartitions
+        expr: snisid:kafka_under_replicated_partitions:total > 0
+        for: 5m
+        labels:
+          severity: sev1
+          team: platform
+          runbook: runbooks/02-kafka-outage.md
+        annotations:
+          summary: "🔥 Kafka under-replicated partitions = {{ $value }}"
+
+      - alert: KafkaBrokerDown
+        expr: count(kafka_server_brokerstate) < 6   # DC1 minimum
+        for: 2m
+        labels:
+          severity: sev1
+          team: platform
+          page: 'true'
+        annotations:
+          summary: "🚨 Un broker Kafka manque"
+
+      - alert: KafkaConsumerLagHigh
+        expr: snisid:kafka_consumer_lag:max > 10000
+        for: 10m
+        labels:
+          severity: sev2
+          team: platform
+        annotations:
+          summary: "📥 Lag élevé : {{ $labels.group }} sur {{ $labels.topic }} = {{ $value }} msg"
+
+      - alert: KafkaConsumerLagCritical
+        expr: snisid:kafka_consumer_lag:max > 100000
+        for: 5m
+        labels:
+          severity: sev1
+          team: platform
+          page: 'true'
+        annotations:
+          summary: "🚨 Lag CRITIQUE : {{ $labels.group }}/{{ $labels.topic }} = {{ $value }} msg"
+
+      - alert: KafkaISRShrinks
+        expr: snisid:kafka_isr_shrinks:rate5m > 0.1
+        for: 5m
+        labels:
+          severity: sev2
+          team: platform
+        annotations:
+          summary: "⚠️ ISR shrinks anormaux sur Kafka"
+
+      - alert: SchemaRegistryDown
+        expr: up{job="schema-registry"} == 0
+        for: 2m
+        labels:
+          severity: sev1
+          team: platform
+        annotations:
+          summary: "📚 Schema Registry HS"

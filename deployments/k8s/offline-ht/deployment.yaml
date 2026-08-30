@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: offline-ht
+  namespace: snisid-core
+  labels:
+    app: offline-ht
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: offline-ht
+  template:
+    metadata:
+      labels:
+        app: offline-ht
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8211"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: offline-ht
+        image: snisid/offline-ht:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8211
+        env:
+        - name: OFFLINE_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-host
+        - name: OFFLINE_DB_PORT
+          value: "26257"
+        - name: OFFLINE_DB_NAME
+          value: "snisid_offline"
+        - name: OFFLINE_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: snisid-db-credentials
+              key: cockroach-user
+        - name: OFFLINE_DB_SSLMODE
+          value: "disable"
+        - name: OFFLINE_KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: OFFLINE_SERVICE_PORT
+          value: "8211"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8211
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8211
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

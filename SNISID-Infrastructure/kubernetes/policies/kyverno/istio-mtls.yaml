@@ -1,0 +1,68 @@
+# SNISID — Kyverno Policy : Istio mTLS Enforcement
+# Classification: SECRET
+# Application: All namespaces (except kube-system, observability, istio-system)
+# Rationale: Aucune communication inter-service sans mTLS STRICT.
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: snisid-enforce-istio-mtls
+  annotations:
+    snisid.gouv.local/classification: "SECRET"
+    policies.kyverno.io/title: "SNISID Istio mTLS Strict Enforcement"
+    policies.kyverno.io/severity: "critical"
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-peerauthentication-strict
+      match:
+        resources:
+          kinds:
+            - Namespace
+          selector:
+            matchExpressions:
+              - key: snisid.gov.mtls-exempt
+                operator: DoesNotExist
+      validate:
+        message: "SNISID ERROR: Chaque namespace doit contenir un PeerAuthentication en mode STRICT."
+        deny:
+          conditions:
+            all:
+              - key: "{{ request.object.metadata.labels || `[]` }}"
+                operator: AnyNotIn
+                value:
+                  - "istio-injection=enabled"
+    - name: require-sidecar-injection
+      match:
+        resources:
+          kinds:
+            - Namespace
+          selector:
+            matchExpressions:
+              - key: snisid.gov.mtls-exempt
+                operator: DoesNotExist
+      validate:
+        message: "SNISID ERROR: Tous les namespaces doivent avoir le label istio-injection=enabled."
+        pattern:
+          metadata:
+            labels:
+              istio-injection: "enabled"
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: snisid-mesh-wide-strict
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+---
+# Par défaut : DENY all traffic — chaque namespace doit expliciter ses ALLOW
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: snisid-default-deny-all
+  namespace: istio-system
+spec:
+  {}

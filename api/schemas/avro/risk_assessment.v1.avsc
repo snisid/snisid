@@ -1,0 +1,36 @@
+{
+  "namespace": "snisid.risk.v1",
+  "type": "record",
+  "name": "RiskAssessmentReport",
+  "fields": [
+    {
+      "name": "header",
+      "type": {
+        "type": "record",
+        "name": "EventHeader",
+        "fields": [
+          {"name": "eventId", "type": "string"},
+          {"name": "correlationId", "type": "string"},
+          {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"}
+        ]
+      }
+    },
+    {"name": "identityId", "type": "string"},
+    {"name": "overallRiskScore", "type": "int"},
+    {"name": "riskLevel", "type": "string"},
+    {
+      "name": "modelBreakdown",
+      "type": {
+        "type": "map",
+        "values": "int"
+      }
+    },
+    {
+      "name": "explanationChain",
+      "type": {
+        "type": "array",
+        "items": "string"
+      }
+    }
+  ]
+}

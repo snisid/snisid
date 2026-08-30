@@ -1,0 +1,55 @@
+{{- if .Values.cilium.enabled }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sniside-microseg
+  namespace: sniside
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: sniside
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: kong
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app: neo4j
+      toPorts:
+        - ports:
+            - port: "7687"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: sniside
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: kafka
+      toPorts:
+        - ports:
+            - port: "9092"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sniside-db-isolation
+  namespace: sniside
+spec:
+  endpointSelector:
+    matchLabels:
+      app: postgresql
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: sniside
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+{{- end }}

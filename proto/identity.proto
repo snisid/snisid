@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package identity;
+
+option go_package = "github.com/snisid/platform/proto/identity";
+
+service IdentityService {
+  rpc GetIdentity (IdentityRequest) returns (IdentityResponse);
+  rpc MatchIdentity (MatchRequest) returns (MatchResponse);
+}
+
+message IdentityRequest {
+  string id = 1;
+}
+
+message IdentityResponse {
+  string id = 1;
+  string oni = 2;
+  string dgi = 3;
+  float risk_score = 4;
+}
+
+message MatchRequest {
+  bytes biometric_vector = 1;
+}
+
+message MatchResponse {
+  string id = 1;
+  float confidence = 2;
+}

@@ -1,0 +1,41 @@
+{
+  "evaluation_timestamp": "2026-05-24T21:46:00Z",
+  "css_file_found": true,
+  "colors_audited": {
+    "#0d1b2a": {
+      "description": "Background Principal",
+      "found": true
+    },
+    "#1565c0": {
+      "description": "Accent Primaire",
+      "found": true
+    },
+    "#00bcd4": {
+      "description": "Accent Secondaire",
+      "found": true
+    },
+    "#2e7d32": {
+      "description": "Statut OK",
+      "found": true
+    },
+    "#e65100": {
+      "description": "Alerte",
+      "found": true
+    },
+    "#c62828": {
+      "description": "Critique",
+      "found": true
+    },
+    "#eceff1": {
+      "description": "Texte Principal",
+      "found": true
+    },
+    "#1e3a5f": {
+      "description": "Surface Cards",
+      "found": true
+    }
+  },
+  "high_contrast_class_found": true,
+  "watermark_class_found": true,
+  "compliance_status": "PASSED"
+}

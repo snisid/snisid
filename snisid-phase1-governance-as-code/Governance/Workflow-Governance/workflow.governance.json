@@ -1,0 +1,30 @@
+{
+  "document": "National Workflow Governance Office",
+  "version": "1.0.0",
+  "rule": "Aucun workflow ne doit entrer en production sans validation.",
+  "office": {
+    "name": "National Workflow Governance Office",
+    "authority": "Validation, versioning, audit et standards des workflows nationaux",
+    "reports_to": "Direction Générale SNISID",
+    "veto_conditions": [
+      "absence de BPMN validé",
+      "SLA non défini",
+      "absence de propriétaire métier",
+      "absence d'avis juridique si données sensibles",
+      "absence de logs/audit",
+      "risque cyber non traité"
+    ]
+  },
+  "responsibilities": [
+    {"domain": "BPMN", "function": "Standards"},
+    {"domain": "SLA", "function": "Contrôle"},
+    {"domain": "Workflow Validation", "function": "Qualité"},
+    {"domain": "Workflow Audit", "function": "Contrôle"},
+    {"domain": "Workflow Versioning", "function": "Gouvernance"},
+    {"domain": "Workflow Legal Review", "function": "Juridique"}
+  ],
+  "production_gate": {
+    "required_approvals": ["Business Owner", "Workflow Governance Office", "Cybersecurity", "Legal & Compliance", "Audit Office", "Platform Ops"],
+    "required_artifacts": ["BPMN diagram", "SLA", "RACI", "Data classification", "API contract", "Audit logging plan", "Rollback plan"]
+  }
+}

@@ -1,0 +1,66 @@
+# SNISID — ArgoCD : National Identity Application (Vault + IAM)
+# Classification: TOP-SECRET
+# Cluster: snisid-identity (Tier-0)
+# Source: Git national, branch main, path helm/snisid-identity
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snisid-identity-vault
+  namespace: argocd
+  labels:
+    snisid.gov.tier: "tier-0"
+    snisid.gov.region: "core"
+    snisid.gov.service: "identity-vault"
+    snisid.gov.owner: "equipe-identity"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    snisid.gov.data-classification: "top-secret"
+finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: snisid-national
+  source:
+    repoURL: "https://git.interne.snisid.gouv.local/infrastructure/national.git"
+    targetRevision: "main"
+    path: "helm/snisid-identity"
+    helm:
+      valueFiles:
+        - "values-core-prod.yaml"
+      parameters:
+        - name: "vault.ha.raft.replicas"
+          value: "5"
+        - name: "vault.ha.raft.config.hsm.lib"
+          value: "/usr/lib/libCryptoki2_64.so"
+        - name: "image.registry"
+          value: "registry.interne.snisid.gouv.local"
+  destination:
+    server: "https://api.identity.snisid.gouv.local:6443"
+    namespace: snisid-identity
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 60s
+        factor: 2
+        maxDuration: 15m
+    managedNamespaceMetadata:
+      labels:
+        istio-injection: enabled
+        snisid.gov.tier: tier-0
+        snisid.gov.region: core
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      jsonPointers:
+        - /spec/replicas
+  revisionHistoryLimit: 10

@@ -1,0 +1,43 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sniside-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: sniside
+  namespaceSelector:
+    matchNames:
+      - sniside
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sniside-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: sniside
+      rules:
+        - alert: HighErrorRate
+          expr: rate(sniside_events_total{topic=~".*"}[5m]) > 0.1
+          for: 5m
+          labels: {severity: critical}
+          annotations: {summary: "High event processing error rate"}
+        - alert: ServiceDown
+          expr: up{namespace="sniside"} == 0
+          for: 1m
+          labels: {severity: critical}
+          annotations: {summary: "Service {{ $labels.app }} is down"}
+        - alert: HighLatency
+          expr: histogram_quantile(0.95, rate(sniside_event_latency_seconds_bucket[5m])) > 2
+          for: 5m
+          labels: {severity: warning}
+          annotations: {summary: "High event processing latency"}
+{{- end }}

@@ -1,0 +1,23 @@
+{
+  "name": "SNISID: Lateral Movement to Database via Compromised VPN",
+  "description": "Detects a sequence where a user fails VPN/IAM authentication multiple times, subsequently succeeds, and immediately executes sensitive DML/DDL against the Database.",
+  "type": "eql",
+  "risk_score": 85,
+  "severity": "critical",
+  "index": [
+    "snisid-auth-*",
+    "snisid-audit-*"
+  ],
+  "query": "sequence by user.name with maxspan=15m\n  [ authentication where event.outcome == \"failure\" and event.module == \"keycloak\" ]\n  [ authentication where event.outcome == \"success\" and event.module == \"keycloak\" ]\n  [ event where event.category == \"database\" and event.action in (\"DROP\", \"ALTER\", \"DELETE\", \"TRUNCATE\") ]",
+  "language": "eql",
+  "throttle": "no_actions",
+  "actions": [
+    {
+      "group": "default",
+      "id": "pagerduty-webhook",
+      "params": {
+        "message": "Critical Lateral Movement Detected for user {{user.name}}."
+      }
+    }
+  ]
+}
