@@ -1,0 +1,21 @@
+# Pilier 03 : MESH Autonome - Réseau de Survie Totale
+
+## Description
+Réseau de communication décentralisé permettant à SNISID de fonctionner sans internet ni électricité centrale.
+
+## Technologies
+- **Radio Longue Distance** : LoRaWAN mesh network
+- **Nœuds Autonomes** : Raspberry Pi + panneaux solaires
+- **Protocole Hors-Ligne** : Synchronisation différée cryptée
+- **Résilience** : 72h d'autonomie minimale
+
+## Cas d'Usage
+- Blackout national
+- Catastrophe naturelle
+- Attaque cybernétique majeure
+- Zones rurales isolées
+
+## Déploiement
+- 10 hubs régionaux
+- 500 nœuds locaux
+- Couverture nationale complète

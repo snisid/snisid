@@ -1,0 +1,44 @@
+# SNISID - Architecture Maîtresse v4.0
+
+## Vision
+Système National d'Identification Sécurisée et d'Interopérabilité Digitale
+- **Objectif** : Infrastructure d'identité numérique souveraine pour Haïti
+- **Population Cible** : 12 millions de citoyens
+- **Durée de Vie** : 100+ ans
+
+## Standards Intégrés
+| Source | Standard | Application |
+|--------|----------|-------------|
+| USA (NSA/FBI) | STIG, Zero Trust, DataWave | Hardening, Entity Resolution |
+| Chine (CNSA) | MLPS 2.0, SM2/SM3/SM4 | Crypto souveraine |
+| International | ISO 27001, FIPS 140-2 | Certifications |
+
+## Structure du Système
+```
+SNISID/
+├── CORE_SYSTEM/          # OS bootable, sécurité AEGIS/JUDAS
+├── MODULES_SECTORIELS/   # 8 domaines (Police, Armée, etc.)
+├── PILLIERS_ULTIMES/     # 5 piliers stratégiques
+├── INTEGRATIONS_GLOBALES/# Outils NSA, OSINT, Chine
+├── INFRASTRUCTURE/       # Datacenters, énergie, HSM
+├── INSTALLER/            # Scripts de déploiement
+└── DOCUMENTATION/        # Manuels techniques
+```
+
+## Identifiants Uniques
+- **CIN** : 9 caractères alphanumériques (Carte d'Identification Nationale)
+- **NIU** : 10 chiffres (Numéro Identification Unique à vie)
+
+## Sécurité
+- Chiffrement : AES-512-XTS + LUKS2
+- Authentification : Biométrie 3 facteurs (visage, empreintes, iris)
+- Audit : Blockchain privée immuable
+- Anti-Corruption : Module JUDAS avec alertes 15min
+
+## Déploiement
+- Phase 0 : 6 mois (Fondations)
+- Phase 1 : 6 mois (Pilote Port-au-Prince)
+- Phase 2 : 12 mois (10 hubs régionaux)
+- Phase 3 : 12 mois (Couverture nationale)
+
+**Classification** : TOP SECRET / NOFORN - Gouvernement Haïtien © 2024

@@ -1,0 +1,55 @@
+# Configuration GitHub - SNISID
+
+## Clé SSH Générée
+Une clé SSH Ed25519 a été créée pour l'authentification sécurisée :
+- **Fichier privé** : `/root/.ssh/snisid_github`
+- **Fichier public** : `/root/.ssh/snisid_github.pub`
+- **Empreinte** : `SHA256:qKFxmxzRcOJ0ho9aMDghrN6DSlYu2cR7Z8cvO/m9OaY`
+
+## Étapes de Configuration
+
+### 1. Ajouter la clé SSH à GitHub
+```bash
+# Copier la clé publique
+cat /root/.ssh/snisid_github.pub
+
+# Aller sur GitHub → Settings → SSH and GPG keys → New SSH key
+# Coller la clé et nommer "SNISID Production"
+```
+
+### 2. Configurer le dépôt distant
+```bash
+# Remplacer <USERNAME> par votre utilisateur GitHub
+git remote add origin git@github.com:<USERNAME>/SNISID.git
+
+# Vérifier la connexion
+ssh -T git@github.com
+```
+
+### 3. Pousser le code
+```bash
+git push -u origin main
+```
+
+### 4. Protection de la branche main
+Sur GitHub, activer :
+- ✅ Require pull request reviews
+- ✅ Require status checks
+- ✅ Include administrators
+- ✅ Require linear history
+- ✅ Allow force pushes: ❌ (désactivé)
+
+## Structure du Dépôt
+```
+SNISID/
+├── CORE_SYSTEM/           # OS bootable, sécurité
+├── MODULES_SECTORIELS/    # 8 domaines opérationnels
+├── PILLIERS_ULTIMES/      # 5 piliers stratégiques
+├── INTEGRATIONS_GLOBALES/ # NSA, OSINT, Chine
+├── INFRASTRUCTURE/        # Datacenters, énergie
+├── INSTALLER/             # Scripts déploiement
+└── DOCUMENTATION/         # Manuels techniques
+```
+
+## Classification
+**TOP SECRET / NOFORN** - Gouvernement Haïtien © 2024

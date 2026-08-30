@@ -1,0 +1,23 @@
+# Pilier 05 : Protocole Phénix - Immortalité de l'État
+
+## Description
+Système de continuité gouvernementale assurant la reprise automatique de SNISID en cas de décapitation du pouvoir.
+
+## Mécanisme
+- **Clés Fragmentées** : Shamir Secret Sharing (3/5 requis)
+- **Stockage Distribué** : Coffres en Haïti et à l'étranger
+- **Dead Man Switch** : Activation automatique si silence > 48h
+- **Reconstruction Auto** : Repartitionnement des nœuds survivants
+
+## Scénarios Couverts
+- Assassinat du leadership
+- Coup d'État
+- Catastrophe nationale majeure
+- Guerre civile
+
+## Procédure d'Activation
+1. Détection de la perte de commandement
+2. Alertes aux 5 gardiens des clés
+3. Réunion dans un bunker sécurisé
+4. Reconstruction de la clé maîtresse
+5. Reprise du système depuis un site miroir

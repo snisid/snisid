@@ -1,0 +1,185 @@
+# =============================================================================
+# SNISID - .gitignore CRITIQUE POUR SÉCURITÉ NATIONALE
+# Classification: TOP SECRET / NOFORN
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SYSTÈME WINDOWS (NE JAMAIS COMMITTER)
+# -----------------------------------------------------------------------------
+AppData/
+NTUSER.*
+ntuser.*
+Desktop/
+Documents/
+Downloads/
+Pictures/
+Music/
+Videos/
+Favorites/
+Contacts/
+Links/
+Searches/
+Saved Games/
+OneDrive/
+.vscode/
+.vscode-shared/
+Thumbs.db
+desktop.ini
+*.lnk
+
+# -----------------------------------------------------------------------------
+# CLÉS DE SÉCURITÉ ET SECRETS (CRITIQUE - RISQUE NATIONAL)
+# -----------------------------------------------------------------------------
+*.pem
+*.key
+*.p12
+*.pfx
+id_ed25519
+id_ed25519.pub
+id_rsa
+id_rsa.pub
+.ssh/
+private/
+secrets/
+vault/
+*.crt
+*.cer
+ca.crt
+ca.key
+
+# -----------------------------------------------------------------------------
+# FICHIERS DE CONFIGURATION LOCALE AVEC SECRETS
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.production
+.secrets
+credentials.json
+service-account.json
+config.local.yml
+application-local.properties
+aws/
+.azure/
+.gcp/
+
+# -----------------------------------------------------------------------------
+# LOGS ET CACHE LOCAUX
+# -----------------------------------------------------------------------------
+.bash_history
+.history
+.cache/
+.local/
+.tmp/
+temp/
+tmp/
+*.log
+*.logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -----------------------------------------------------------------------------
+# ENVIRONNEMENTS DE DÉVELOPPEMENT
+# -----------------------------------------------------------------------------
+node_modules/
+vendor/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.go/
+bin/
+obj/
+*.dll
+*.exe
+*.so
+*.dylib
+
+# -----------------------------------------------------------------------------
+# IDE ET ÉDITEURS
+# -----------------------------------------------------------------------------
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# -----------------------------------------------------------------------------
+# SYSTÈMES DE FICHIERS ET MÉTADONNÉES
+# -----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+DB Thumbs.db
+
+# -----------------------------------------------------------------------------
+# CONTENEURS ET VIRTUALISATION
+# -----------------------------------------------------------------------------
+.docker/
+.vagrant/
+*.ova
+*.vmdk
+*.vdi
+*.qcow2
+
+# -----------------------------------------------------------------------------
+# BASES DE DONNÉES LOCALES
+# -----------------------------------------------------------------------------
+*.sql.dump
+*.sqlite
+*.sqlite3
+*.db
+data/local/
+db/local/
+
+# -----------------------------------------------------------------------------
+# RAPPORTS D'EXÉCUTION LOCAUX (CONTIENT DONNÉES SENSIBLES)
+# -----------------------------------------------------------------------------
+bashs_execution_reports
+execution_reports.md
+test-results/
+coverage/
+
+# -----------------------------------------------------------------------------
+# DOSSIERS PERSONNELS UTILISATEUR (WINDOWS)
+# -----------------------------------------------------------------------------
+G0DM0D3/
+ZCodeProject/
+daios/
+mon-projet/
+my\ docucment/
+go/
+.minikube/
+.obs64/
+.copilot/
+.claude/
+.aws/
+.config/
+
+# -----------------------------------------------------------------------------
+# EXCEPTIONS: FICHIERS À INCLURE MALGRÉ TOUT
+# -----------------------------------------------------------------------------
+!README.md
+!EXECUTION_REPORT_SNISID_v4.0.md.code
+!docs/**/*
+!config/network/*.yml
+!config/database/*.yml
+!config/encryption/*.yml
+
+# -----------------------------------------------------------------------------
+# NOTE DE SÉCURITÉ
+# -----------------------------------------------------------------------------
+# AVANT TOUT COMMIT, VÉRIFIER AVEC: git status
+# AUCUN FICHIER CONTENANT DES CLÉS PRIVÉES NE DOIT ÊTRE COMMITTÉ
+# EN CAS DE DOUTE, CONSULTER LE DIRECTEUR CENTRAL SNISID
+# =============================================================================

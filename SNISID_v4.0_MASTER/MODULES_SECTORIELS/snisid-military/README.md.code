@@ -1,0 +1,23 @@
+# SNISID Military - Module de Défense Nationale (Niveau NSA)
+
+## Vue d'ensemble
+Système de renseignement et de défense pour les Forces Armées d'Haïti, équivalent aux outils de la NSA américaine.
+
+## Fonctionnalités Principales
+- **Géolocalisation Satellite** : Suivi en temps réel des mouvements
+- **Analyse de Signatures Électroniques** : Détection de communications ennemies
+- **Reconnaissance de Mouvements de Troupes** : IA prédictive
+- **Interception de Communications** : Module "Écoute Globale"
+- **Forteresse Quantique** : Chiffrement post-quantique
+
+## Intégrations
+- OSINT Collection avancée
+- NSA Emissary & MAAT
+- Standards chinois MLPS 2.0
+
+## Commandes
+```bash
+./satellite-tracking.sh
+./signals-intelligence.sh
+./quantum-encryption.sh
+```

@@ -1,0 +1,27 @@
+# SNISID Police - Module Anti-Banditisme et Anti-Kidnapping
+
+## Vue d'ensemble
+Module de sécurité pour la Police Nationale d'Haïti (PNH) intégrant les standards du FBI et DEA.
+
+## Fonctionnalités Principales
+- **Entity Resolution** : Fusion d'identités et détection de doublons
+- **Surveillance Temps Réel** : Dashboard style XKeyscore
+- **Gestion des Kidnappings** : Bouton d'urgence, géolocalisation précise
+- **Analyse de Liens** : Détection de réseaux criminels (style Palantir Gotham)
+- **Reconnaissance Biométrique** : Visage, empreintes, iris en temps réel
+
+## Intégrations
+- Base ONI (CIN/NIU)
+- OSINT Collection (cipher387)
+- NSA DataWave
+
+## Sécurité
+- Chiffrement AES-512
+- Audit immuable blockchain
+- Module JUDAS anti-corruption
+
+## Commandes
+```bash
+./entity-resolution.sh
+./surveillance-dashboard.sh
+```
