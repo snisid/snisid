@@ -42,28 +42,28 @@ func (s *DNAMilvusSearcher) EnsureCollection(ctx context.Context) error {
 				TypeParams: map[string]string{"max_length": "128"},
 			},
 			{
-				Name:     "niu",
-				DataType: entity.FieldTypeVarChar,
+				Name:       "niu",
+				DataType:   entity.FieldTypeVarChar,
 				TypeParams: map[string]string{"max_length": "10"},
 			},
 			{
-				Name:     "profile_type",
-				DataType: entity.FieldTypeVarChar,
+				Name:       "profile_type",
+				DataType:   entity.FieldTypeVarChar,
 				TypeParams: map[string]string{"max_length": "50"},
 			},
 			{
-				Name:     "case_reference",
-				DataType: entity.FieldTypeVarChar,
+				Name:       "case_reference",
+				DataType:   entity.FieldTypeVarChar,
 				TypeParams: map[string]string{"max_length": "100"},
 			},
 			{
-				Name:     "status",
-				DataType: entity.FieldTypeVarChar,
+				Name:       "status",
+				DataType:   entity.FieldTypeVarChar,
 				TypeParams: map[string]string{"max_length": "30"},
 			},
 			{
-				Name:     "submitting_agency",
-				DataType: entity.FieldTypeVarChar,
+				Name:       "submitting_agency",
+				DataType:   entity.FieldTypeVarChar,
 				TypeParams: map[string]string{"max_length": "100"},
 			},
 			{
@@ -87,12 +87,18 @@ func (s *DNAMilvusSearcher) EnsureCollection(ctx context.Context) error {
 		return fmt.Errorf("create dna collection: %w", err)
 	}
 
-	idx := entity.NewIndexIvfFlat(entity.L2, 128)
+	idx, err := entity.NewIndexIvfFlat(entity.L2, 128)
+	if err != nil {
+		return fmt.Errorf("create ivf_flat index spec for dna_embedding: %w", err)
+	}
 	if err := s.client.CreateIndex(ctx, DNACollectionName, "dna_embedding", idx, false); err != nil {
 		return fmt.Errorf("create dna embedding index: %w", err)
 	}
 
-	locusIdx := entity.NewIndexIvfFlat(entity.L2, 64)
+	locusIdx, err := entity.NewIndexIvfFlat(entity.L2, 64)
+	if err != nil {
+		return fmt.Errorf("create ivf_flat index spec for locus_scores: %w", err)
+	}
 	if err := s.client.CreateIndex(ctx, DNACollectionName, "locus_scores", locusIdx, false); err != nil {
 		return fmt.Errorf("create locus scores index: %w", err)
 	}
@@ -101,22 +107,22 @@ func (s *DNAMilvusSearcher) EnsureCollection(ctx context.Context) error {
 }
 
 type DNAProfileVector struct {
-	ProfileID         string
-	NIU               string
-	ProfileType       string
-	CaseReference     string
-	Status            string
-	SubmittingAgency  string
-	DNAEmbedding      []float32
-	LocusScores       []float32
+	ProfileID        string
+	NIU              string
+	ProfileType      string
+	CaseReference    string
+	Status           string
+	SubmittingAgency string
+	DNAEmbedding     []float32
+	LocusScores      []float32
 }
 
 type DNAMatchResult struct {
-	ProfileID        string
-	NIU              string
-	CaseReference    string
-	Score            float32
-	MatchType        string
+	ProfileID     string
+	NIU           string
+	CaseReference string
+	Score         float32
+	MatchType     string
 }
 
 func (s *DNAMilvusSearcher) UpsertProfile(ctx context.Context, profile *DNAProfileVector) error {
@@ -142,7 +148,7 @@ func (s *DNAMilvusSearcher) SearchByEmbedding(ctx context.Context, queryVector [
 
 	searchParam, err := entity.NewIndexIvfFlatSearchParam(16)
 	if err != nil {
-		return nil, fmt.Errorf("create search param: %w", err)
+		return nil, fmt.Errorf("create ivf_flat search param: %w", err)
 	}
 
 	results, err := s.client.Search(ctx, DNACollectionName,
@@ -161,19 +167,26 @@ func (s *DNAMilvusSearcher) SearchByEmbedding(ctx context.Context, queryVector [
 
 	var matches []DNAMatchResult
 	for _, result := range results {
-		profileIDs, _ := result.Fields.GetColumn("profile_id").GetAsStringData()
-		nius, _ := result.Fields.GetColumn("niu").GetAsStringData()
-		cases, _ := result.Fields.GetColumn("case_reference").GetAsStringData()
-		statuses, _ := result.Fields.GetColumn("status").GetAsStringData()
+		profileIDs, err := varcharColumnData(result.Fields.GetColumn("profile_id"))
+		if err != nil {
+			return nil, fmt.Errorf("read profile_id column: %w", err)
+		}
+		nius, err := varcharColumnData(result.Fields.GetColumn("niu"))
+		if err != nil {
+			return nil, fmt.Errorf("read niu column: %w", err)
+		}
+		cases, err := varcharColumnData(result.Fields.GetColumn("case_reference"))
+		if err != nil {
+			return nil, fmt.Errorf("read case_reference column: %w", err)
+		}
 
 		for i := 0; i < result.ResultCount; i++ {
-			matchType := classifyDNAMatch(result.Scores[i])
 			matches = append(matches, DNAMatchResult{
-				ProfileID:     profileIDs[i],
-				NIU:           nius[i],
-				CaseReference: cases[i],
+				ProfileID:     at(profileIDs, i),
+				NIU:           at(nius, i),
+				CaseReference: at(cases, i),
 				Score:         result.Scores[i],
-				MatchType:     matchType,
+				MatchType:     classifyDNAMatch(result.Scores[i]),
 			})
 		}
 	}
@@ -181,14 +194,20 @@ func (s *DNAMilvusSearcher) SearchByEmbedding(ctx context.Context, queryVector [
 	return matches, nil
 }
 
-func (s *DNAMilvusSearcher) SearchByLocus(ctx context.Context, locusScores []float32, topK int) ([]DNAMatchResult, error) {
+// SearchByLocusScores compares a 24-locus STR score vector against the
+// locus_scores field. Same Milvus SDK v2 contract as services/afis-svc
+// (entity.ColumnVarChar results, error-checked constructors).
+func (s *DNAMilvusSearcher) SearchByLocusScores(ctx context.Context, locusScores []float32, topK int) ([]DNAMatchResult, error) {
+	if len(locusScores) != 24 {
+		return nil, fmt.Errorf("locus scores must contain exactly 24 values, got %d", len(locusScores))
+	}
 	if topK <= 0 {
 		topK = 5
 	}
 
 	searchParam, err := entity.NewIndexIvfFlatSearchParam(16)
 	if err != nil {
-		return nil, fmt.Errorf("create locus search param: %w", err)
+		return nil, fmt.Errorf("create ivf_flat search param: %w", err)
 	}
 
 	results, err := s.client.Search(ctx, DNACollectionName,
@@ -207,21 +226,24 @@ func (s *DNAMilvusSearcher) SearchByLocus(ctx context.Context, locusScores []flo
 
 	var matches []DNAMatchResult
 	for _, result := range results {
-		profileIDCol, _ := result.Fields.GetColumn("profile_id").(*entity.ColumnString)
-		niuCol, _ := result.Fields.GetColumn("niu").(*entity.ColumnString)
-		caseCol, _ := result.Fields.GetColumn("case_reference").(*entity.ColumnString)
-		if profileIDCol == nil || niuCol == nil || caseCol == nil {
-			return nil, fmt.Errorf("unexpected column type in search results")
+		profileIDs, err := varcharColumnData(result.Fields.GetColumn("profile_id"))
+		if err != nil {
+			return nil, fmt.Errorf("read profile_id column: %w", err)
 		}
-		profileIDs := profileIDCol.Data()
-		nius := niuCol.Data()
-		cases := caseCol.Data()
+		nius, err := varcharColumnData(result.Fields.GetColumn("niu"))
+		if err != nil {
+			return nil, fmt.Errorf("read niu column: %w", err)
+		}
+		cases, err := varcharColumnData(result.Fields.GetColumn("case_reference"))
+		if err != nil {
+			return nil, fmt.Errorf("read case_reference column: %w", err)
+		}
 
 		for i := 0; i < result.ResultCount; i++ {
 			matches = append(matches, DNAMatchResult{
-				ProfileID:     profileIDs[i],
-				NIU:           nius[i],
-				CaseReference: cases[i],
+				ProfileID:     at(profileIDs, i),
+				NIU:           at(nius, i),
+				CaseReference: at(cases, i),
 				Score:         result.Scores[i],
 				MatchType:     classifyDNAMatch(result.Scores[i]),
 			})
