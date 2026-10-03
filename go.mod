@@ -1,6 +1,6 @@
 module github.com/snisid/platform
 
-go 1.26.0
+go 1.25.3
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.46.0
