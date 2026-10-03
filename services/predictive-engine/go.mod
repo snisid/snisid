@@ -1,6 +1,6 @@
 module github.com/snisid/platform/services/predictive-engine
 
-go 1.26.0
+go 1.25.3
 
 require (
 	github.com/snisid/platform/backend v0.0.0

@@ -1,6 +1,6 @@
 module github.com/snisid/platform/services/ucref-svc
 
-go 1.25
+go 1.25.3
 
 require (
 	github.com/IBM/sarama v1.43.3

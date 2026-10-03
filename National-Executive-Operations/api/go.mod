@@ -1,3 +1,3 @@
 module snisid/executive-api
 
-go 1.26.2
+go 1.25.3

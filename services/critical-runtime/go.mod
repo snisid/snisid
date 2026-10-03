@@ -1,6 +1,6 @@
 module github.com/snisid/platform/services/critical-runtime
 
-go 1.26.0
+go 1.25.3
 
 require (
 	github.com/gin-gonic/gin v1.10.0

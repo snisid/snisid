@@ -1,6 +1,6 @@
 module github.com/snisid/platform/services/vehicle-alert-svc
 
-go 1.26.0
+go 1.25.3
 
 require (
 	github.com/segmentio/kafka-go v0.4.47

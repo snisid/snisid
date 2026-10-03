@@ -1,31 +1,16 @@
-﻿# Windows system files
-AppData/
-NTUSER.*
-ntuser.*
-Thumbs.db
-desktop.ini
-.vscode/
+# Go workspace and module artifacts
+vendor/
+*.exe
+*.test
+*.out
+coverage.out
+
+# IDE and editor files
 .idea/
-*.log
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
 .DS_Store
-
-# Credentials
-.aws/
-.ssh/
-!.ssh/config
-ed25519
-ed25519.pub
-id_*
-*.pem
-
-# Logs and Temp
-logs/
-tmp/
-temp/
-execution_reports.md
-bashs_execution_reports
-
-# Node/Python
-node_modules/
-__pycache__/
-.env
+Thumbs.db

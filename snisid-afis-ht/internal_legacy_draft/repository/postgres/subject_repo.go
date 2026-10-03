@@ -3,10 +3,10 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/snisid/afis-svc/internal/domain"
+	"github.com/snisid/platform/snisid-afis-ht/internal_legacy_draft/domain"
 )
 
 type SubjectRepository interface {

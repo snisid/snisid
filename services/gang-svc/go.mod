@@ -1,6 +1,6 @@
 module github.com/snisid/platform/services/gang-svc
 
-go 1.26.4
+go 1.25.3
 
 require (
 	github.com/gin-gonic/gin v1.10.0
