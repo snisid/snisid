@@ -5,10 +5,11 @@ et validation des réponses pour le chargement des données dans
 le registre SNISID.
 """
 
+import os
 import time
 import logging
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urljoin
 
 import requests
@@ -20,7 +21,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class LoaderConfig:
-    api_base_url: str = "http://localhost:8081"
+    # On Vercel (services mode), the MIGRATION_TARGET_API_URL binding of the
+    # "scripts-migration" service injects the internal URL of the target API
+    # at runtime. Do not hardcode a host; fall back to env, then local dev.
+    api_base_url: str = field(
+        default_factory=lambda: os.getenv("MIGRATION_TARGET_API_URL", "http://localhost:8081")
+    )
     api_key: str = ""
     batch_size: int = 100
     max_retries: int = 3

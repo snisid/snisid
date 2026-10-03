@@ -35,7 +35,7 @@ func (m *Manager) registerDefaultClients() {
 		ID:           "snisid-web",
 		Secret:       getSecret("SNISID_WEB_SECRET", "snisid-web-secret"),
 		Name:         "SNISID Web Portal",
-		RedirectURIs: []string{getEnv("SNISID_WEB_REDIRECT_URI", "http://localhost:3000/callback")},
+		RedirectURIs: []string{getEnv("SNISID_WEB_REDIRECT_URI", getEnv("SNISID_WEB_URL", "http://localhost:3000")+"/callback")},
 		Scopes:       []string{"openid", "profile", "snisid:identity"},
 		Active:       true,
 	}

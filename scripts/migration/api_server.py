@@ -81,7 +81,7 @@ def _run_pipeline_async(pipeline_id: str, source_type: str, source_path: Optiona
         cleanser = DataCleansingEngine()
         matcher = MatchingEngine()
         checkpoint = CheckpointManager("./checkpoints")
-        loader_cfg = LoaderConfig(api_base_url="http://localhost:8081")
+        loader_cfg = LoaderConfig()  # api_base_url from MIGRATION_TARGET_API_URL binding
         loader = TargetLoader(loader_cfg)
 
         pipeline = ETLPipeline(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -9,12 +10,23 @@ from services.vc.issuer import VCIssuer
 from services.vc.verifier import VCVerifier, VerificationResult
 
 
+def _default_issuer_id() -> str:
+    """Issuer identifier for minted credentials.
+
+    On Vercel (multi-services), the public base URL of this service is
+    injected at runtime; set ``VC_ISSUER_URL`` accordingly (e.g. the
+    project URL). Falls back to a stable DID so nothing depends on a
+    hardcoded localhost address.
+    """
+    return os.getenv("VC_ISSUER_URL", "did:snisid:mainnet:vc-issuer")
+
+
 def create_vc_router(
     issuer: VCIssuer | None = None,
     verifier: VCVerifier | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/v1/vc", tags=["verifiable-credentials"])
-    _issuer = issuer or VCIssuer(issuer_id="http://localhost:8000")
+    _issuer = issuer or VCIssuer(issuer_id=_default_issuer_id())
     _verifier = verifier or VCVerifier()
 
     @router.post("/issue/identity", response_model=dict[str, Any])

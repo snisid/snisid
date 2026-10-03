@@ -14,6 +14,9 @@ type BPMNClient struct {
 }
 
 func NewBPMNClient() *BPMNClient {
+	// On Vercel (services mode), the BPMN_ENGINE_URL binding of this service
+	// injects the internal URL of the target service at runtime.
+	// The legacy docker-compose default is kept for local/dev use only.
 	url := os.Getenv("BPMN_ENGINE_URL")
 	if url == "" {
 		url = "http://workflow-factory-api:8080/engine-rest"

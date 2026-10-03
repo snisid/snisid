@@ -1,0 +1,212 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "backend": {
+      "root": "backend",
+      "framework": "fastapi"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite"
+    },
+    "scripts-migration": {
+      "root": "scripts/migration",
+      "framework": "fastapi",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "sni-side-services",
+          "format": "url",
+          "env": "MIGRATION_TARGET_API_URL"
+        }
+      ]
+    },
+    "national-executive-operations-api": {
+      "root": "National-Executive-Operations/api",
+      "runtime": "go",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "sni-side-services",
+          "format": "url",
+          "env": "BPMN_ENGINE_URL"
+        }
+      ]
+    },
+    "national-sustainability-billing": {
+      "root": "National-Sustainability-Billing",
+      "runtime": "go"
+    },
+    "snisid-mcp": {
+      "root": "snisid mcp",
+      "runtime": "node"
+    },
+    "sni-side-services": {
+      "root": "SNI-SIDE/services",
+      "framework": "fastapi",
+      "entrypoint": "api.main"
+    },
+    "services-audit-service": {
+      "root": "services/audit-service",
+      "runtime": "go"
+    },
+    "services-bio-adn": {
+      "root": "services/bio-adn",
+      "runtime": "go"
+    },
+    "services-id-core": {
+      "root": "services/id-core",
+      "runtime": "go"
+    },
+    "services-identity-provider": {
+      "root": "services/identity-provider",
+      "runtime": "go",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "frontend",
+          "format": "url",
+          "env": "SNISID_WEB_URL"
+        }
+      ]
+    },
+    "services-pki-ht": {
+      "root": "services/pki-ht",
+      "runtime": "go"
+    },
+    "src-services-citizen-registry-service": {
+      "root": "src/services/citizen-registry-service",
+      "runtime": "go"
+    },
+    "src-services-consent-service": {
+      "root": "src/services/consent-service",
+      "runtime": "go"
+    },
+    "src-services-identity-service": {
+      "root": "src/services/identity-service",
+      "runtime": "go"
+    },
+    "snisid-ui": {
+      "root": "snisid-ui",
+      "framework": "vite"
+    },
+    "neo-frontend": {
+      "root": "National-Executive-Operations/frontend",
+      "framework": "vite"
+    },
+    "sni-side-web": {
+      "root": "SNI-SIDE/web",
+      "framework": "vite"
+    },
+    "agent-portal": {
+      "root": "src/frontend/agent-portal",
+      "framework": "vite"
+    },
+    "citizen-portal": {
+      "root": "src/frontend/citizen-portal",
+      "framework": "vite"
+    },
+    "admin-portal": {
+      "root": "src/web/admin-portal",
+      "framework": "vite"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/intelligence/(.*)",
+      "destination": {
+        "service": "sni-side-services"
+      }
+    },
+    {
+      "source": "/neo/api/(.*)",
+      "destination": {
+        "service": "national-executive-operations-api"
+      }
+    },
+    {
+      "source": "/neo/(.*)",
+      "destination": {
+        "service": "neo-frontend"
+      }
+    },
+    {
+      "source": "/billing/(.*)",
+      "destination": {
+        "service": "national-sustainability-billing"
+      }
+    },
+    {
+      "source": "/migration/(.*)",
+      "destination": {
+        "service": "scripts-migration"
+      }
+    },
+    {
+      "source": "/mcp/(.*)",
+      "destination": {
+        "service": "snisid-mcp"
+      }
+    },
+    {
+      "source": "/identity/(.*)",
+      "destination": {
+        "service": "src-services-identity-service"
+      }
+    },
+    {
+      "source": "/registry/(.*)",
+      "destination": {
+        "service": "src-services-citizen-registry-service"
+      }
+    },
+    {
+      "source": "/consent/(.*)",
+      "destination": {
+        "service": "src-services-consent-service"
+      }
+    },
+    {
+      "source": "/ui/(.*)",
+      "destination": {
+        "service": "snisid-ui"
+      }
+    },
+    {
+      "source": "/web/(.*)",
+      "destination": {
+        "service": "sni-side-web"
+      }
+    },
+    {
+      "source": "/portals/agent/(.*)",
+      "destination": {
+        "service": "agent-portal"
+      }
+    },
+    {
+      "source": "/portals/citizen/(.*)",
+      "destination": {
+        "service": "citizen-portal"
+      }
+    },
+    {
+      "source": "/portals/admin/(.*)",
+      "destination": {
+        "service": "admin-portal"
+      }
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ]
+}
