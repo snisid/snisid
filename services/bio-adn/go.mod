@@ -1,6 +1,6 @@
 module github.com/snisid/platform/services/bio-adn
 
-go 1.24
+go 1.25.3
 
 require (
 	github.com/alicebob/miniredis/v2 v2.34.0

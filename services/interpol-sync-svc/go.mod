@@ -1,6 +1,6 @@
 module github.com/snisid/platform/services/interpol-sync-svc
 
-go 1.26.0
+go 1.25.3
 
 require go.uber.org/zap v1.27.0
 

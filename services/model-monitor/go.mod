@@ -1,6 +1,6 @@
 module github.com/snisid/platform/services/model-monitor
 
-go 1.26.0
+go 1.25.3
 
 require (
 	github.com/prometheus/client_golang v1.20.0
