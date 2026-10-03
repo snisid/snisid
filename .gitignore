@@ -14,3 +14,11 @@ coverage.out
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Credentials and environment secrets
+.aws/
+.ssh/
+id_*
+*.pem
+ed25519*
+.env
